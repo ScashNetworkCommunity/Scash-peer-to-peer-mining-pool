@@ -1,3 +1,7 @@
+"""
+BIP-173 Bech32 encoder/decoder for Scash native SegWit addresses (scash1q... / tcash1q...).
+Allows miners to pass scash1... addresses directly to -a or Stratum username.
+"""
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
 def bech32_polymod(values):
@@ -43,12 +47,14 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 def decode_scash_address(addr, expected_hrp='scash'):
-    addr = addr.lower()
+    if not addr:
+        return None, None
+    addr = addr.strip().lower()
     pos = addr.rfind('1')
     if pos < 1 or pos + 7 > len(addr) or len(addr) > 90:
         return None, None
     hrp = addr[:pos]
-    if hrp != expected_hrp:
+    if expected_hrp and hrp != expected_hrp:
         return None, None
     data = [CHARSET.find(x) for x in addr[pos + 1:]]
     if any(x == -1 for x in data) or not bech32_verify_checksum(hrp, data):
@@ -57,3 +63,8 @@ def decode_scash_address(addr, expected_hrp='scash'):
     if decoded is None or len(decoded) != 20:
         return None, None
     return data[0], ''.join(chr(b) for b in decoded)
+
+def encode_scash_address(pubkey_hash_bytes, hrp='scash', witver=0):
+    data = [witver] + convertbits([ord(c) for c in pubkey_hash_bytes], 8, 5, True)
+    checksum = bech32_create_checksum(hrp, data)
+    return hrp + '1' + ''.join(CHARSET[d] for d in data + checksum)
