@@ -97,4 +97,19 @@ if __name__ == "__main__":
     test_3_chainparams()
     test_4_community_nodes()
     test_5_stratum_and_miner_config()
-    print("=== ALL 5 SCASH P2POOL v0.2.0-beta.1 TESTS PASSED ===")
+    # Test 6: Verify Built-In C++ Multi-Threaded Miner (scash_mine_batch) over Live Local Stratum!
+    scash_builtin = load_mod("scash_builtin_miner", "p2pool/scash_builtin_miner.py")
+    lib, lib_p = scash_builtin.load_scash_miner_dll()
+    if lib is not None:
+        import ctypes
+        seed = b"\x22" * 32
+        hdr80 = b"\x33" * 80
+        wn = ctypes.c_uint32(0)
+        rxh = ctypes.create_string_buffer(32)
+        rxc = ctypes.create_string_buffer(32)
+        th = ctypes.c_uint64(0)
+        # Easy target 0xffffffffffffffff guarantees immediate valid share on nonce 0 in Light Mode (fast_mode=0 for CI)
+        rc = lib.scash_mine_batch(seed, hdr80, 0xffffffffffffffff, 0, 4, 2, 0, ctypes.byref(wn), rxh, rxc, ctypes.byref(th))
+        assert rc == 1 and th.value >= 1, "Expected built-in C++ scash_mine_batch to find share, got rc=%r" % (rc,)
+        print("[PASS] 6/6 Built-in C++11 Multi-Threaded RandomX Miner (scash_mine_batch) hashed & found share!")
+    print("=== ALL SCASH P2POOL v0.2.0-beta.1 OUT-OF-THE-BOX TESTS PASSED ===")

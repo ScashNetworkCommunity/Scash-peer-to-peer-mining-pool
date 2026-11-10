@@ -1,1 +1,1 @@
-Place minerd.exe (cpuminer-scash) or xmrigMiner.exe (rx/scash, without WinRing0x64.sys) in this folder for 1-click UI mining.
+Pre-bundled with ScashNetworkCommunity/xmrigCC (compiled from source with -DWITH_MSR=OFF, zero WinRing0x64.sys).

@@ -1,8 +1,9 @@
 """
-Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition).
-Generates miner/config.json and manages a local XMRig (rx/scash) or cpuminer-scash
-process placed in the miner/ directory or system PATH, connecting strictly to the
-user's own local P2Pool Stratum endpoint (127.0.0.1:8345).
+Out-of-the-Box Miner Controller for Scash P2Pool (QtKawaii Edition).
+By default (with zero extra downloads or setup), automatically launches the built-in
+first-party C++11 RandomX JIT miner (p2pool/scash_builtin_miner.py -> randomx.dll / librandomx.so,
+0% dev fee) connected to 127.0.0.1:8345 as soon as the user enters their scash1... wallet address
+in the QtKawaii Web UI. Also supports optional custom xmrigMiner / minerd overrides in miner/.
 """
 from __future__ import print_function
 import json
@@ -10,12 +11,16 @@ import multiprocessing
 import os
 import platform
 import subprocess
+import sys
 import threading
 import time
 
-MINER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'miner'))
+HERE_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(HERE_DIR, '..'))
+MINER_DIR = os.path.join(ROOT_DIR, 'miner')
 WALLET_STATE_FILE = os.path.join(MINER_DIR, 'wallet_config.json')
 XMRIG_CONFIG_FILE = os.path.join(MINER_DIR, 'config.json')
+BUILTIN_MINER_SCRIPT = os.path.join(HERE_DIR, 'scash_builtin_miner.py')
 
 
 class LocalMinerController(object):
@@ -24,6 +29,7 @@ class LocalMinerController(object):
         self.stratum_port = int(stratum_port)
         self.process = None
         self.running = False
+        self.engine_name = 'Built-in Scash C++ RandomX (0% Fee)'
         self.wallet = ''
         self.worker = 'kawaii_rig01'
         self.threads = max(1, (multiprocessing.cpu_count() or 4) // 2)
@@ -75,57 +81,30 @@ class LocalMinerController(object):
 
         cfg = {
             "autosave": False,
-            "cpu": {
-                "enabled": True,
-                "huge-pages": self.large_pages,
-                "rx": list(range(self.threads))
-            },
-            "http": {
-                "enabled": True,
-                "host": "127.0.0.1",
-                "port": 8346,
-                "restricted": True
-            },
+            "cpu": {"enabled": True, "huge-pages": self.large_pages, "rx": list(range(self.threads))},
             "print-time": 5,
             "donate-level": 1,
-            "pools": [
-                {
-                    "algo": "rx/scash",
-                    "url": "%s:%d" % (self.stratum_host, self.stratum_port),
-                    "user": stratum_user,
-                    "pass": "x",
-                    "rig-id": self.worker,
-                    "keepalive": True,
-                    "enabled": True,
-                    "tls": False
-                }
-            ]
+            "pools": [{
+                "algo": "rx/scash",
+                "url": "%s:%d" % (self.stratum_host, self.stratum_port),
+                "user": stratum_user,
+                "pass": "x",
+                "rig-id": self.worker,
+                "keepalive": True,
+                "enabled": True,
+                "tls": False
+            }]
         }
         with open(XMRIG_CONFIG_FILE, 'w') as f:
             json.dump(cfg, f, indent=2)
         return XMRIG_CONFIG_FILE, stratum_user
 
-    def find_miner_binary(self):
-        candidates = [
-            'xmrigMiner.exe', 'xmrigMiner',
-            'xmrigDaemon.exe', 'xmrigDaemon',
-            'xmrig.exe', 'xmrig',
-            'minerd.exe', 'minerd',
-            'cpuminer-scash.exe', 'cpuminer-scash',
-        ]
-        search_dirs = [
-            MINER_DIR,
-            os.path.join(MINER_DIR, 'bin'),
-            os.path.abspath(os.path.join(MINER_DIR, '..')),
-        ]
-        for p in os.environ.get('PATH', '').split(os.pathsep):
-            if p:
-                search_dirs.append(p)
+    def find_custom_miner_binary(self):
+        candidates = ['xmrigMiner.exe', 'xmrigMiner', 'xmrigDaemon.exe', 'xmrigDaemon', 'xmrig.exe', 'xmrig', 'minerd.exe', 'minerd']
         for name in candidates:
-            for d in search_dirs:
-                full = os.path.join(d, name)
-                if os.path.isfile(full) and os.access(full, os.X_OK):
-                    return full
+            full = os.path.join(MINER_DIR, name)
+            if os.path.isfile(full) and os.access(full, os.X_OK):
+                return full
         return None
 
     def _append_log(self, line):
@@ -157,41 +136,48 @@ class LocalMinerController(object):
 
         self.stop_mining()
         cfg_path, stratum_user = self.build_xmrig_config()
-        binary = self.find_miner_binary()
+        custom_bin = self.find_custom_miner_binary()
 
-        if binary:
-            bname = os.path.basename(binary).lower()
-            if 'minerd' in bname or 'cpuminer' in bname:
+        if custom_bin:
+            bname = os.path.basename(custom_bin).lower()
+            self.engine_name = os.path.basename(custom_bin)
+            if 'minerd' in bname:
                 cmd = [
-                    binary, '-a', 'randomx',
+                    custom_bin, '-a', 'randomx',
                     '-o', 'stratum+tcp://%s:%d' % (self.stratum_host, self.stratum_port),
-                    '-u', stratum_user, '-p', 'x',
-                    '--threads=%d' % self.threads
+                    '-u', stratum_user, '-p', 'x', '--threads=%d' % self.threads
                 ]
-                if self.large_pages:
-                    cmd.append('--largepages')
             else:
                 cmd = [
-                    binary, '-a', 'rx/scash',
+                    custom_bin, '-a', 'rx/scash',
                     '-o', '%s:%d' % (self.stratum_host, self.stratum_port),
-                    '-u', stratum_user, '-p', 'x',
-                    '-t', str(self.threads),
-                    '--print-time=5',
-                    '--config=%s' % cfg_path
+                    '-u', stratum_user, '-p', 'x', '-t', str(self.threads),
+                    '--print-time=5', '--config=%s' % cfg_path
                 ]
-            try:
-                self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                self.running = True
-                self._append_log("[Miner] Started %s -> 127.0.0.1:%d" % (os.path.basename(binary), self.stratum_port))
-                t = threading.Thread(target=self._reader_thread, args=(self.process,))
-                t.daemon = True
-                t.start()
-                return self.get_status()
-            except Exception as e:
-                self._append_log("[Miner] Error starting process: %s" % str(e))
+        else:
+            # Default Out-of-the-Box Native C++ RandomX JIT Miner (0% Fee, Zero Extra Setup!)
+            self.engine_name = 'Built-in Scash C++ RandomX (0% Fee)'
+            cmd = [
+                sys.executable, BUILTIN_MINER_SCRIPT,
+                '-o', '%s:%d' % (self.stratum_host, self.stratum_port),
+                '-u', stratum_user,
+                '-t', str(self.threads)
+            ]
+            if not self.large_pages:
+                cmd.append('--light')
 
-        self.running = True
-        self._append_log("[Miner] Saved miner/config.json for 127.0.0.1:%d. Place minerd or xmrigMiner in miner/ to hash locally." % self.stratum_port)
+        try:
+            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.running = True
+            self._append_log("[Scash-Miner] Started %s -> 127.0.0.1:%d (%d threads)" % (
+                self.engine_name, self.stratum_port, self.threads
+            ))
+            t = threading.Thread(target=self._reader_thread, args=(self.process,))
+            t.daemon = True
+            t.start()
+        except Exception as e:
+            self._append_log("[Scash-Miner] Error launching miner: %s" % str(e))
+
         return self.get_status()
 
     def stop_mining(self):
@@ -212,6 +198,7 @@ class LocalMinerController(object):
         return {
             'ok': True,
             'running': self.running,
+            'miner': self.engine_name,
             'algo': 'rx/scash',
             'wallet': self.wallet,
             'worker': self.worker,
