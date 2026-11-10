@@ -1,0 +1,47 @@
+# Scash Core (scashd / scash-qt) Configuration with Active Community Nodes
+chain=scash
+server=1
+daemon=1
+txindex=1
+listen=1
+maxconnections=64
+rpcuser=scashminer
+rpcpassword=kawaiip2poolpass
+rpcallowip=127.0.0.1
+rpcport=8342
+port=8343
+
+[scash]
+# Active Community DNS Seeds & Explorer/Pool Nodes
+adddnsseed=scash.tv
+adddnsseed=scash.pool-pay.com
+adddnsseed=satoshicash.cedric-crispin.com
+adddnsseed=seed.scash.one
+
+# Active Community Peer Nodes (Port 8343)
+addnode=scash.tv:8343
+addnode=scash.pool-pay.com:8343
+addnode=satoshicash.cedric-crispin.com:8343
+addnode=pool.rplant.xyz:8343
+addnode=wallet.scash.network:8343
+addnode=scashnetwork.com:8343
+addnode=[2600:1700:bc80:69d0::40]:8343
+addnode=[2600:1700:bc80:69d0:3579:ef8f:fd51:b43c]:8343
+addnode=[2600:1700:bc80:69d0:570b:d36:c662:3aec]:8343
+addnode=5.59.96.54:8343
+addnode=5.128.87.126:8343
+addnode=5.186.40.82:8343
+addnode=144.76.17.34:8343
+addnode=198.199.73.40:8343
+addnode=88.190.223.96:8343
+addnode=209.141.46.154:8343
+addnode=13.215.178.199:8343
+addnode=99.47.252.128:8343
+addnode=83.78.96.42:8343
+addnode=185.16.39.26:21015
+addnode=172.67.141.132:8343
+addnode=104.21.87.51:8343
+addnode=95.216.18.84:8343
+addnode=110.78.164.25:8343
+addnode=104.21.21.158:8343
+addnode=172.67.199.87:8343

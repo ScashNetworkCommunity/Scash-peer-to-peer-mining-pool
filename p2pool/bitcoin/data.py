@@ -388,3 +388,21 @@ def script2_to_human(script2, net):
             return 'Address. Address: %s' % (pubkey_hash_to_address(pubkey_hash, net),)
     
     return 'Unknown. Script: %s'  % (script2.encode('hex'),)
+
+
+from p2pool.bitcoin import bech32_scash
+_orig_address_to_pubkey_hash = address_to_pubkey_hash
+def address_to_pubkey_hash(address, net):
+    hrp = getattr(net, 'HUMAN_READABLE_PART', None)
+    if hrp and address.lower().startswith(hrp + '1'):
+        witver, witprog = bech32_scash.decode_scash_address(address, hrp)
+        if witprog is not None:
+            return pack.IntType(160).unpack(witprog), getattr(net, 'ADDRESS_VERSION', 63)
+    return _orig_address_to_pubkey_hash(address, net)
+
+_orig_pubkey_hash_to_address = pubkey_hash_to_address
+def pubkey_hash_to_address(pubkey_hash, version, net):
+    hrp = getattr(net, 'HUMAN_READABLE_PART', None)
+    if hrp and version == getattr(net, 'ADDRESS_VERSION', 63):
+        return bech32_scash.encode_scash_address(pack.IntType(160).pack(pubkey_hash), hrp)
+    return _orig_pubkey_hash_to_address(pubkey_hash, version, net)

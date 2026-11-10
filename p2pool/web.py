@@ -473,3 +473,35 @@ def get_web_root(wb, datadir_path, bitcoind_getinfo_var, stop_event=variable.Eve
     web_root.putChild('static', static.File(static_dir))
     
     return web_root
+
+
+# --- Scash QtKawaii Built-in XMRig & Community Nodes Web Endpoints ---
+try:
+    from twisted.web import resource as _tw_resource
+    from p2pool import xmrig_manager as _xmrig_mgr
+    from p2pool import scash_nodes as _scash_nodes
+
+    class _ScashMinerControlResource(_tw_resource.Resource):
+        isLeaf = True
+        def __init__(self, action):
+            _tw_resource.Resource.__init__(self)
+            self.action = action
+        def render_GET(self, request):
+            request.setHeader('Content-Type', 'application/json')
+            if self.action == 'status':
+                return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.get_status())
+            elif self.action == 'start':
+                w = request.args.get('wallet', [None])[0]
+                t = request.args.get('threads', [None])[0]
+                wk = request.args.get('worker', [None])[0]
+                return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.start_mining(wallet=w, threads=t, worker=wk))
+            elif self.action == 'stop':
+                return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.stop_mining())
+            elif self.action == 'nodes':
+                return json.dumps({
+                    'addnodes': _scash_nodes.DEFAULT_SCASH_ADDNODES,
+                    'dns_seeds': _scash_nodes.DEFAULT_DNS_SEEDS
+                })
+            return json.dumps({'ok': False})
+except Exception:
+    pass
