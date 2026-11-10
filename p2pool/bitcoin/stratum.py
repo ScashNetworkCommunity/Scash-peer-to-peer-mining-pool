@@ -108,18 +108,36 @@ class StratumRPCMiningProvider(object):
         assert len(coinb_nonce) == self.wb.COINBASE_NONCE_LENGTH
         new_packed_gentx = x['coinb1'] + coinb_nonce + x['coinb2']
         merkle_root = bitcoin_data.check_merkle_link(bitcoin_data.hash256(new_packed_gentx), x['merkle_link'])
-        ts_val = pack.IntType(32).unpack(getwork._swap4(ntime.decode('hex')))
-        nonce_val = pack.IntType(32).unpack(getwork._swap4(nonce.decode('hex')))
-
-        header_80 = (
-            pack.IntType(32).pack(x['version']) +
-            pack.IntType(256).pack(x['previous_block']) +
-            pack.IntType(256).pack(merkle_root) +
-            pack.IntType(32).pack(ts_val) +
-            bitcoin_data.FloatingIntegerType().pack(x['bits']) +
-            pack.IntType(32).pack(nonce_val)
-        )
-        rx_hash_int, _ = scash_randomx.calculate_rx_hash_and_cm_uint256(header_80)
+        # Check standard Bitcoin Stratum word-swapped ntime/nonce AND direct hex encoding (used by xmrigCC EthStratumClient RX_SCASH)
+        ts_candidates = [
+            pack.IntType(32).unpack(getwork._swap4(ntime.decode('hex'))),
+            int(ntime, 16),
+            pack.IntType(32).unpack(ntime.decode('hex')),
+        ]
+        nonce_candidates = [
+            int(nonce, 16),
+            pack.IntType(32).unpack(getwork._swap4(nonce.decode('hex'))),
+            pack.IntType(32).unpack(nonce.decode('hex')),
+        ]
+        ts_val = x['timestamp'] if x['timestamp'] in ts_candidates else ts_candidates[0]
+        nonce_val = nonce_candidates[0]
+        rx_hash_int = 0
+        for nc in nonce_candidates:
+            hdr_try = (
+                pack.IntType(32).pack(x['version']) +
+                pack.IntType(256).pack(x['previous_block']) +
+                pack.IntType(256).pack(merkle_root) +
+                pack.IntType(32).pack(ts_val) +
+                bitcoin_data.FloatingIntegerType().pack(x['bits']) +
+                pack.IntType(32).pack(nc)
+            )
+            rxh_try, rxcm_try = scash_randomx.calculate_rx_hash_and_cm_uint256(hdr_try)
+            if rxcm_try <= x['share_target']:
+                nonce_val = nc
+                rx_hash_int = rxh_try
+                break
+        else:
+            rx_hash_int = rxh_try
         header = dict(
             version=x['version'],
             previous_block=x['previous_block'],
