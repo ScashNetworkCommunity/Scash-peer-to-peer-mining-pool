@@ -5,17 +5,20 @@ from .. import data, helper
 from p2pool.util import pack
 from p2pool.bitcoin import scash_randomx
 
-# Scash Mainnet parent network definition for P2Pool
-# Compatible with Scash Core v2.0.0 / v3.0.0-mid-world-core-30.4.0
-P2P_PREFIX = 'f9beb4d9'.decode('hex')
-P2P_PORT = 8343
-ADDRESS_VERSION = 63
-ADDRESS_P2SH_VERSION = 125
-HUMAN_READABLE_PART = 'scash'
-RPC_PORT = 8342
+# Exact Scash Mainnet consensus parameters from ScashNetworkCommunity/scash (src/kernel/chainparams.cpp)
+P2P_PREFIX = 'fabfb5da'.decode('hex')   # pchMessageStart = {0xfa, 0xbf, 0xb5, 0xda}
+P2P_PORT = 8343                         # nDefaultPort = 8343
+ADDRESS_VERSION = 0                     # base58Prefixes[PUBKEY_ADDRESS] = 0
+ADDRESS_P2SH_VERSION = 5                # base58Prefixes[SCRIPT_ADDRESS] = 5
+HUMAN_READABLE_PART = 'scash'           # bech32_hrp = "scash"
+RPC_PORT = 8342                         # ChainType::SCASHMAIN RPC port = 8342
+
+# Scash Mainnet Genesis Hash: e3bf1597a568216022dbda6a0945f09b005d19f041e7158c3cbca9d4029ee82d
+SCASH_GENESIS_HASH = 'e3bf1597a568216022dbda6a0945f09b005d19f041e7158c3cbca9d4029ee82d'
 
 RPC_CHECK = defer.inlineCallbacks(lambda bitcoind: defer.returnValue(
-    ((yield bitcoind.rpc_getblockchaininfo()).get('chain') in ('scash', 'main'))
+    ((yield bitcoind.rpc_getblockchaininfo()).get('chain') in ('scash', 'main')) and
+    ((yield bitcoind.rpc_getblockhash(0)) == SCASH_GENESIS_HASH)
 ))
 
 SUBSIDY_FUNC = lambda height: 50 * 100000000 >> (height + 1) // 210000
@@ -30,9 +33,9 @@ CONF_FILE_FUNC = lambda: os.path.join(
     'scash.conf'
 )
 
-BLOCK_EXPLORER_URL_PREFIX = 'https://scash.one/block/'
-ADDRESS_EXPLORER_URL_PREFIX = 'https://scash.one/address/'
-TX_EXPLORER_URL_PREFIX = 'https://scash.one/tx/'
+BLOCK_EXPLORER_URL_PREFIX = 'https://scash.tv/block/'
+ADDRESS_EXPLORER_URL_PREFIX = 'https://scash.tv/address/'
+TX_EXPLORER_URL_PREFIX = 'https://scash.tv/tx/'
 SANE_TARGET_RANGE = (2**256 // 2**32 - 1, 2**256 // 2**4 - 1)
 DUMB_SCRYPT_DIFF = 2**16
 DUST_THRESHOLD = 0.001e8

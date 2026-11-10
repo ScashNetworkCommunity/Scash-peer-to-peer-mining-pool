@@ -176,13 +176,20 @@ merkle_tx_type = pack.ComposedType([
     ('merkle_link', merkle_link_type),
 ])
 
-block_header_type = pack.ComposedType([
+class ScashBlockHeaderType(pack.ComposedType):
+    def pack(self, obj):
+        if isinstance(obj, dict) and 'rx_hash' not in obj:
+            obj = dict(obj, rx_hash=None)
+        return pack.ComposedType.pack(self, obj)
+
+block_header_type = ScashBlockHeaderType([
     ('version', pack.IntType(32)),
     ('previous_block', pack.PossiblyNoneType(0, pack.IntType(256))),
     ('merkle_root', pack.IntType(256)),
     ('timestamp', pack.IntType(32)),
     ('bits', FloatingIntegerType()),
     ('nonce', pack.IntType(32)),
+    ('rx_hash', pack.PossiblyNoneType(0, pack.IntType(256))),
 ])
 
 block_type = pack.ComposedType([

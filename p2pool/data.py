@@ -73,12 +73,13 @@ class BaseShare(object):
     MAX_BLOCK_WEIGHT = 4000000
     MAX_NEW_TXS_SIZE = 50000
 
-    small_block_header_type = pack.ComposedType([
+    small_block_header_type = bitcoin_data.ScashBlockHeaderType([
         ('version', pack.VarIntType()),
         ('previous_block', pack.PossiblyNoneType(0, pack.IntType(256))),
         ('timestamp', pack.IntType(32)),
         ('bits', bitcoin_data.FloatingIntegerType()),
         ('nonce', pack.IntType(32)),
+        ('rx_hash', pack.PossiblyNoneType(0, pack.IntType(256))),
     ])
     share_info_type = None
     share_type = None

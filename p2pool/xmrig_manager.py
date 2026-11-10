@@ -1,8 +1,8 @@
 """
-Built-in XMRig (xmrigCC / rx/scash) Process & Config Manager for Scash P2Pool.
-Allows the QtKawaii Web UI and start_scash_p2pool.py to automatically configure,
-start, monitor, and stop XMRig mining into the local P2Pool Stratum server (127.0.0.1:8345)
-as soon as the user enters their scash1... wallet address in the UI.
+Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition).
+Generates miner/config.json and manages a local XMRig (rx/scash) or cpuminer-scash
+process placed in the miner/ directory or system PATH, connecting strictly to the
+user's own local P2Pool Stratum endpoint (127.0.0.1:8345).
 """
 from __future__ import print_function
 import json
@@ -10,7 +10,6 @@ import multiprocessing
 import os
 import platform
 import subprocess
-import sys
 import threading
 import time
 
@@ -19,7 +18,7 @@ WALLET_STATE_FILE = os.path.join(MINER_DIR, 'wallet_config.json')
 XMRIG_CONFIG_FILE = os.path.join(MINER_DIR, 'config.json')
 
 
-class XMRigController(object):
+class LocalMinerController(object):
     def __init__(self, stratum_host='127.0.0.1', stratum_port=8345):
         self.stratum_host = stratum_host
         self.stratum_port = int(stratum_port)
@@ -79,17 +78,12 @@ class XMRigController(object):
             "cpu": {
                 "enabled": True,
                 "huge-pages": self.large_pages,
-                "huge-pages-jit": self.large_pages,
-                "hw-aes": None,
-                "priority": None,
-                "max-threads-hint": 100,
                 "rx": list(range(self.threads))
             },
             "http": {
                 "enabled": True,
                 "host": "127.0.0.1",
                 "port": 8346,
-                "access-token": None,
                 "restricted": True
             },
             "print-time": 5,
@@ -97,15 +91,13 @@ class XMRigController(object):
             "pools": [
                 {
                     "algo": "rx/scash",
-                    "coin": None,
                     "url": "%s:%d" % (self.stratum_host, self.stratum_port),
                     "user": stratum_user,
                     "pass": "x",
                     "rig-id": self.worker,
                     "keepalive": True,
                     "enabled": True,
-                    "tls": False,
-                    "daemon": False
+                    "tls": False
                 }
             ]
         }
@@ -113,19 +105,18 @@ class XMRigController(object):
             json.dump(cfg, f, indent=2)
         return XMRIG_CONFIG_FILE, stratum_user
 
-    def find_xmrig_binary(self):
+    def find_miner_binary(self):
         candidates = [
+            'xmrigMiner.exe', 'xmrigMiner',
             'xmrigDaemon.exe', 'xmrigDaemon',
-            'xmrigCC.exe', 'xmrigCC',
             'xmrig.exe', 'xmrig',
-            'poolpayminer.exe', 'poolpayminer',
-            'minerd.exe', 'minerd'
+            'minerd.exe', 'minerd',
+            'cpuminer-scash.exe', 'cpuminer-scash',
         ]
         search_dirs = [
             MINER_DIR,
             os.path.join(MINER_DIR, 'bin'),
             os.path.abspath(os.path.join(MINER_DIR, '..')),
-            os.path.abspath(os.path.join(MINER_DIR, '..', 'bin')),
         ]
         for p in os.environ.get('PATH', '').split(os.pathsep):
             if p:
@@ -161,83 +152,75 @@ class XMRigController(object):
             return {
                 'ok': False,
                 'running': False,
-                'error': 'Please enter a valid scash1... Bech32 wallet address first.'
+                'error': 'Please enter a valid scash1... Bech32 wallet address.'
             }
 
         self.stop_mining()
         cfg_path, stratum_user = self.build_xmrig_config()
-        binary = self.find_xmrig_binary()
-
-        # Exact xmrigDaemon invocation flags matching AlexZeroZero/scash-mining-wallet
-        cmd_flags = [
-            binary or 'xmrigDaemon',
-            '-a', 'rx/scash',
-            '-o', '%s:%d' % (self.stratum_host, self.stratum_port),
-            '-u', stratum_user,
-            '-p', 'x',
-            '-t', str(self.threads),
-            '--print-time=5',
-            '--config=%s' % cfg_path
-        ]
+        binary = self.find_miner_binary()
 
         if binary:
+            bname = os.path.basename(binary).lower()
+            if 'minerd' in bname or 'cpuminer' in bname:
+                cmd = [
+                    binary, '-a', 'randomx',
+                    '-o', 'stratum+tcp://%s:%d' % (self.stratum_host, self.stratum_port),
+                    '-u', stratum_user, '-p', 'x',
+                    '--threads=%d' % self.threads
+                ]
+                if self.large_pages:
+                    cmd.append('--largepages')
+            else:
+                cmd = [
+                    binary, '-a', 'rx/scash',
+                    '-o', '%s:%d' % (self.stratum_host, self.stratum_port),
+                    '-u', stratum_user, '-p', 'x',
+                    '-t', str(self.threads),
+                    '--print-time=5',
+                    '--config=%s' % cfg_path
+                ]
             try:
-                self.process = subprocess.Popen(
-                    cmd_flags,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT
-                )
+                self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 self.running = True
-                self._append_log("[XMRig-Scash] Started %s (-a rx/scash) -> 127.0.0.1:%d as %s" % (
-                    os.path.basename(binary), self.stratum_port, stratum_user
-                ))
+                self._append_log("[Miner] Started %s -> 127.0.0.1:%d" % (os.path.basename(binary), self.stratum_port))
                 t = threading.Thread(target=self._reader_thread, args=(self.process,))
                 t.daemon = True
                 t.start()
                 return self.get_status()
             except Exception as e:
-                self._append_log("[XMRig-Scash] Launch error: %s" % str(e))
+                self._append_log("[Miner] Error starting process: %s" % str(e))
 
-        # If binary is not yet placed in miner/, record active configured state & command
         self.running = True
-        self._append_log("[XMRig-Scash] Configured miner/config.json for rx/scash -> 127.0.0.1:%d" % self.stratum_port)
-        self._append_log("[XMRig-Scash] Command: " + " ".join(cmd_flags))
+        self._append_log("[Miner] Saved miner/config.json for 127.0.0.1:%d. Place minerd or xmrigMiner in miner/ to hash locally." % self.stratum_port)
         return self.get_status()
 
     def stop_mining(self):
         if self.process is not None:
             try:
-                if platform.system() == 'Windows':
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.process.pid)])
-                else:
-                    self.process.terminate()
+                self.process.terminate()
             except Exception:
                 pass
             self.process = None
         self.running = False
-        self._append_log("[XMRig-Scash] Miner stopped.")
         return self.get_status()
 
     def get_status(self):
         if self.process is not None and self.process.poll() is not None:
             self.running = False
-        est_khs = round((self.threads * (530 if self.large_pages else 290)) / 1000.0, 2) if self.running else 0.0
         with self.lock:
             recent_logs = list(self.logs[-15:])
         return {
             'ok': True,
             'running': self.running,
-            'miner': 'xmrigCC (rx/scash)',
             'algo': 'rx/scash',
             'wallet': self.wallet,
             'worker': self.worker,
             'threads': self.threads,
             'large_pages': self.large_pages,
-            'est_hashrate_khs': est_khs,
             'stratum_url': 'stratum+tcp://%s:%d' % (self.stratum_host, self.stratum_port),
             'config_path': XMRIG_CONFIG_FILE,
             'logs': recent_logs
         }
 
 
-GLOBAL_XMRIG = XMRigController()
+GLOBAL_XMRIG = LocalMinerController()

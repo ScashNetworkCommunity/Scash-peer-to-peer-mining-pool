@@ -1,8 +1,13 @@
 @echo off
-title Scash P2Pool (QtKawaii + Built-in XMRig Edition)
+setlocal
+cd /d "%~dp0"
+title Scash P2Pool v0.2.0-beta.1 (Standalone QtKawaii Edition)
 echo ==================================================================
-echo   Starting Scash Node + Local P2Pool + Built-in XMRig (rx/scash)
-echo   Put your scash1... wallet address directly into the Web UI!
+echo   Scash Peer-to-Peer Mining Pool (Standalone Windows x64 Runtime)
 echo ==================================================================
-python start_scash_p2pool.py
+if exist "runtime\pypy2\pypy.exe" (
+    "runtime\pypy2\pypy.exe" start_scash_p2pool.py %*
+) else (
+    python start_scash_p2pool.py %*
+)
 pause
