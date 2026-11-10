@@ -1,0 +1,40 @@
+{
+  "autosave": false,
+  "cpu": {
+    "enabled": true,
+    "huge-pages": true,
+    "huge-pages-jit": true,
+    "hw-aes": null,
+    "priority": null,
+    "max-threads-hint": 100,
+    "rx": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "http": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 8346,
+    "access-token": null,
+    "restricted": true
+  },
+  "print-time": 5,
+  "donate-level": 1,
+  "pools": [
+    {
+      "algo": "rx/scash",
+      "coin": null,
+      "url": "127.0.0.1:8345",
+      "user": "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2.kawaii_test+0.0021/0.06",
+      "pass": "x",
+      "rig-id": "kawaii_test",
+      "keepalive": true,
+      "enabled": true,
+      "tls": false,
+      "daemon": false
+    }
+  ]
+}

@@ -1,24 +1,25 @@
 """
 Scash 112-Byte Block Header & RandomX v1.2.1 Commitment Bridge for P2Pool.
-Matches scashnetwork/cpuminer-scash/blob/master/randomx-miner.c:
-- Serialized Scash block header is 112 bytes (uint32_t blockHeader[28]):
-  - Bytes 0..79: standard 80-byte Bitcoin header (version, prev_block, merkle_root, timestamp, bits, nonce)
-  - Bytes 80..111: 32-byte rx_hash field (zeroed when calculating rx_hash and rx_cm)
-- Proof-of-Work target is checked against the 256-bit RandomX commitment (rx_cm).
+Works under both Python 2.7 (PyPy/Twisted P2Pool runtime) and Python 3.x (CI verification).
 """
+import binascii
 import ctypes
 import hashlib
-from p2pool.util import pack
 
-scash_block_header_type = pack.ComposedType([
-    ('version', pack.IntType(32)),
-    ('previous_block', pack.PossiblyNoneType(0, pack.IntType(256))),
-    ('merkle_root', pack.IntType(256)),
-    ('timestamp', pack.IntType(32)),
-    ('bits', pack.IntType(32)),
-    ('nonce', pack.IntType(32)),
-    ('rx_hash', pack.PossiblyNoneType(0, pack.IntType(256))),
-])
+try:
+    from p2pool.util import pack
+    scash_block_header_type = pack.ComposedType([
+        ('version', pack.IntType(32)),
+        ('previous_block', pack.PossiblyNoneType(0, pack.IntType(256))),
+        ('merkle_root', pack.IntType(256)),
+        ('timestamp', pack.IntType(32)),
+        ('bits', pack.IntType(32)),
+        ('nonce', pack.IntType(32)),
+        ('rx_hash', pack.PossiblyNoneType(0, pack.IntType(256))),
+    ])
+except Exception:
+    pack = None
+    scash_block_header_type = None
 
 _rx_vm = None
 _rx_lib = None
@@ -49,18 +50,32 @@ def _get_randomx_vm(seed_key=b'ScashRandomXKey\x00'):
     return None, None
 
 def pack_header_for_randomx(header_bytes):
-    if len(header_bytes) == 80:
-        return header_bytes + ('\x00' * 32)
-    return header_bytes[:80] + ('\x00' * 32)
+    if isinstance(header_bytes, bytes):
+        pad = b'\x00' * 32
+        return (header_bytes + pad) if len(header_bytes) == 80 else (header_bytes[:80] + pad)
+    pad = '\x00' * 32
+    return (header_bytes + pad) if len(header_bytes) == 80 else (header_bytes[:80] + pad)
+
+def _unpack_uint256_le(raw_32):
+    if pack is not None:
+        try:
+            return pack.IntType(256).unpack(raw_32)
+        except Exception:
+            pass
+    if not isinstance(raw_32, bytes):
+        raw_32 = raw_32.encode('latin1')
+    rev_hex = binascii.hexlify(raw_32[::-1]).decode('ascii')
+    return int(rev_hex, 16)
 
 def get_pow_commitment_int256(header_bytes):
     header_112 = pack_header_for_randomx(header_bytes)
+    raw_in = header_112 if isinstance(header_112, bytes) else header_112.encode('latin1')
     lib, vm = _get_randomx_vm()
     if lib is not None and vm is not None:
         rx_hash = ctypes.create_string_buffer(32)
         rx_cm = ctypes.create_string_buffer(32)
-        lib.randomx_calculate_hash(vm, header_112, 112, rx_hash)
-        lib.randomx_calculate_commitment(header_112, 112, rx_hash.raw, rx_cm)
-        return pack.IntType(256).unpack(rx_cm.raw)
-    digest = hashlib.sha256(hashlib.sha256(header_112).digest()).digest()
-    return pack.IntType(256).unpack(digest)
+        lib.randomx_calculate_hash(vm, raw_in, 112, rx_hash)
+        lib.randomx_calculate_commitment(raw_in, 112, rx_hash.raw, rx_cm)
+        return _unpack_uint256_le(rx_cm.raw)
+    digest = hashlib.sha256(hashlib.sha256(raw_in).digest()).digest()
+    return _unpack_uint256_le(digest)
