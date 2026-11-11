@@ -243,7 +243,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
             raise jsonrpc.Error_for_code(-12345)(u'p2pool is not connected to any peers')
         if self.node.best_share_var.value is None and self.node.net.PERSIST:
             raise jsonrpc.Error_for_code(-12345)(u'p2pool is downloading shares')
-        if set(r[1:] if r.startswith('!') else r for r in self.node.bitcoind_work.value['rules']) - set(getattr(self.node.net, 'SOFTFORKS_REQUIRED', [])):
+        if set(r[1:] for r in self.node.bitcoind_work.value.get('rules', []) if r.startswith('!')) - (set(getattr(self.node.net, 'SOFTFORKS_REQUIRED', [])) | set(['segwit', 'csv', 'taproot', 'bip34', 'bip65', 'bip66'])):
             raise jsonrpc.Error_for_code(-12345)(u'unknown rule activated')
         
         if self.merged_work.value:
@@ -377,6 +377,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
             coinb1=packed_gentx[:-self.COINBASE_NONCE_LENGTH-4],
             coinb2=packed_gentx[-4:],
             timestamp=self.current_work.value['time'],
+            height=self.current_work.value['height'],
             bits=self.current_work.value['bits'],
             share_target=target,
         )

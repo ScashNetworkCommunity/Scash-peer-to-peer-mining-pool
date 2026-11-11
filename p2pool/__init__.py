@@ -1,49 +1,66 @@
-import os
-import re
 import sys
-import traceback
-import subprocess
 
-def check_output(*popenargs, **kwargs):
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        raise ValueError((retcode, output))
-    return output
+__version__ = 'v0.2.0-beta.3-scash-kawaii'
+DEBUG = False
 
-def _get_version():
+# --- Scash QtKawaii HTTPS Redirect Shim for PyPy 2.7 (prevents ImportError: No module named OpenSSL) ---
+if sys.version_info[0] < 3:
     try:
-        try:
-            return check_output(['git', 'describe', '--always', '--dirty'], cwd=os.path.dirname(os.path.abspath(sys.argv[0]))).strip()
-        except:
-            pass
-        try:
-            return check_output(['git.cmd', 'describe', '--always', '--dirty'], cwd=os.path.dirname(os.path.abspath(sys.argv[0]))).strip()
-        except:
-            pass
-        
-        root_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-        git_dir = os.path.join(root_dir, '.git')
-        if os.path.exists(git_dir):
-            head = open(os.path.join(git_dir, 'HEAD')).read().strip()
-            prefix = 'ref: '
-            if head.startswith(prefix):
-                path = head[len(prefix):].split('/')
-                return open(os.path.join(git_dir, *path)).read().strip()[:7]
-            else:
-                return head[:7]
-        
-        dir_name = os.path.split(root_dir)[1]
-        match = re.match('p2pool-([.0-9]+)', dir_name)
-        if match:
-            return match.groups()[0]
-        
-        return 'unknown %s' % (dir_name.encode('hex'),)
-    except Exception, e:
-        traceback.print_exc()
-        return 'unknown %s' % (str(e).encode('hex'),)
+        import ssl as _stdlib_ssl
+        import urllib2 as _stdlib_urllib2
+        from twisted.internet import threads as _tw_threads
+        from twisted.web import client as _tw_client
 
-__version__ = _get_version()
+        _orig_tw_getPage = _tw_client.getPage
 
-DEBUG = True
+        def _scash_fetch_bytes(url, method='GET', postdata=None, headers=None, timeout=10):
+            u = url.decode('utf-8') if isinstance(url, bytes) else str(url)
+            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0-beta.3'}
+            if headers:
+                for hk, hv in headers.items():
+                    ks = hk.decode('utf-8') if isinstance(hk, bytes) else str(hk)
+                    if isinstance(hv, (list, tuple)):
+                        hv = hv[0] if hv else ''
+                    vs = hv.decode('utf-8') if isinstance(hv, bytes) else str(hv)
+                    hdrs[ks] = vs
+            req = _stdlib_urllib2.Request(u, data=postdata, headers=hdrs)
+            if method and method.upper() != ('POST' if postdata is not None else 'GET'):
+                req.get_method = lambda: method.upper()
+            if u.lower().startswith('https://') and hasattr(_stdlib_ssl, '_create_unverified_context'):
+                ctx = _stdlib_ssl._create_unverified_context()
+                return _stdlib_urllib2.urlopen(req, timeout=timeout, context=ctx).read()
+            return _stdlib_urllib2.urlopen(req, timeout=timeout).read()
+
+        def _scash_safe_getPage(url, contextFactory=None, *args, **kwargs):
+            u = url.decode('utf-8') if isinstance(url, bytes) else str(url)
+            if not u.lower().startswith('https://'):
+                return _orig_tw_getPage(url, contextFactory=contextFactory, *args, **kwargs)
+            timeout = kwargs.get('timeout', 10)
+            method = kwargs.get('method', 'GET')
+            postdata = kwargs.get('postdata', None)
+            headers = kwargs.get('headers', None)
+            return _tw_threads.deferToThread(_scash_fetch_bytes, u, method, postdata, headers, timeout)
+
+        _tw_client.getPage = _scash_safe_getPage
+
+        if hasattr(_tw_client, 'HTTPPageGetter'):
+            _orig_301 = _tw_client.HTTPPageGetter.handleStatus_301
+
+            def _safe_redirect(self):
+                l = self.headers.get('location')
+                if l and l[0].lower().startswith('https://'):
+                    target_u = l[0]
+                    d = _tw_threads.deferToThread(_scash_fetch_bytes, target_u, 'GET', None, None, 10)
+                    d.addCallbacks(lambda body: self.factory.page(body), lambda f: self.factory.noPage(f))
+                    self.quietLoss = 1
+                    self.transport.loseConnection()
+                    return
+                return _orig_301(self)
+
+            _tw_client.HTTPPageGetter.handleStatus_301 = _safe_redirect
+            _tw_client.HTTPPageGetter.handleStatus_302 = _safe_redirect
+            _tw_client.HTTPPageGetter.handleStatus_303 = _safe_redirect
+            if hasattr(_tw_client.HTTPPageGetter, 'handleStatus_307'):
+                _tw_client.HTTPPageGetter.handleStatus_307 = _safe_redirect
+    except Exception:
+        pass

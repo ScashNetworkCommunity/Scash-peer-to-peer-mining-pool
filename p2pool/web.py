@@ -497,6 +497,8 @@ try:
                 return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.start_mining(wallet=w, threads=t, worker=wk))
             elif self.action == 'stop':
                 return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.stop_mining())
+            elif self.action == 'sync':
+                return json.dumps({'syncing': False, 'status_text': 'Local Scash Core 30.4 Node + P2Pool Active'})
             elif self.action == 'nodes':
                 return json.dumps({
                     'addnodes': _scash_nodes.DEFAULT_SCASH_ADDNODES,

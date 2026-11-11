@@ -396,20 +396,46 @@ def script2_to_human(script2, net):
     
     return 'Unknown. Script: %s'  % (script2.encode('hex'),)
 
+# --- Scash Bech32 & P2WPKH Address Hooks ---
+from p2pool.bitcoin import bech32_scash as _b32_scash
 
-from p2pool.bitcoin import bech32_scash
 _orig_address_to_pubkey_hash = address_to_pubkey_hash
-def address_to_pubkey_hash(address, net):
-    hrp = getattr(net, 'HUMAN_READABLE_PART', None)
-    if hrp and address.lower().startswith(hrp + '1'):
-        witver, witprog = bech32_scash.decode_scash_address(address, hrp)
+def address_to_pubkey_hash(address, net, *extra):
+    cand_net = extra[-1] if extra else net
+    hrp = getattr(cand_net, 'HUMAN_READABLE_PART', None)
+    if hrp and address and address.lower().startswith(hrp + '1'):
+        witver, witprog = _b32_scash.decode_scash_address(address, hrp)
         if witprog is not None:
-            return pack.IntType(160).unpack(witprog), getattr(net, 'ADDRESS_VERSION', 63)
-    return _orig_address_to_pubkey_hash(address, net)
+            return pack.IntType(160).unpack(witprog)
+    return _orig_address_to_pubkey_hash(address, net, *extra)
 
 _orig_pubkey_hash_to_address = pubkey_hash_to_address
-def pubkey_hash_to_address(pubkey_hash, version, net):
-    hrp = getattr(net, 'HUMAN_READABLE_PART', None)
-    if hrp and version == getattr(net, 'ADDRESS_VERSION', 63):
-        return bech32_scash.encode_scash_address(pack.IntType(160).pack(pubkey_hash), hrp)
-    return _orig_pubkey_hash_to_address(pubkey_hash, version, net)
+def pubkey_hash_to_address(pubkey_hash, net, *extra):
+    cand_net = extra[-1] if extra else net
+    hrp = getattr(cand_net, 'HUMAN_READABLE_PART', None)
+    if hrp:
+        return _b32_scash.encode_scash_address(pack.IntType(160).pack(pubkey_hash), hrp)
+    return _orig_pubkey_hash_to_address(pubkey_hash, net, *extra)
+
+if 'pubkey_hash_to_script2' in globals():
+    _orig_pubkey_hash_to_script2 = pubkey_hash_to_script2
+    def pubkey_hash_to_script2(pubkey_hash, *extra):
+        return '\x00\x14' + pack.IntType(160).pack(pubkey_hash)
+
+if 'script2_to_address' in globals():
+    _orig_script2_to_address = script2_to_address
+    def script2_to_address(script2, net, *extra):
+        cand_net = extra[-1] if extra else net
+        hrp = getattr(cand_net, 'HUMAN_READABLE_PART', None) or (cand_net if isinstance(cand_net, (str, type(u''))) else None)
+        if hrp and isinstance(script2, (bytes, str)) and len(script2) == 22 and script2[:2] == '\x00\x14':
+            return _b32_scash.encode_scash_address(script2[2:], hrp)
+        return _orig_script2_to_address(script2, net, *extra)
+
+def address_to_script2(address, net, *extra):
+    cand_net = extra[-1] if extra else net
+    hrp = getattr(cand_net, 'HUMAN_READABLE_PART', None)
+    if hrp and address and address.lower().startswith(hrp + '1'):
+        witver, witprog = _b32_scash.decode_scash_address(address, hrp)
+        if witprog is not None:
+            return '\x00\x14' + witprog
+    return pubkey_hash_to_script2(address_to_pubkey_hash(address, cand_net))

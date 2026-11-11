@@ -47,7 +47,7 @@ class StratumRPCMiningProvider(object):
             pack.IntType(256).pack(x['previous_block']) +
             pack.IntType(256).pack(merkle_root) +
             pack.IntType(32).pack(x['timestamp']) +
-            bitcoin_data.FloatingIntegerType().pack(x['bits']) +
+            pack.IntType(32).pack(x['bits'].bits if hasattr(x['bits'], 'bits') else x['bits']) +
             pack.IntType(32).pack(0)
         )
         seed_hash_hex = scash_randomx.get_scash_epoch_seed_hex(x['timestamp'])
@@ -128,7 +128,7 @@ class StratumRPCMiningProvider(object):
                 pack.IntType(256).pack(x['previous_block']) +
                 pack.IntType(256).pack(merkle_root) +
                 pack.IntType(32).pack(ts_val) +
-                bitcoin_data.FloatingIntegerType().pack(x['bits']) +
+                pack.IntType(32).pack(x['bits'].bits if hasattr(x['bits'], 'bits') else x['bits']) +
                 pack.IntType(32).pack(nc)
             )
             rxh_try, rxcm_try = scash_randomx.calculate_rx_hash_and_cm_uint256(hdr_try)
@@ -187,8 +187,10 @@ class StratumRPCMiningProvider(object):
 
 class StratumProtocol(jsonrpc.LineBasedPeer):
     def connectionMade(self):
+        if hasattr(jsonrpc.LineBasedPeer, 'connectionMade'):
+            jsonrpc.LineBasedPeer.connectionMade(self)
         self.xmrig_mode = False
-        self.svc_mining = StratumRPCMiningProvider(self.factory.wb, self.other, self.transport, proto_ref=self)
+        self.svc_mining = StratumRPCMiningProvider(self.factory.wb, getattr(self, 'other', None), self.transport, proto_ref=self)
 
     def send_json_line(self, payload):
         self.transport.write(json.dumps(payload) + "\n")
@@ -209,17 +211,20 @@ class StratumProtocol(jsonrpc.LineBasedPeer):
         if method == 'login' and isinstance(params, dict):
             self.xmrig_mode = True
             self.svc_mining.username = params.get('login', '')
-            job_dict = self.svc_mining.build_xmrig_job()
-            self.send_json_line({
-                "id": req_id,
-                "jsonrpc": "2.0",
-                "error": None,
-                "result": {
-                    "id": "scash-p2pool-session",
-                    "job": job_dict,
-                    "status": "OK",
-                }
-            })
+            try:
+                job_dict = self.svc_mining.build_xmrig_job()
+                self.send_json_line({
+                    "id": req_id,
+                    "jsonrpc": "2.0",
+                    "error": None,
+                    "result": {
+                        "id": "scash-p2pool-session",
+                        "job": job_dict,
+                        "status": "OK",
+                    }
+                })
+            except Exception as e:
+                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": {"code": -1, "message": str(e)}, "result": None})
             return
 
         if method == 'submit' and isinstance(params, dict):
@@ -240,7 +245,8 @@ class StratumProtocol(jsonrpc.LineBasedPeer):
         return jsonrpc.LineBasedPeer.lineReceived(self, line)
 
     def connectionLost(self, reason):
-        self.svc_mining.close()
+        if hasattr(self, 'svc_mining') and self.svc_mining is not None:
+            self.svc_mining.close()
 
 
 class StratumServerFactory(protocol.ServerFactory):

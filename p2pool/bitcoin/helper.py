@@ -23,7 +23,7 @@ def check(bitcoind, net):
     
     try:
         blockchaininfo = yield bitcoind.rpc_getblockchaininfo()
-        softforks_supported = set(item['id'] for item in blockchaininfo.get('softforks', []))
+        softforks_supported = set(blockchaininfo.get('softforks', {}).keys()) if isinstance(blockchaininfo.get('softforks'), dict) else set(item['id'] for item in blockchaininfo.get('softforks', []) if isinstance(item, dict) and 'id' in item)
         try:
             softforks_supported |= set(item['id'] for item in blockchaininfo.get('bip9_softforks', []))
         except TypeError: # https://github.com/bitcoin/bitcoin/pull/7863

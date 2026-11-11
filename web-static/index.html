@@ -235,6 +235,7 @@
   </style>
 </head>
 <body class="selection:bg-cyan-400 selection:text-slate-950">
+<div id="scashNodeSyncBanner" style="display:none;background:linear-gradient(90deg,#1f1147,#2b1963);border-bottom:2px solid #4deeea;color:#ffffff;padding:10px 18px;text-align:center;font-family:sans-serif;font-size:13px;box-shadow:0 0 14px rgba(77,238,234,0.35);position:sticky;top:0;z-index:9999;"><span style="color:#4deeea;font-weight:bold;">&#9889; Local Scash Core 30.4 Node Syncing:</span> <span id="scashNodeSyncText">Connecting to Scash peers on :8343...</span> <span style="color:#ffd166;margin-left:8px;">(Save your scash1... wallet address below &mdash; mining starts automatically at 100%!)</span></div>
   <!-- Background Cosmic Starfield Canvas -->
   <canvas id="starfieldCanvas"></canvas>
 
@@ -1824,6 +1825,31 @@ git push -u origin scash-kawaii
       });
     });
   </script>
-<div style="text-align:center;padding:10px 0 18px;font-size:12px;color:#b8aee0;opacity:0.9;">Publisher: <strong style="color:#4deeea;">magicalgirlsunite</strong> &bull; ScashNetworkCommunity &bull; v0.2.0-beta.2</div>
+<div style="text-align:center;padding:10px 0 18px;font-size:12px;color:#b8aee0;opacity:0.9;">Publisher: <strong style="color:#4deeea;">magicalgirlsunite</strong> &bull; ScashNetworkCommunity &bull; v0.2.0-beta.3</div>
+
+<script>
+(function(){
+  async function pollNodeSync(){
+    try {
+      const r = await fetch('/node_sync_status', {cache: 'no-store'});
+      if (!r.ok) return;
+      const d = await r.json();
+      const b = document.getElementById('scashNodeSyncBanner');
+      const t = document.getElementById('scashNodeSyncText');
+      if (b && t) {
+        if (d && d.syncing) {
+          b.style.display = 'block';
+          t.textContent = d.status_text || ('Block ' + (d.blocks||0) + ' / ' + (d.headers||0) + ' (' + (d.progress_pct||0) + '%) • Peers: ' + (d.connections||0));
+        } else {
+          b.style.display = 'none';
+        }
+      }
+    } catch(e) {}
+  }
+  pollNodeSync();
+  setInterval(pollNodeSync, 3000);
+})();
+</script>
+
 </body>
 </html>

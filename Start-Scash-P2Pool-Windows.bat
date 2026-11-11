@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 title Scash P2Pool QtKawaii - magicalgirlsunite
 echo ====================================================================
-echo   Scash Peer-to-Peer Mining Pool (QtKawaii Edition v0.2.0-beta.2)
+echo   Scash Peer-to-Peer Mining Pool (QtKawaii Edition v0.2.0-beta.3)
 echo   Publisher: magicalgirlsunite ^| Community: ScashNetworkCommunity
 echo ====================================================================
 echo.
