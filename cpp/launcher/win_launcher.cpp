@@ -63,7 +63,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
         for (int i = 1; i < wargc; ++i) {
             std::wstring a(wargv[i]);
             if (a == L"--self-test" || a == L"--version") {
-                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.6 (Publisher: magicalgirlsunite, MSR+WinRing0)\n");
+                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.7 (Publisher: magicalgirlsunite, MSR+WinRing0)\n");
                 LocalFree(wargv);
                 return 0;
             }
@@ -127,13 +127,29 @@ int main(int /*argc*/, char* /*argv*/[]) {
         wprintf(L"[Tip] Running without Administrator permission (mining still works, just at standard speed without MSR/HugePages boost).\n");
     }
 
-    SetConsoleTitleW(L"Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.6)");
+    SetConsoleTitleW(L"Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.7)");
 
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != NULL && hOut != INVALID_HANDLE_VALUE) {
         DWORD dwMode = 0;
         if (GetConsoleMode(hOut, &dwMode)) {
             SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        }
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        if (GetConsoleScreenBufferInfo(hOut, &csbi)) {
+            SHORT curW = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+            SHORT curH = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+            COORD maxWin = GetLargestConsoleWindowSize(hOut);
+            SHORT wantW = (maxWin.X > 90) ? ((maxWin.X - 2 < 128) ? (maxWin.X - 2) : 128) : 128;
+            SHORT wantH = (maxWin.Y > 30) ? ((maxWin.Y - 2 < 42) ? (maxWin.Y - 2) : 42) : 42;
+            if (curW < 124 && wantW >= 124) {
+                COORD bufSz;
+                bufSz.X = (csbi.dwSize.X > wantW) ? csbi.dwSize.X : wantW;
+                bufSz.Y = (csbi.dwSize.Y > 400) ? csbi.dwSize.Y : 400;
+                SetConsoleScreenBufferSize(hOut, bufSz);
+                SMALL_RECT winRect = {0, 0, (SHORT)(wantW - 1), (SHORT)(((curH > wantH) ? curH : wantH) - 1)};
+                SetConsoleWindowInfo(hOut, TRUE, &winRect);
+            }
         }
     }
 

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.6)
+title Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.7)
 if exist "%~dp0Start-Scash-P2Pool.exe" (
     "%~dp0Start-Scash-P2Pool.exe" %*
 ) else if exist "%~dp0runtime\pypy2\pypy.exe" (

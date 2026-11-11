@@ -1,5 +1,5 @@
 """
-Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.2.0-beta.6).
+Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.2.0-beta.7).
 Manages local xmrigDaemon + xmrigMiner (rx/scash, built with -DWITH_MSR=ON,
 -DWITH_ASM=ON, WinRing0x64.sys, HugePages, and hwloc physical-core affinity)
 connecting strictly to 127.0.0.1:8345 and reports 100% real live process status,

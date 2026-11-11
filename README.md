@@ -1,4 +1,4 @@
-# Scash P2Pool — Easy All-in-One CPU Mining Pool (QtKawaii Edition `v0.2.0-beta.6`)
+# Scash P2Pool — Easy All-in-One CPU Mining Pool (QtKawaii Edition `v0.2.0-beta.7`)
 
 **Publisher:** `magicalgirlsunite` | **Community:** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **Pool Fee:** **1%** to Pool Author (`scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc`), **99%** straight to Miners
 
@@ -16,9 +16,9 @@ Go to the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-pee
 
 | Download File | Who Is It For? | Built-in CPU Miner Included? |
 | :--- | :--- | :--- |
-| **`Scash-P2Pool-v0.2.0-beta.6-Windows-x64.zip`** | **Recommended for Windows users!** Ready to mine out of the box. | **Yes** (`xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` speed booster) |
-| **`Scash-P2Pool-v0.2.0-beta.6-NodeOnly-Windows-x64.zip`** | Advanced Windows users who want to use their own separate mining app. | **No** (`miner/` has no `.exe` or `.sys` files) |
-| **`Scash-P2Pool-v0.2.0-beta.6-Linux-x64.tar.gz`** | **Linux (64-bit) users.** Ready to mine out of the box. | **Yes** (`xmrigDaemon` + `xmrigMiner` with MSR support) |
+| **`Scash-P2Pool-v0.2.0-beta.7-Windows-x64.zip`** | **Recommended for Windows users!** Ready to mine out of the box. | **Yes** (`xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` speed booster) |
+| **`Scash-P2Pool-v0.2.0-beta.7-NodeOnly-Windows-x64.zip`** | Advanced Windows users who want to use their own separate mining app. | **No** (`miner/` has no `.exe` or `.sys` files) |
+| **`Scash-P2Pool-v0.2.0-beta.7-Linux-x64.tar.gz`** | **Linux (64-bit) users.** Ready to mine out of the box. | **Yes** (`xmrigDaemon` + `xmrigMiner` with MSR support) |
 
 *(Make sure you also have the [Scash Wallet](https://github.com/ScashNetworkCommunity/scash/releases) installed so you have your own **`scash1...`** receiving address where your mined coins will be sent!)*
 
@@ -36,7 +36,7 @@ Just like [official Monero mining apps](https://www.getmonero.org/get-started/fa
 5. Click **Add an exclusion** -> choose **Folder** -> select **`C:\Scash-P2Pool`** ([Microsoft step-by-step guide](https://learn.microsoft.com/en-us/answers/questions/3187645/how-to-add-an-exception-to-windows-defender)).
 
 ### Step 2: Save & Unzip Inside `C:\Scash-P2Pool`
-1. On the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), **right-click** **`Scash-P2Pool-v0.2.0-beta.6-Windows-x64.zip`** and click **Save link as...**.
+1. On the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), **right-click** **`Scash-P2Pool-v0.2.0-beta.7-Windows-x64.zip`** and click **Save link as...**.
 2. Choose **`C:\Scash-P2Pool`** and click **Save** *(saving straight into `C:\Scash-P2Pool` keeps Windows from deleting it in your `Downloads` folder)*.
 3. Open **`C:\Scash-P2Pool`**, **right-click** the `.zip` file, click **Extract All...**, and click **Extract**.
 
@@ -74,8 +74,8 @@ Nope! Your `scash1...` wallet address is saved locally on your PC, so next time 
 
 ### Linux (64-bit) Quick Start
 ```bash
-tar -xzf Scash-P2Pool-v0.2.0-beta.6-Linux-x64.tar.gz
-cd Scash-P2Pool-v0.2.0-beta.6
+tar -xzf Scash-P2Pool-v0.2.0-beta.7-Linux-x64.tar.gz
+cd Scash-P2Pool-v0.2.0-beta.7
 # Optional: enable Linux 2MB HugePages & run with sudo if you want MSR CPU register tuning
 sudo sysctl -w vm.nr_hugepages=1280
 ./start-scash-p2pool-linux.sh
@@ -94,5 +94,5 @@ Mining works right away with **zero router changes**! However, if you know how t
 ### Optional: Verifying Your Download (`SHA256SUMS.txt`)
 If you'd like to verify your `.zip` matches `SHA256SUMS.txt` on the Releases page, open PowerShell and run:
 ```powershell
-Get-FileHash C:\Scash-P2Pool\Scash-P2Pool-v0.2.0-beta.6-Windows-x64.zip -Algorithm SHA256
+Get-FileHash C:\Scash-P2Pool\Scash-P2Pool-v0.2.0-beta.7-Windows-x64.zip -Algorithm SHA256
 ```

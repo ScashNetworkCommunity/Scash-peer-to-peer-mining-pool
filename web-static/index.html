@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.2.0-beta.6)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.2.0-beta.7)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,7 +164,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.2.0-beta.6)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.2.0-beta.7)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -176,7 +176,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.2.0-beta.6</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.2.0-beta.7</span>
         </div>
       </div>
 
@@ -584,7 +584,7 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.2.0-beta.6 (Core 30.4)</span>
+        <span>v0.2.0-beta.7 (Core 30.4)</span>
       </div>
     </footer>
   </div>
@@ -1003,7 +1003,7 @@
 
     function renderNodeWindow(ns, ls) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-beta.6-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-beta.7-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       const p2pPeers = ls && ls.peers ? (Number(ls.peers.incoming || 0) + Number(ls.peers.outgoing || 0)) : 0;
