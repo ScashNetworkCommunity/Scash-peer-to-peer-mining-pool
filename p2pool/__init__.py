@@ -1,10 +1,48 @@
+import codecs
 import sys
 
-__version__ = 'v0.2.0-beta.4-scash-kawaii'
+__version__ = 'v0.2.0-beta.6-scash-kawaii'
 DEBUG = False
 
-# --- Scash QtKawaii HTTPS Redirect Shim for PyPy 2.7 (prevents ImportError: No module named OpenSSL) ---
+try:
+    codecs.register(lambda n: codecs.lookup('utf-8') if n.lower().replace('-', '').replace('_', '') in ('cp65001', '65001') else None)
+except Exception:
+    pass
+
 if sys.version_info[0] < 3:
+    class _P2PoolSafeStream(object):
+        def __init__(self, inner):
+            self._inner = inner
+        def write(self, data):
+            try:
+                if not isinstance(data, bytes):
+                    data = (
+                        data.replace(u'\u2026', u'...')
+                        .replace(u'\u2014', u'--')
+                        .replace(u'\u2013', u'-')
+                        .replace(u'\u2022', u'*')
+                    )
+                    enc = getattr(self._inner, 'encoding', None) or 'ascii'
+                    data = data.encode(enc, 'replace')
+            except Exception:
+                try:
+                    data = data.encode('ascii', 'replace')
+                except Exception:
+                    pass
+            return self._inner.write(data)
+        def flush(self):
+            try:
+                return self._inner.flush()
+            except Exception:
+                pass
+        def __getattr__(self, attr):
+            return getattr(self._inner, attr)
+
+    if not hasattr(sys.stdout, '_inner'):
+        sys.stdout = _P2PoolSafeStream(sys.stdout)
+    if not hasattr(sys.stderr, '_inner'):
+        sys.stderr = _P2PoolSafeStream(sys.stderr)
+
     try:
         import ssl as _stdlib_ssl
         import urllib2 as _stdlib_urllib2
@@ -15,7 +53,7 @@ if sys.version_info[0] < 3:
 
         def _scash_fetch_bytes(url, method='GET', postdata=None, headers=None, timeout=10):
             u = url.decode('utf-8') if isinstance(url, bytes) else str(url)
-            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0-beta.4'}
+            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0-beta.6'}
             if headers:
                 for hk, hv in headers.items():
                     ks = hk.decode('utf-8') if isinstance(hk, bytes) else str(hk)

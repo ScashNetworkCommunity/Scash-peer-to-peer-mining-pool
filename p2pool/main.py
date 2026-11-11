@@ -309,7 +309,7 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
         elif args.donation_percentage < .9:
             print '''Donating %.1f%% of work towards P2Pool's development. Please donate to encourage further development of P2Pool!''' % (args.donation_percentage,)
         else:
-            print '''Donating %.1f%% of work towards P2Pool's development. Thank you!''' % (args.donation_percentage,)
+            print '''Pool fee: %.1f%% to Scash P2Pool author (magicalgirlsunite - scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc). Thank you!''' % (args.donation_percentage,)
             print 'You can increase this amount with --give-author argument! (or decrease it, if you must)'
         print
         

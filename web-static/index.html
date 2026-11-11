@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.2.0-beta.5)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.2.0-beta.6)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,10 +164,10 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.2.0-beta.5)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.2.0-beta.6)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
-            <button id="menuSettingsBtn" class="hover:text-white">Stratum Setup</button>
+            <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
             <button id="menuNodeWinBtn" class="hover:text-cyan-300 font-medium">Node window</button>
             <button id="menuHelpBtn" class="hover:text-white">Live Graphs</button>
           </div>
@@ -176,7 +176,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.2.0-beta.5</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.2.0-beta.6</span>
         </div>
       </div>
 
@@ -193,7 +193,7 @@
             <span>Live Hashrate Graph</span>
           </button>
           <button type="button" data-tab="setup" class="qt-tab-btn">
-            <span>External Miner Setup</span>
+            <span>Help &amp; Extra PCs</span>
           </button>
         </nav>
 
@@ -221,7 +221,7 @@
               <div class="qt-cyan-card p-4 sm:p-5">
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-2.5">
-                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Live Node &amp; P2Pool Status</h2>
+                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Live Node &amp; P2Pool Status <span class="text-[11px] text-purple-300 font-normal">(1% Author Fee)</span></h2>
                     <span class="scash-pixel-badge text-[10px] text-white font-pixel">Scash</span>
                   </div>
                   <span id="minerStateBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 font-medium">
@@ -282,7 +282,7 @@
                     class="w-56 max-w-full h-auto rounded-xl select-none pointer-events-none"
                   />
                   <div id="mascotSpeechBubble" class="mt-1.5 px-3 py-1.5 rounded-full bg-[#24173d]/95 border border-[#4deeea]/70 text-[11px] text-cyan-200 shadow-lg text-center">
-                    Paste your own <span class="font-mono-code text-purple-200">scash1...</span> wallet address to mine with 0% pool fee!
+                    Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (99% PPLNS &bull; 1% fee to author)
                   </div>
                 </div>
 
@@ -294,13 +294,13 @@
                       <span id="minerProcBadge" class="text-[11px] font-mono-code text-purple-300">Stopped</span>
                     </div>
                     <p class="text-[11px] text-purple-200/80 mt-1">
-                      Mines directly into your local P2Pool Stratum (<span class="font-mono-code text-cyan-300">127.0.0.1:8345</span>) with zero <span class="font-mono-code">WinRing0</span> drivers.
+                      Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet address below and click <strong>Start</strong>! Automatically turns on <span class="text-cyan-300">MSR + HugePages</span> CPU speed boost.
                     </p>
                   </div>
 
                   <div class="space-y-2.5 text-xs">
                     <div>
-                      <label for="quickWalletInput" class="block text-[11px] text-purple-200 mb-1">Your Scash Payout Address (Bech32 <span class="font-mono-code">scash1...</span>):</label>
+                      <label for="quickWalletInput" class="block text-[11px] text-purple-200 mb-1">Your Scash Wallet Address (starts with <span class="font-mono-code text-cyan-300">scash1...</span>):</label>
                       <input
                         id="quickWalletInput"
                         type="text"
@@ -324,10 +324,11 @@
                         value="4"
                         class="w-full accent-orange-500 cursor-pointer"
                       />
+                      <div class="text-[10px] text-purple-300/75 mt-0.5">Tip: Lower this slider anytime if you want your PC extra light while browsing or gaming.</div>
                     </div>
 
                     <div class="flex items-center justify-between text-[11px] bg-[#140b23] px-2.5 py-1.5 rounded-lg border border-purple-500/30">
-                      <span class="text-purple-200">RandomX 2GB HugePages</span>
+                      <span class="text-purple-200">Extra Memory Speed Boost (<span class="text-cyan-300">HugePages</span>)</span>
                       <input id="largePagesToggle" type="checkbox" checked class="accent-cyan-400 w-3.5 h-3.5 cursor-pointer" />
                     </div>
                   </div>
@@ -354,7 +355,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
                     <h2 class="text-sm font-semibold text-purple-100">Live P2Pool Blocks &amp; Sharechain Activity</h2>
-                    <p class="text-[11px] text-purple-300/75">100% live data from <code class="font-mono-code text-cyan-300">/recent_blocks</code>, <code class="font-mono-code text-cyan-300">/current_payouts</code> &amp; <code class="font-mono-code text-cyan-300">/local_stats</code></p>
+                    <p class="text-[11px] text-purple-300/80">Live pool shares &amp; block payouts &mdash; 99% goes straight to miners, 1% to pool author</p>
                   </div>
                   <span id="poolUptimeBadge" class="text-[11px] font-mono-code px-2.5 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">
                     Uptime: &mdash;
@@ -387,7 +388,7 @@
               <div>
                 <h2 class="text-base font-bold text-white">Live PPLNS Sharechain Payouts (<span id="payoutHeaderReward">50.00000000</span> SCASH Block Reward)</h2>
                 <p class="text-xs text-purple-200/80">
-                  Fetched directly from <code class="font-mono-code text-cyan-300">GET /current_payouts</code> on your local P2Pool node. Zero simulated addresses.
+                  Finding shares earns your spot on this payout list! Whenever the pool solves a 50 SCASH block, <strong>99%</strong> is sent immediately to miners here (based on shares from the last 24 hours) and <strong>1%</strong> goes to the pool author (<code class="font-mono-code text-purple-200">scash1qct8...32vwc</code>).
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -436,8 +437,30 @@
           </div>
         </section>
 
-        <!-- ==================== TAB 4: EXTERNAL MINER SETUP ==================== -->
-        <section id="tab-setup" class="tab-panel hidden">
+        <!-- ==================== TAB 4: BEGINNER HELP & EXTRA HOME PCS ==================== -->
+        <section id="tab-setup" class="tab-panel hidden space-y-5">
+          <div class="qt-cyan-card p-5 space-y-3">
+            <h2 class="text-base font-bold text-white">Quick Beginner Guide &amp; Common Questions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">1. How and when do I get paid?</div>
+                <p class="text-purple-200/85 leading-relaxed">While mining, you earn <strong>Shares</strong> (proof of your CPU's work over the last 24 hours). Whenever anyone on P2Pool solves a full <strong>50 SCASH</strong> block, the Scash blockchain immediately pays <strong>99%</strong> directly into active miners' wallets and <strong>1%</strong> (0.50 SCASH) to the pool author. Nothing is held back on a server!</p>
+              </div>
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">2. How do I get maximum CPU mining speed?</div>
+                <p class="text-purple-200/85 leading-relaxed">Click <strong>Yes</strong> on the Windows Administrator prompt when starting <code class="font-mono-code text-purple-200">Start-Scash-P2Pool.exe</code> so the built-in <code class="font-mono-code">WinRing0x64.sys</code> MSR speed booster turns on. <strong>Restart your PC once</strong> after your very first run so Windows finishes unlocking HugePages memory!</p>
+              </div>
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">3. Using Scash Wallet on the same PC?</div>
+                <p class="text-purple-200/85 leading-relaxed">P2Pool automatically finds your saved Scash Wallet blockchain in <code class="font-mono-code text-purple-200">AppData\Local\Scash</code> so you don't download blocks twice! If Scash Wallet was already open before your first run, restart Scash Wallet once (or close it before starting P2Pool) so they share smoothly.</p>
+              </div>
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">4. How do I stop mining cleanly?</div>
+                <p class="text-purple-200/85 leading-relaxed">Click <strong>Stop Built-in XMRig Miner</strong> on the Overview tab to pause just the CPU miner, or simply close the black terminal window (<code class="font-mono-code">X</code> button) to shut down the node, pool, and miner all at once with nothing left running in Task Manager.</p>
+              </div>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div class="lg:col-span-5 qt-cyan-card p-5 space-y-4">
               <h2 class="text-base font-bold text-white">Connect Extra LAN Rigs to Your Local P2Pool</h2>
@@ -561,12 +584,13 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.2.0-beta.5 (Core 30.4)</span>
+        <span>v0.2.0-beta.6 (Core 30.4)</span>
       </div>
     </footer>
   </div>
 
   <script>
+    const AUTHOR_WALLET = 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc';
     const live = {
       online: false,
       nodeSync: null,
@@ -782,6 +806,11 @@
           stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 font-medium';
           stateBadge.textContent = '● P2Pool Stratum Ready (:8345)';
         }
+        if (bubble) {
+          bubble.innerHTML = ms.running
+            ? '&#10024; Hashing <span class="font-mono-code text-cyan-300">rx/scash</span> on :8345! (99% PPLNS &bull; 1% fee to author)'
+            : 'Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (99% PPLNS &bull; 1% fee to author)';
+        }
         footerStatus.className = 'text-emerald-300';
         footerStatus.textContent = `● Scash Block #${blks.toLocaleString()} • P2Pool Sharechain Ready`;
       }
@@ -790,20 +819,36 @@
       const localHs = computeLocalHashrateHs();
       const poolHs = gs ? (Number(gs.pool_hash_rate) || 0) : 0;
       const effPoolHs = Math.max(poolHs, localHs);
-      const payoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) > 0);
+      const shTotalPre = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
+      const rawPayoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) > 0);
+      const payoutEntries = (
+        shTotalPre === 0 &&
+        poolHs <= 0 &&
+        rawPayoutEntries.length === 1 &&
+        rawPayoutEntries[0][0].toLowerCase() === AUTHOR_WALLET.toLowerCase()
+      ) ? [] : rawPayoutEntries;
+      const totalPayoutSum = payoutEntries.reduce((a, [, v]) => a + (Number(v) || 0), 0);
+      const minerPayoutEntries = payoutEntries.filter(([addr, amt]) => {
+        if (addr.toLowerCase() !== AUTHOR_WALLET.toLowerCase()) return true;
+        if (payoutEntries.length === 1) return true;
+        const pct = totalPayoutSum > 0 ? (Number(amt) / totalPayoutSum) * 100 : 0;
+        return pct > 1.5;
+      });
       const activeStratumWorkers = ls && ls.miner_hash_rates ? Object.keys(ls.miner_hash_rates).length : 0;
-      const activeMinerCount = Math.max(payoutEntries.length, activeStratumWorkers, ms.running ? 1 : 0);
+      const activeMinerCount = Math.max(minerPayoutEntries.length, activeStratumWorkers, ms.running ? 1 : 0);
 
       const blockReward = ls && ls.block_value ? Number(ls.block_value) : 50.0;
       document.getElementById('blockRewardRowText').textContent = blockReward.toFixed(8) + ' SCASH';
       document.getElementById('payoutHeaderReward').textContent = blockReward.toFixed(8);
 
       const userWallet = (wInput?.value || ms.wallet || '').trim();
-      const myPayout = userWallet && live.payouts && live.payouts[userWallet] ? Number(live.payouts[userWallet]) : 0.0;
+      const payoutMapActive = Object.fromEntries(payoutEntries);
+      const myPayout = userWallet && payoutMapActive[userWallet] ? Number(payoutMapActive[userWallet]) : 0.0;
       document.getElementById('myCurrentPayoutText').textContent = myPayout.toFixed(8) + ' SCASH';
 
       document.getElementById('kpiLocalHashrate').textContent = fmtHashrate(localHs);
-      document.getElementById('kpiLocalSub').textContent = ms.running ? `${ms.threads || 1} CPU Threads Active` : (activeStratumWorkers > 0 ? `${activeStratumWorkers} Stratum Worker(s)` : 'Miner Idle');
+      const msrTag = ms.msr_active === true ? ' • MSR ON' : (ms.hugepages_active === true ? ' • HugePages' : '');
+      document.getElementById('kpiLocalSub').textContent = ms.running ? `${ms.threads || 1} Threads${msrTag}` : (activeStratumWorkers > 0 ? `${activeStratumWorkers} Stratum Worker(s)` : 'Miner Idle');
       document.getElementById('kpiPoolHashrate').textContent = fmtHashrate(effPoolHs);
       document.getElementById('kpiPoolMiners').textContent = `${activeMinerCount} Active Miner${activeMinerCount === 1 ? '' : 's'}`;
 
@@ -892,7 +937,7 @@
           items.push(`
             <div class="p-2.5 rounded-lg bg-[#160d26]/90 border border-purple-500/35 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <div class="text-[11px] text-purple-300">Active Sharechain Payout Address</div>
+                <div class="text-[11px] text-purple-300">${addr.toLowerCase() === AUTHOR_WALLET.toLowerCase() ? (payoutEntries.length === 1 ? 'Active Miner &bull; Pool Author (100%)' : 'Pool Author Fee (1%)') : 'Active Sharechain Miner Payout'}</div>
                 <div class="font-mono-code text-xs text-white truncate">${addr}</div>
               </div>
               <div class="font-mono-code text-xs text-emerald-300 font-semibold shrink-0">+${Number(amt).toFixed(8)} SCASH</div>
@@ -947,7 +992,7 @@
           <td class="py-2.5 px-3 text-purple-300">#${i + 1}</td>
           <td class="py-2.5 px-3 text-white">
             ${r.address}
-            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
+            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}${r.address.toLowerCase() === AUTHOR_WALLET.toLowerCase() ? '<span class="ml-1.5 px-1.5 py-0.5 text-[10px] rounded bg-purple-500/25 border border-purple-400 text-purple-200 font-sans font-semibold">1% AUTHOR</span>' : ''}
           </td>
           <td class="py-2.5 px-3 text-right text-cyan-300">${fmtHashrate(r.hs)}</td>
           <td class="py-2.5 px-3 text-right text-amber-300">${r.pct.toFixed(2)}%</td>
@@ -958,7 +1003,7 @@
 
     function renderNodeWindow(ns, ls) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-beta.5-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-beta.6-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       const p2pPeers = ls && ls.peers ? (Number(ls.peers.incoming || 0) + Number(ls.peers.outgoing || 0)) : 0;
@@ -987,7 +1032,7 @@
       const user = `${w}.${wk}`;
       let cmd = '';
       if (sw === 'xmrigcc') {
-        cmd = `xmrigMiner -a rx/scash -o 127.0.0.1:8345 -u ${user} -p x -t ${t}`;
+        cmd = `xmrigDaemon --cc-disabled -a rx/scash -o 127.0.0.1:8345 -u ${user} -p x`;
       } else if (sw === 'cpuminer-scash') {
         cmd = `minerd -a randomx -o stratum+tcp://127.0.0.1:8345 -u ${user} -p x --threads=${t}`;
       } else {
@@ -1148,8 +1193,7 @@
       document.getElementById('setupMinerSoftware')?.addEventListener('change', renderExternalMinerCmd);
       document.getElementById('setupWorkerName')?.addEventListener('input', renderExternalMinerCmd);
       document.getElementById('payoutSearchInput')?.addEventListener('input', () => {
-        const entries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) > 0);
-        renderRealPayoutsTable(entries, live.localStats, wInput?.value || '', Boolean(live.nodeSync?.syncing));
+        renderAllLive();
       });
 
       document.getElementById('copyMinerCliBtn')?.addEventListener('click', () => {
@@ -1174,7 +1218,8 @@
         const threads = document.getElementById('cpuThreadSlider')?.value || '4';
         const worker = (document.getElementById('setupWorkerName')?.value || 'kawaii_rig01').trim();
         const lp = document.getElementById('largePagesToggle')?.checked ? '1' : '0';
-        const res = await fetchJsonOrNull(`/miner_start?wallet=${encodeURIComponent(wallet)}&threads=${encodeURIComponent(threads)}&worker=${encodeURIComponent(worker)}&large_pages=${lp}`);
+        const thParam = live.threadsEditedByUser ? `&threads=${encodeURIComponent(threads)}` : '';
+        const res = await fetchJsonOrNull(`/miner_start?wallet=${encodeURIComponent(wallet)}${thParam}&worker=${encodeURIComponent(worker)}&large_pages=${lp}`);
         if (res && res.ok === false && res.error) {
           showToast(res.error);
         } else if (res && res.notice) {

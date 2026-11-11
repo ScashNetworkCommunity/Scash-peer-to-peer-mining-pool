@@ -1,0 +1,36 @@
+==============================================================================
+  SCASH P2POOL (QtKawaii Edition v0.2.0-beta.6) - EASY QUICK START GUIDE
+  Publisher: magicalgirlsunite  |  99% PPLNS to Miners, 1% Fee to Pool Author
+==============================================================================
+
+HOW TO START MINING IN 3 EASY STEPS (WINDOWS):
+
+1. KEEP THIS FOLDER ALLOWED IN WINDOWS SECURITY:
+   Make sure this folder (for example C:\Scash-P2Pool) is added under:
+   Windows Security -> Virus & threat protection -> Manage settings ->
+   Exclusions -> Add an exclusion -> Folder.
+   (This keeps Windows from deleting the built-in CPU miner and the
+   WinRing0x64.sys CPU speed-booster file!)
+
+2. DOUBLE-CLICK Start-Scash-P2Pool.exe:
+   - If Windows shows 'Windows protected your PC', click More info -> Run anyway.
+   - Click YES on the Administrator prompt! This turns on the MSR + HugePages
+     CPU speed boost so your processor mines 2x to 4x faster.
+   - If Windows Firewall asks, click Allow access.
+
+3. PASTE YOUR scash1... WALLET ADDRESS IN YOUR BROWSER:
+   - Your web browser opens http://127.0.0.1:8345/static/ automatically.
+   - Paste a scash1... receiving address from your Scash Wallet and click
+     'Start Built-in XMRig'!
+   - SPEED TIP: Restart your PC once after your very first Administrator run
+     so Windows finishes unlocking HugePages memory for maximum CPU speed!
+
+HOW PAYOUTS WORK:
+   Finding 'Shares' earns your spot on the pool's payout list over a rolling
+   24-hour window. Whenever the pool solves a 50 SCASH block, 99% is paid
+   immediately into active miners' wallets and 1% goes to the pool author
+   (scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc). Nothing is held on a server!
+
+HOW TO STOP MINING:
+   Simply close the black terminal window (click X) -- everything shuts down
+   automatically with nothing left running in Task Manager!

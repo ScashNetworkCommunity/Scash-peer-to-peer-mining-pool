@@ -1,7 +1,9 @@
 """
 Active Community Scash Nodes & Scash Core 30.4.0-Compliant scash.conf Manager.
-- Checks Windows Registry (HKCU\\Software\\Scash\\Scash-Qt strDataDir) when %APPDATA%\\Scash has no blocks yet,
-  so custom Scash-Qt data directories are detected automatically.
+- Automatically detects Scash Core 30.4.0 / QtKawaii Wallet's Windows %LOCALAPPDATA%\\Scash
+  folder (C:\\Users\\<user>\\AppData\\Local\\Scash, including across UAC elevation via
+  SCASH_ORIG_LOCALAPPDATA), Windows Registry strDataDir (HKCU\\Software\\Scash\\Scash-Qt),
+  and legacy %APPDATA%\\Scash (Roaming).
 - Repairs legacy beta config issues (removes unsupported adddnsseed=, Core-30-removed upnp=,
   foreground-breaking daemon=1, unindexed txindex=1, and scopes port/rpcport/rpcbind/addnode
   into both [scash] and [main] sections).
@@ -42,41 +44,116 @@ DEFAULT_DNS_SEEDS = [
 NETWORK_SCOPED_KEYS = ("port", "rpcport", "rpcbind", "addnode", "connect", "seednode", "dnsseed")
 
 
+def _normalize_base_datadir(dd):
+    if not dd:
+        return dd
+    norm = os.path.normpath(dd)
+    if os.path.basename(norm).lower() == "scash" and os.path.isdir(os.path.join(norm, "blocks")):
+        parent = os.path.dirname(norm)
+        if os.path.basename(parent).lower() == "scash":
+            return parent
+    return norm
+
+
 def _has_blocks_dir(datadir):
     if not datadir or not os.path.isdir(datadir):
         return False
     for rel in (os.path.join("scash", "blocks"), "blocks"):
-        if os.path.isdir(os.path.join(datadir, rel)):
-            return True
+        p = os.path.join(datadir, rel)
+        if os.path.isdir(p):
+            try:
+                if any(fn.startswith("blk") for fn in os.listdir(p)):
+                    return True
+            except Exception:
+                return True
     return False
+
+
+def _read_windows_registry_datadir():
+    try:
+        try:
+            import winreg
+        except ImportError:
+            import _winreg as winreg
+        for subkey in (r"Software\Scash\Scash-Qt", r"Software\Scash\Scash"):
+            try:
+                k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey)
+                val, _ = winreg.QueryValueEx(k, "strDataDir")
+                winreg.CloseKey(k)
+                if val and os.path.isdir(val):
+                    return _normalize_base_datadir(val)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
 
 
 def get_scash_datadir():
     sys_name = platform.system()
     if sys_name == "Windows":
-        default_dd = os.path.join(os.environ.get("APPDATA", ""), "Scash")
-        if _has_blocks_dir(default_dd):
-            return default_dd
-        try:
-            try:
-                import winreg
-            except ImportError:
-                import _winreg as winreg
-            for subkey in (r"Software\Scash\Scash-Qt", r"Software\Scash\Scash"):
-                try:
-                    k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey)
-                    val, _ = winreg.QueryValueEx(k, "strDataDir")
-                    winreg.CloseKey(k)
-                    if val and os.path.isdir(val):
-                        return val
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        return default_dd
+        reg_dd = _read_windows_registry_datadir()
+        orig_local = os.environ.get("SCASH_ORIG_LOCALAPPDATA", "")
+        orig_roaming = os.environ.get("SCASH_ORIG_APPDATA", "")
+        local_base = os.environ.get("LOCALAPPDATA", "")
+        roaming_base = os.environ.get("APPDATA", "")
+        orig_local_dd = os.path.join(orig_local, "Scash") if orig_local else ""
+        orig_roam_dd = os.path.join(orig_roaming, "Scash") if orig_roaming else ""
+        local_dd = os.path.join(local_base, "Scash") if local_base else ""
+        roaming_dd = os.path.join(roaming_base, "Scash") if roaming_base else ""
+
+        # 1. Prefer whichever Scash folder already has synced blk*.dat files!
+        for cand in (orig_local_dd, reg_dd, local_dd, orig_roam_dd, roaming_dd):
+            if cand and _has_blocks_dir(cand):
+                return cand
+
+        # 2. Otherwise prefer pre-UAC LocalAppData, Registry strDataDir, %LOCALAPPDATA%\Scash, then %APPDATA%\Scash
+        for cand in (orig_local_dd, reg_dd, local_dd, orig_roam_dd, roaming_dd):
+            if cand and os.path.isdir(cand):
+                return cand
+        return orig_local_dd or local_dd or roaming_dd
     elif sys_name == "Darwin":
         return os.path.expanduser("~/Library/Application Support/Scash")
     return os.path.expanduser("~/.scash")
+
+
+def get_candidate_datadirs(primary=None):
+    out = []
+    for c in [
+        primary,
+        get_scash_datadir(),
+        os.path.join(os.environ.get("SCASH_ORIG_LOCALAPPDATA", ""), "Scash") if os.environ.get("SCASH_ORIG_LOCALAPPDATA") else None,
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Scash") if os.environ.get("LOCALAPPDATA") else None,
+        os.path.join(os.environ.get("SCASH_ORIG_APPDATA", ""), "Scash") if os.environ.get("SCASH_ORIG_APPDATA") else None,
+        os.path.join(os.environ.get("APPDATA", ""), "Scash") if os.environ.get("APPDATA") else None,
+    ]:
+        if c and c not in out and os.path.isdir(c):
+            out.append(c)
+    return out
+
+
+def read_conf_credentials(datadir):
+    if not datadir:
+        return None, None
+    conf_path = os.path.join(datadir, "scash.conf")
+    if not os.path.isfile(conf_path):
+        return None, None
+    u, pw = None, None
+    try:
+        for raw in open(conf_path, "r").read().splitlines():
+            s = raw.strip()
+            if not s or s.startswith("#") or "=" not in s:
+                continue
+            k, v = s.split("=", 1)
+            kl = k.strip().lower()
+            vs = v.strip()
+            if kl == "rpcuser" and vs:
+                u = vs
+            elif kl == "rpcpassword" and vs:
+                pw = vs
+    except Exception:
+        pass
+    return u, pw
 
 
 def _has_existing_txindex(datadir):
@@ -96,11 +173,7 @@ def configure_scash_conf(
     rpc_port=8342,
     p2p_port=8343,
 ):
-    """
-    Repairs or creates a Scash 2.3.0 (Mid-World Core 30.4.0) compliant scash.conf
-    and returns (conf_path, effective_rpc_user, effective_rpc_pass, effective_rpc_port).
-    """
-    datadir = custom_datadir or get_scash_datadir()
+    datadir = _normalize_base_datadir(custom_datadir) if custom_datadir else get_scash_datadir()
     if not os.path.exists(datadir):
         os.makedirs(datadir)
     conf_path = os.path.join(datadir, "scash.conf")

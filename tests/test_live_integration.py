@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.5 + Real Scash Core 30.4.0 Daemon!
+End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.6 + Real Scash Core 30.4.0 Daemon!
 Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
 so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
 is verified live on both Linux and Windows before packaging.
@@ -83,6 +83,9 @@ def read_tail(path, n=70):
 
 def run_all_live_tests():
     assert os.path.isfile(SCASHD_BIN), f"Missing bundled scashd at {SCASHD_BIN}"
+    if IS_WIN:
+        wr0 = os.path.join(ROOT, "miner", "WinRing0x64.sys")
+        assert os.path.isfile(wr0) and os.path.getsize(wr0) > 5000, f"Missing WinRing0x64.sys at {wr0}"
     from p2pool import scash_nodes
     import start_scash_p2pool
 
@@ -211,17 +214,30 @@ def run_all_live_tests():
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.2.0-beta.5' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.2.0-beta.6' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
                 "import start_scash_p2pool as sp; print('WARM_OK:', sp.ascii_safe(u'Loading block index\\u2026')); print(u'Loading block index\\u2026'); print('VERSION_OK:', p2pool.__version__)"
             )
-            p = subprocess.Popen([PYPY_BIN, "-c", code], cwd=non_git, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen([PYPY_BIN, "-B", "-c", code], cwd=non_git, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = p.communicate(timeout=25)
             out_s = out.decode("utf-8", "replace")
             err_s = err.decode("utf-8", "replace")
             assert p.returncode == 0, f"PyPy check failed: {out_s} / {err_s}"
             assert "fatal: not a git repository" not in err_s and "fatal: not a git repository" not in out_s, err_s
             assert "VERSION_OK:" in out_s
+
+            assert not os.path.exists(os.path.join(ROOT, "p2pool", "p2pool")), "Nested p2pool/p2pool directory still exists!"
+            root_code = (
+                "from p2pool import main, data as pdata; "
+                "from p2pool.bitcoin import data as bdata, networks; "
+                "assert 'v0.2.0-beta.6' in main.p2pool.__version__, main.p2pool.__version__; "
+                "addr = bdata.script2_to_address(pdata.DONATION_SCRIPT, networks.nets['scash']); "
+                "assert addr == 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc', addr; "
+                "print('ROOT_DONATION_OK:', addr, main.p2pool.__version__)"
+            )
+            pr = subprocess.Popen([PYPY_BIN, "-B", "-c", root_code], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            rout, rerr = pr.communicate(timeout=25)
+            assert pr.returncode == 0 and b"ROOT_DONATION_OK:" in rout, (rout, rerr)
             print("[LIVE-PASS 2/3] Verified zero 'fatal: not a git repository' and HTTPS redirect shim in portable PyPy 2.7!")
 
             # 3. Connect run_p2pool.py DIRECTLY to REAL Scash Core 30.4.0 scashd (zero RPC mocks!)
@@ -240,6 +256,7 @@ def run_all_live_tests():
             p2p_proc = subprocess.Popen(
                 [
                     PYPY_BIN,
+                    "-B",
                     "run_p2pool.py",
                     "--net",
                     "scash",
@@ -294,6 +311,12 @@ def run_all_live_tests():
                             ms_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/miner_status", timeout=3).read().decode("utf-8")
                             ms_obj = json.loads(ms_raw)
                             assert ms_obj.get("running") is False, ms_obj
+                            pay_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/current_payouts", timeout=3).read().decode("utf-8")
+                            pay_obj = json.loads(pay_raw)
+                            # At 0 shares in the sharechain (best_share_hash is None), get_expected_payouts assigns
+                            # the full 50.0 SCASH bootstrap subsidy to DONATION_SCRIPT (and ~0.5 SCASH = 1% once shares exist).
+                            assert "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in pay_obj and float(pay_obj["scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc"]) >= 0.45, f"Expected author payout to scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc in /current_payouts, got: {pay_obj}"
+                            assert "scash1q6q76dl9rjqtx6qsturnu9zkge3c0tpqrumxx8d" not in pay_obj, pay_obj
                             web_ok = True
                             break
                     except Exception as _we:
@@ -333,9 +356,49 @@ def run_all_live_tests():
                     p2p_fh.flush()
                     raise AssertionError(f"Invalid rx/scash Stratum job: {msg}\n{read_tail(p2p_log)}")
 
+                # Live test bundled xmrigDaemon + xmrigMiner (WITH_MSR=ON) via /miner_start -> /miner_status -> /miner_stop!
+                st_start = json.loads(
+                    NO_PROXY_OPENER.open(
+                        f"http://127.0.0.1:{worker_port}/miner_start?wallet=scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2&threads=2",
+                        timeout=6,
+                    ).read().decode("utf-8")
+                )
+                assert st_start.get("ok") is True and st_start.get("has_binary") is True, st_start
+                assert str(st_start.get("binary", "")).lower().startswith("xmrigdaemon"), st_start
+                cfg_json_txt = open(os.path.join(ROOT, "miner", "config.json"), encoding="utf-8").read()
+                cfg_json = json.loads(cfg_json_txt)
+                assert cfg_json.get("randomx", {}).get("wrmsr") is True and cfg_json.get("randomx", {}).get("rdmsr") is True, cfg_json
+                assert "rx" not in cfg_json.get("cpu", {}), cfg_json
+                miner_live_ok = False
+                last_ms = None
+                for _ in range(30):
+                    time.sleep(0.5)
+                    last_ms = json.loads(
+                        NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/miner_status", timeout=4).read().decode("utf-8")
+                    )
+                    joined_logs = "\n".join(last_ms.get("logs") or []).lower()
+                    if last_ms.get("running") and (
+                        last_ms.get("hashrate_hs", 0) > 0
+                        or tcp_open(8346, timeout=0.3)
+                        or "about" in joined_logs
+                        or "rx/scash" in joined_logs
+                    ):
+                        miner_live_ok = True
+                        break
+                st_stop = json.loads(
+                    NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/miner_stop", timeout=6).read().decode("utf-8")
+                )
+                assert miner_live_ok, f"xmrigDaemon failed to start live mining against Stratum :{worker_port}: {last_ms}"
+                assert st_stop.get("running") is False, st_stop
+                for _ in range(15):
+                    if not tcp_open(8346, timeout=0.25):
+                        break
+                    time.sleep(0.2)
+
                 p2p_fh.flush()
                 final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
                 assert "Internal bug detected" not in final_log and "NarrowError" not in final_log, final_log
+                assert "v0.2.0-beta.6-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
                 print("[LIVE-PASS 3/3] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
             finally:
                 if p2p_proc.poll() is None:

@@ -163,7 +163,6 @@ class LineBasedPeer(basic.LineOnlyReceiver):
     def lineReceived(self, line):
         _handle(line, self, response_handler=self._matcher.got_response).addCallback(lambda line2: self.sendLine(line2) if line2 is not None else None)
 
-
 # --- Scash Core 30.4.0 HTTPProxy & rpc_help shim ---
 from twisted.internet import defer as _jr_defer
 
@@ -190,7 +189,6 @@ class _ScashBitcoindProxy(object):
         self._inner = inner
 
     def rpc_help(self, *args):
-        # Bypasses Scash Core 30.4.0's C++ RPCHelpMan::ToString() assertion bug (!m_description.starts_with('\n') in ./rpc/util.cpp:803)
         return _jr_defer.succeed(
             'getblock\ngetblockchaininfo\ngetblockhash\ngetblockheader\n'
             'getblocktemplate\ngetinfo\ngetmininginfo\ngetnetworkinfo\n'
