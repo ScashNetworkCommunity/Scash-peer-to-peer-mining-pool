@@ -13,7 +13,6 @@ ADDRESS_P2SH_VERSION = 5                # base58Prefixes[SCRIPT_ADDRESS] = 5
 HUMAN_READABLE_PART = 'scash'           # bech32_hrp = "scash"
 RPC_PORT = 8342                         # ChainType::SCASHMAIN RPC port = 8342
 
-# Scash Mainnet Genesis Hash: e3bf1597a568216022dbda6a0945f09b005d19f041e7158c3cbca9d4029ee82d
 SCASH_GENESIS_HASH = 'e3bf1597a568216022dbda6a0945f09b005d19f041e7158c3cbca9d4029ee82d'
 
 RPC_CHECK = defer.inlineCallbacks(lambda bitcoind: defer.returnValue(
@@ -23,7 +22,7 @@ RPC_CHECK = defer.inlineCallbacks(lambda bitcoind: defer.returnValue(
 
 SUBSIDY_FUNC = lambda height: 50 * 100000000 >> (height + 1) // 210000
 POW_FUNC = lambda header_bytes: scash_randomx.get_pow_commitment_int256(header_bytes)
-BLOCK_PERIOD = 600  # 10 minutes target spacing (ASERT per-block adjustment)
+BLOCK_PERIOD = 600
 SYMBOL = 'SCASH'
 
 CONF_FILE_FUNC = lambda: os.path.join(scash_nodes.get_scash_datadir(), 'scash.conf')

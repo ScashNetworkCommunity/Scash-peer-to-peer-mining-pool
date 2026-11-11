@@ -474,12 +474,75 @@ def get_web_root(wb, datadir_path, bitcoind_getinfo_var, stop_event=variable.Eve
     
     return web_root
 
-
 # --- Scash QtKawaii Built-in XMRig & Community Nodes Web Endpoints ---
 try:
+    import base64 as _w_b64
+    import json as _w_json
+    import time as _w_time
+    try:
+        import urllib.request as _w_ureq
+    except ImportError:
+        import urllib2 as _w_ureq
     from twisted.web import resource as _tw_resource
     from p2pool import xmrig_manager as _xmrig_mgr
     from p2pool import scash_nodes as _scash_nodes
+
+    _w_noproxy = _w_ureq.build_opener(_w_ureq.ProxyHandler({}))
+    _node_status_cache = {'ts': 0.0, 'data': None}
+
+    def _query_live_scashd_node():
+        now = _w_time.time()
+        if _node_status_cache['data'] is not None and (now - _node_status_cache['ts']) < 2.5:
+            return _node_status_cache['data']
+        dd = os.environ.get('SCASH_ACTIVE_DATADIR') or _scash_nodes.get_scash_datadir()
+        port = int(os.environ.get('SCASH_RPC_PORT') or 8342)
+        u = os.environ.get('SCASH_RPC_USER') or ''
+        pw = os.environ.get('SCASH_RPC_PASS') or ''
+        if not u or not pw:
+            cu, cp = _scash_nodes.read_cookie_credentials(dd)
+            if cu and cp:
+                u, pw = cu, cp
+            else:
+                fu, fp = _scash_nodes.read_conf_credentials(dd)
+                u, pw = fu or 'scashminer', fp or 'kawaiip2poolpass'
+
+        def _rpc(method):
+            url = 'http://127.0.0.1:%d/' % port
+            body = _w_json.dumps({'jsonrpc': '1.0', 'id': 'web', 'method': method, 'params': []}).encode('utf-8')
+            auth = _w_b64.b64encode(('%s:%s' % (u, pw)).encode('utf-8')).decode('ascii')
+            req = _w_ureq.Request(url, body, {'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth})
+            raw = _w_noproxy.open(req, timeout=1.8).read().decode('utf-8', 'replace')
+            return (_w_json.loads(raw) or {}).get('result') or {}
+
+        out = {
+            'syncing': False,
+            'p2pool_ready': True,
+            'datadir': dd,
+            'status_text': 'Local Scash Core 30.4 Node + P2Pool Active',
+        }
+        try:
+            bc = _rpc('getblockchaininfo')
+            net = _rpc('getnetworkinfo')
+            mp = _rpc('getmempoolinfo')
+            blks = int(bc.get('blocks', 0))
+            hdrs = int(bc.get('headers', blks))
+            out.update({
+                'blocks': blks,
+                'headers': hdrs,
+                'progress_pct': round((100.0 * blks / hdrs), 2) if hdrs > 0 else 100.0,
+                'chain': bc.get('chain', 'scash'),
+                'bestblockhash': bc.get('bestblockhash', ''),
+                'difficulty': bc.get('difficulty', 0.0),
+                'connections': int(net.get('connections', 0)),
+                'subversion': net.get('subversion', '/Scash:30.4.0/'),
+                'mempool_txs': int(mp.get('size', 0)),
+                'mempool_bytes': int(mp.get('bytes', 0)),
+            })
+        except Exception:
+            pass
+        _node_status_cache['ts'] = now
+        _node_status_cache['data'] = out
+        return out
 
     class _ScashMinerControlResource(_tw_resource.Resource):
         isLeaf = True
@@ -488,22 +551,42 @@ try:
             self.action = action
         def render_GET(self, request):
             request.setHeader('Content-Type', 'application/json')
+            request.setHeader('Cache-Control', 'no-store')
+            def _arg(k):
+                vals = request.args.get(k, request.args.get(k.encode('utf-8'), [None]))
+                v = vals[0] if vals else None
+                return v.decode('utf-8', 'replace') if isinstance(v, bytes) else v
+            def _jb(obj):
+                s = _w_json.dumps(obj)
+                return s if isinstance(s, bytes) else s.encode('utf-8')
             if self.action == 'status':
-                return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.get_status())
+                return _jb(_xmrig_mgr.GLOBAL_XMRIG.get_status())
             elif self.action == 'start':
-                w = request.args.get('wallet', [None])[0]
-                t = request.args.get('threads', [None])[0]
-                wk = request.args.get('worker', [None])[0]
-                return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.start_mining(wallet=w, threads=t, worker=wk))
+                return _jb(_xmrig_mgr.GLOBAL_XMRIG.start_mining(
+                    wallet=_arg('wallet'),
+                    threads=_arg('threads'),
+                    worker=_arg('worker'),
+                    large_pages=_arg('large_pages'),
+                ))
             elif self.action == 'stop':
-                return json.dumps(_xmrig_mgr.GLOBAL_XMRIG.stop_mining())
+                return _jb(_xmrig_mgr.GLOBAL_XMRIG.stop_mining())
             elif self.action == 'sync':
-                return json.dumps({'syncing': False, 'status_text': 'Local Scash Core 30.4 Node + P2Pool Active'})
+                return _jb(_query_live_scashd_node())
             elif self.action == 'nodes':
-                return json.dumps({
+                return _jb({
                     'addnodes': _scash_nodes.DEFAULT_SCASH_ADDNODES,
-                    'dns_seeds': _scash_nodes.DEFAULT_DNS_SEEDS
+                    'dns_seeds': _scash_nodes.DEFAULT_DNS_SEEDS,
                 })
-            return json.dumps({'ok': False})
+            return _jb({'ok': False})
+
+    _orig_scash_get_web_root = get_web_root
+    def get_web_root(*args, **kwargs):
+        _wr = _orig_scash_get_web_root(*args, **kwargs)
+        _wr.putChild(b'miner_status', _ScashMinerControlResource('status'))
+        _wr.putChild(b'miner_start', _ScashMinerControlResource('start'))
+        _wr.putChild(b'miner_stop', _ScashMinerControlResource('stop'))
+        _wr.putChild(b'nodes_list', _ScashMinerControlResource('nodes'))
+        _wr.putChild(b'node_sync_status', _ScashMinerControlResource('sync'))
+        return _wr
 except Exception:
     pass

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.2.0-beta.5)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,26 +13,13 @@
     :root {
       --bg-cosmic: #170e29;
       --bg-topbar: #281e41;
-      --bg-panel: rgba(26, 16, 41, 0.86);
-      --bg-panel-solid: #1a1029;
+      --bg-panel: rgba(26, 16, 41, 0.88);
       --border-cyan: #4deeea;
       --border-purple: #8a4fff;
-      --border-muted: #5f5175;
-      --btn-inactive: #2b1f42;
-      --node-bg: #2d2d2d;
-      --node-header: #46306e;
       --text-main: #f3eefc;
       --text-dim: #b5a6d4;
-      --accent-green: #52f296;
-      --accent-red: #ff5c77;
-      --accent-pink: #ff70a6;
-      --accent-lilac: #c77dff;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 0;
@@ -42,30 +29,19 @@
       overflow-x: hidden;
       min-height: 100vh;
     }
-
-    .font-mono-code {
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .font-pixel {
-      font-family: 'Press Start 2P', monospace;
-    }
-
-    /* QtKawaii Top Window Menu & Navigation Bar */
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+    .font-pixel { font-family: 'Press Start 2P', monospace; }
     .qt-menubar {
       background: #1d1430;
       border-bottom: 1px solid #39295c;
       font-size: 12px;
       color: #cbbce6;
     }
-
     .qt-toolbar {
       background: linear-gradient(180deg, #2d2149 0%, #23193a 100%);
       border-bottom: 1.5px solid #4a3578;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
     }
-
-    /* QtKawaii Pill Buttons */
     .qt-tab-btn {
       display: inline-flex;
       align-items: center;
@@ -81,21 +57,13 @@
       cursor: pointer;
       white-space: nowrap;
     }
-
-    .qt-tab-btn:hover {
-      border-color: #9d6bff;
-      color: #ffffff;
-      transform: translateY(-1px);
-    }
-
+    .qt-tab-btn:hover { border-color: #9d6bff; color: #ffffff; transform: translateY(-1px); }
     .qt-tab-btn.active {
       background: linear-gradient(180deg, #f7882f 0%, #d1490d 100%);
       border: 1.5px solid #ffb366;
       color: #ffffff;
       box-shadow: 0 0 14px rgba(242, 127, 44, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
     }
-
-    /* QtKawaii Glowing Cyan Outer Panel (Matches Balances & Recent Transactions) */
     .qt-cyan-card {
       background: var(--bg-panel);
       border: 1.5px solid var(--border-cyan);
@@ -103,16 +71,12 @@
       box-shadow: 0 0 15px rgba(77, 238, 234, 0.16), inset 0 0 18px rgba(77, 238, 234, 0.05);
       backdrop-filter: blur(6px);
     }
-
-    /* QtKawaii Glowing Purple Inner Box (Matches Transaction list frame) */
     .qt-purple-inner {
-      background: rgba(20, 12, 34, 0.82);
+      background: rgba(20, 12, 34, 0.84);
       border: 1.5px solid var(--border-purple);
       border-radius: 8px;
       box-shadow: 0 0 12px rgba(138, 79, 255, 0.2), inset 0 0 12px rgba(138, 79, 255, 0.08);
     }
-
-    /* QtKawaii Action Button (Cyan Outlined like 'Open' Debug Log button) */
     .qt-action-btn {
       display: inline-flex;
       align-items: center;
@@ -129,19 +93,13 @@
       transition: all 0.15s ease;
       cursor: pointer;
     }
-
-    .qt-action-btn:hover {
-      background: rgba(77, 238, 234, 0.16);
-      box-shadow: 0 0 14px rgba(77, 238, 234, 0.4);
-      transform: translateY(-1px);
-    }
-
+    .qt-action-btn:hover { background: rgba(77, 238, 234, 0.16); transform: translateY(-1px); }
     .qt-orange-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 7px 16px;
+      padding: 8px 16px;
       border-radius: 8px;
       font-size: 12.5px;
       font-weight: 600;
@@ -152,28 +110,20 @@
       transition: all 0.15s ease;
       cursor: pointer;
     }
-
-    .qt-orange-btn:hover {
-      filter: brightness(1.08);
-      transform: translateY(-1px);
-    }
-
-    /* Qt Node Window Overlay (Matches #2d2d2d Node Window in screenshot) */
+    .qt-orange-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
     .qt-node-window {
       background: #2d2d2d;
       border: 1.5px solid #5a3d8a;
       border-radius: 8px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 24px rgba(138, 79, 255, 0.25);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.78), 0 0 24px rgba(138, 79, 255, 0.25);
       color: #e4e4e4;
     }
-
     .qt-node-titlebar {
       background: linear-gradient(90deg, #4b3278 0%, #372359 100%);
       border-bottom: 1px solid #63439e;
       border-radius: 6px 6px 0 0;
       padding: 6px 12px;
     }
-
     .qt-node-tab {
       padding: 5px 12px;
       font-size: 12px;
@@ -184,46 +134,9 @@
       border-radius: 4px 4px 0 0;
       cursor: pointer;
     }
-
-    .qt-node-tab.active {
-      background: #333333;
-      color: #ffffff;
-      border-color: #555555;
-      font-weight: 600;
-    }
-
-    /* Scrollbar styling */
-    ::-webkit-scrollbar {
-      width: 7px;
-      height: 7px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #140b24;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #4e357d;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #4deeea;
-    }
-
-    #starfieldCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .app-layer {
-      position: relative;
-      z-index: 10;
-    }
-
-    /* Pixel Scash badge glow */
+    .qt-node-tab.active { background: #333333; color: #ffffff; border-color: #555555; font-weight: 600; }
+    #starfieldCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; }
+    .app-layer { position: relative; z-index: 10; }
     .scash-pixel-badge {
       background: linear-gradient(135deg, #9d4edd 0%, #c77dff 50%, #7b2cbf 100%);
       border: 2px solid #e0aaff;
@@ -235,11 +148,15 @@
   </style>
 </head>
 <body class="selection:bg-cyan-400 selection:text-slate-950">
-<div id="scashNodeSyncBanner" style="display:none;background:linear-gradient(90deg,#1f1147,#2b1963);border-bottom:2px solid #4deeea;color:#ffffff;padding:10px 18px;text-align:center;font-family:sans-serif;font-size:13px;box-shadow:0 0 14px rgba(77,238,234,0.35);position:sticky;top:0;z-index:9999;"><span style="color:#4deeea;font-weight:bold;">&#9889; Local Scash Core 30.4 Node Syncing:</span> <span id="scashNodeSyncText">Connecting to Scash peers on :8343...</span> <span style="color:#ffd166;margin-left:8px;">(Save your scash1... wallet address below &mdash; mining starts automatically at 100%!)</span></div>
-  <!-- Background Cosmic Starfield Canvas -->
+  <!-- Live Scash Core 30.4 Node Sync Banner -->
+  <div id="scashNodeSyncBanner" style="display:none;background:linear-gradient(90deg,#1f1147,#2b1963);border-bottom:2px solid #4deeea;color:#ffffff;padding:10px 18px;text-align:center;font-size:13px;box-shadow:0 0 14px rgba(77,238,234,0.35);position:sticky;top:0;z-index:9999;">
+    <span style="color:#4deeea;font-weight:bold;">&#9889; Local Scash Core 30.4 Node Syncing:</span>
+    <span id="scashNodeSyncText">Connecting to Scash peers on :8343...</span>
+    <span style="color:#ffd166;margin-left:8px;">(Save your scash1... wallet address below &mdash; mining starts automatically once synced!)</span>
+  </div>
+
   <canvas id="starfieldCanvas"></canvas>
 
-  <!-- Main App Wrapper -->
   <div class="app-layer min-h-screen flex flex-col justify-between">
     <div>
       <!-- Top Qt Window Menu Bar -->
@@ -247,20 +164,19 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool — peer2peer-pool (QtKawaii Edition)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.2.0-beta.5)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
-            <button id="menuFileBtn" class="hover:text-white">File</button>
-            <button id="menuSettingsBtn" class="hover:text-white">Settings</button>
+            <button id="menuSettingsBtn" class="hover:text-white">Stratum Setup</button>
             <button id="menuNodeWinBtn" class="hover:text-cyan-300 font-medium">Node window</button>
-            <button id="menuHelpBtn" class="hover:text-white">Help</button>
+            <button id="menuHelpBtn" class="hover:text-white">Live Graphs</button>
           </div>
         </div>
         <div class="flex items-center gap-3 text-xs">
-          <span id="apiConnectionBadge" class="px-2 py-0.5 rounded-full bg-purple-950/90 border border-cyan-400/60 text-cyan-300 font-mono-code text-[11px]">
-            ★ SIMULATOR + LIVE API READY
+          <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
+            &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ • P2Pool v17-kawaii</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.2.0-beta.5</span>
         </div>
       </div>
 
@@ -268,218 +184,194 @@
       <header class="qt-toolbar px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
         <nav class="flex flex-wrap items-center gap-2" aria-label="Main Navigation">
           <button type="button" data-tab="overview" class="qt-tab-btn active">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10"/></svg>
-            <span>Overview</span>
-          </button>
-          <button type="button" data-tab="setup" class="qt-tab-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            <span>1-Click Start</span>
+            <span>&#9733; Overview</span>
           </button>
           <button type="button" data-tab="payouts" class="qt-tab-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/></svg>
             <span>PPLNS Payouts</span>
           </button>
           <button type="button" data-tab="graphs" class="qt-tab-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            <span>Sharechain &amp; RandomX</span>
+            <span>Live Hashrate Graph</span>
           </button>
-          <button type="button" data-tab="code" class="qt-tab-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-            <span>GitHub Branch Files</span>
+          <button type="button" data-tab="setup" class="qt-tab-btn">
+            <span>External Miner Setup</span>
           </button>
         </nav>
 
-        <!-- Right Wallet & Node Window Selector (Matches "Wallet: test1" in QtKawaii) -->
         <div class="flex items-center gap-2.5">
-          <button type="button" id="toggleNodeWindowBtn" class="qt-action-btn text-xs">
+          <button type="button" id="refreshNowBtn" class="qt-action-btn text-xs py-1.5 px-3">
+            <span>&#8635; Refresh</span>
+          </button>
+          <button type="button" id="toggleNodeWindowBtn" class="qt-action-btn text-xs py-1.5 px-3">
             <span>Node window</span>
           </button>
-          <div class="flex items-center gap-1.5 text-xs text-purple-200">
-            <span>Wallet:</span>
-            <select id="walletPresetSelect" aria-label="Select Miner Wallet Profile" class="bg-[#1a1029] text-cyan-200 border border-[#4deeea] rounded-md px-2.5 py-1 text-xs font-mono-code focus:outline-none">
-              <option value="scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2">test1 (scash1qj7z...ehqq2)</option>
-              <option value="scash1q9k8m2x4v7n5p3r8t6w2y4z6a8c0e2g4j6l8n0p">kawaii-rig2 (scash1q9k8...l8n0p)</option>
-              <option value="scash1q4x7v9b2n5m8k3j6h4g2f9d7s5a3p8o6i4u2y0t">solo-cpu3 (scash1q4x7...u2y0t)</option>
-            </select>
-          </div>
         </div>
       </header>
 
       <!-- Main Content Container -->
       <main class="max-w-[1400px] mx-auto px-4 pt-4 pb-8">
 
-        <!-- ==================== TAB 1: OVERVIEW (Matches QtKawaii Main Layout) ==================== -->
+        <!-- ==================== TAB 1: OVERVIEW (100% REAL TELEMETRY) ==================== -->
         <section id="tab-overview" class="tab-panel">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-            <!-- Left Column (Balances + Zero-Friction Quick Miner + Kawaii Mascot) -->
+            <!-- Left Column (Live Pool Telemetry +Mascot + Real XMRig Controller) -->
             <div class="lg:col-span-6 flex flex-col gap-4">
 
-              <!-- Card 1: Balances & Pool Status (Exact match to top-left Balances box in image_0cac88.jpg) -->
+              <!-- Card 1: Real Scash Node & P2Pool Telemetry -->
               <div class="qt-cyan-card p-4 sm:p-5">
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-2.5">
-                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Balances &amp; P2Pool Status</h2>
+                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Live Node &amp; P2Pool Status</h2>
                     <span class="scash-pixel-badge text-[10px] text-white font-pixel">Scash</span>
                   </div>
-                  <span id="minerStateBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-medium">
-                    ● Connected to Sharechain
+                  <span id="minerStateBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 font-medium">
+                    &#9203; Probing :8345...
                   </span>
                 </div>
 
                 <div class="space-y-2 text-xs sm:text-sm">
                   <div class="flex items-center justify-between py-1">
-                    <span class="text-purple-200/80">Available (Wallet):</span>
-                    <span id="availableBalanceText" class="font-mono-code font-semibold text-white">1.97990238 SCASH</span>
+                    <span class="text-purple-200/80">Scash Blockchain Height:</span>
+                    <span id="chainHeightRowText" class="font-mono-code font-semibold text-white">&mdash;</span>
                   </div>
                   <div class="flex items-center justify-between py-1">
-                    <span class="text-purple-200/80">Est. Next Block Payout (PPLNS):</span>
-                    <span id="estBlockPayoutText" class="font-mono-code font-semibold text-cyan-300">0.84210526 SCASH</span>
+                    <span class="text-purple-200/80">Current Scash Block Reward:</span>
+                    <span id="blockRewardRowText" class="font-mono-code font-semibold text-purple-200">50.00000000 SCASH</span>
                   </div>
                   <div class="flex items-center justify-between py-1 border-b border-purple-400/25 pb-2">
-                    <span class="text-purple-200/80">Est. 24h Pool Earnings:</span>
-                    <span id="estDayPayoutText" class="font-mono-code text-purple-200">3.15420000 SCASH</span>
+                    <span class="text-purple-200/80">Your Current PPLNS Payout Weight:</span>
+                    <span id="myCurrentPayoutText" class="font-mono-code font-semibold text-cyan-300">0.00000000 SCASH</span>
                   </div>
                   <div class="flex items-center justify-between pt-1.5">
-                    <span class="text-purple-200 font-medium">Total Tracked Balance:</span>
-                    <span id="totalBalanceText" class="font-mono-code font-bold text-base text-white">1.97990238 SCASH</span>
+                    <span class="text-purple-200 font-medium">Connected Network Peers:</span>
+                    <span id="connectedPeersRowText" class="font-mono-code font-bold text-sm text-emerald-300">Scash Core: 0 &bull; P2Pool: 0</span>
                   </div>
                 </div>
 
-                <!-- Mini KPI Row inside Balances Card -->
+                <!-- 4 Live Mini KPI Cards -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-purple-500/25 text-xs">
                   <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
                     <div class="text-[11px] text-purple-300/75">Local Hashrate</div>
-                    <div id="kpiLocalHashrate" class="font-mono-code font-bold text-cyan-300 text-sm mt-0.5">4.25 KH/s</div>
-                    <div class="text-[10px] text-emerald-300/90 mt-0.5">RandomX Fast Mode</div>
+                    <div id="kpiLocalHashrate" class="font-mono-code font-bold text-cyan-300 text-sm mt-0.5">0 H/s</div>
+                    <div id="kpiLocalSub" class="text-[10px] text-purple-300/75 mt-0.5">Miner Idle</div>
                   </div>
                   <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
                     <div class="text-[11px] text-purple-300/75">P2Pool Hashrate</div>
-                    <div id="kpiPoolHashrate" class="font-mono-code font-bold text-purple-200 text-sm mt-0.5">252.40 KH/s</div>
-                    <div class="text-[10px] text-purple-300/75 mt-0.5">18 Active Miners</div>
+                    <div id="kpiPoolHashrate" class="font-mono-code font-bold text-purple-200 text-sm mt-0.5">0 H/s</div>
+                    <div id="kpiPoolMiners" class="text-[10px] text-purple-300/75 mt-0.5">0 Active Miners</div>
                   </div>
                   <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
-                    <div class="text-[11px] text-purple-300/75">Your PPLNS Shares</div>
-                    <div id="kpiMyShares" class="font-mono-code font-bold text-amber-300 text-sm mt-0.5">145 / 8,640</div>
-                    <div id="kpiShareWeight" class="text-[10px] text-purple-300/75 mt-0.5">1.684% Window Weight</div>
+                    <div class="text-[11px] text-purple-300/75">Local Node Shares</div>
+                    <div id="kpiNodeShares" class="font-mono-code font-bold text-amber-300 text-sm mt-0.5">0 Total</div>
+                    <div id="kpiNodeSharesSub" class="text-[10px] text-purple-300/75 mt-0.5">0 Orphan &bull; 0 Dead</div>
                   </div>
                   <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
-                    <div class="text-[11px] text-purple-300/75">Pool Efficiency</div>
-                    <div id="kpiEfficiency" class="font-mono-code font-bold text-emerald-300 text-sm mt-0.5">98.42%</div>
-                    <div class="text-[10px] text-purple-300/75 mt-0.5">DOA 0.8% • Orph 0.8%</div>
+                    <div class="text-[11px] text-purple-300/75">Network Diff</div>
+                    <div id="kpiNetDiff" class="font-mono-code font-bold text-emerald-300 text-sm mt-0.5">&mdash;</div>
+                    <div id="kpiShareDiffSub" class="text-[10px] text-purple-300/75 mt-0.5">Share Diff: &mdash;</div>
                   </div>
                 </div>
               </div>
 
-              <!-- Frictionless Quick-Start Bar + Kawaii Mascot Showcase -->
+              <!-- Mascot + Real Built-in XMRig (rx/scash) Controller -->
               <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                <!-- Mascot Artwork (Exact match to bottom-left of QtKawaii wallet) -->
-                <div class="sm:col-span-6 flex flex-col items-center relative">
+                <div class="sm:col-span-5 flex flex-col items-center relative">
                   <img
                     src="data:image/webp;base64,UklGRr42AABXRUJQVlA4ILI2AADwuQCdASoYAe8APmEqkUYkIqGhqpdbWIAMCU3DlDIAeePULrAMmMjl4e0mbvjceE5SO/jsHzJue//H/jfZp/uPWj+s/YL/YDpteYz92vVO/7/7ge/z+q+o9/Pf+L1v/oe+bf/8faJ/d30qs2M/0XpJ8sv33hv+Q/UP5D8uf8R7e+b+0/+U/gT9b/hf3e9qP+p4k/Kz/L9Qv8j/oP+o/svk+7lzdP89/5PUR9qvpv+//u/js/6v+Z9Wf07/B/9f3Af51/UP+r7D/7n/oeOx+O/3X/a9wP+X/3r/x/4n82Ppg/sP/d/p/9t6ev0H/Pf+//QfAP/NP7H/2/8N7dPsq/eT//+6d+4H/5OW+rEIXsG6qa0yYSk/JutrtsQIhz6wjpn9zLfYllcBPGVDyosgHXU1UJ1BXYLjMTjE4dxqU9l0ANf7hNd6c+mErvdhUlF5x9iutEN60hxA0cqirmv0c4XnyGxfEf8DIzRPoSg6uHEtUcdIPzRF3VhDHEtQQ/894m6IPxN8dqzpJVmwxSMwR3lWfiMIGlfckxfmzrQlBelUnTbHwdJ/Xxmw2pCvHIEtbQl4qYR2xwWz4NVuiVuoBo2TM/qY0gIb5KggeM/eehgZXtrTXwa3zB1VhjkJL/xe/h95LA/ui9fEwpkVZU46yKMwXsDH/cqDYUb8/z6D7pfFs/8Ye0rRhCaPKRX2yLPoi44gcMvDMCuFgenHacPPcsEyh7DCbwKGy8kt4Sd7Y/qFynuN0Mjab4lTZGsgve8MtHQMJa/QHPQBONj62r7crkGzSk7PFZTD1zY3PU5omVaVl8SxcDgLSAcCzypZUTP0fHjOXWVUIvBjc5Sli4kjOVvlQr3E1AA72iqR/6qKt92fMYcWRd4QrbKF99ch0tAg+m5pssD3teQw1UILj6i/x5dsljMydY95eKiPAyXXNcSGgEBvOrnIUfiBwPXpJXU4aobMFKCNoICIInQ3eSz9oNHyxg/Xv1Z4KNg3vUMnZH1ErjmtYaINxVuF0DsMej7rO5jbJN0jxdx6Ik/N8vrInLgky13+zt/cUIfdlNopOUH0IORAgrxfdcnZ3ercpI7R1jYHsaRLqQqM69Dli9An/9rdNFyEZ6jK2vGIB3gvqyRI0h3bNlc6WFoVpgohfWiNu+yGu90mzNwd7PmRW1zjCXYFriFB5hl8uPJ5dmyT5XeWtSAcGxrrWNpPK+dtRo6iT+9nFKrOWcHpB+/89tncuwcqa53UvbajRrF9zndwE+suVZCu4bLLpGE4uTYofVC63O1zZXdNm1Vg/MAF97GBHdhmp08AzsWQb2D+gp5avJXUlNnVdoX7YB4OsH/xwiwz3zuir3TvcuExn34+v1dg1MHGVSEonNuhcsidgDgTHZzVOKCyE47cARUG55Nl4BPQOQ3wvMMfxMnZImtQMvzqbTltmA2fo0tyV8YEQLpTt8wmkc+r1LjLhu3VjP/P/nWWFM+aG25XR8b4RNSNVQwsvDAb5KlmioxRvRJUgLyMrOgG0J2VfwJe7uMWfcBnN28SE185oPgG0ZL10V9kFcnSxya6ygWt4/+OoKGHgGzEjMiWfApt3bv4JJX17Ll2XDBiCcDA2xGHUl1fL1JMYjhfQ184+4hAN/CuIvqvoOTZuMgH5Jin5ssv2jC8quwMI9H8YGqQ9EhilxolRD4aXvoqgNztXZfQeXGdjF45+fsxch17CpAoPkz9VCSF4hVaGI1/jDgC81kj7aAoFFs1nb2ZtNtVYCEdHSfNFY1Z/L7FJILHDq4xQowHkXcmhI6QwHpK/hgpxpL4ycEcP04DrRpOWzgJ9laDXHM3kydb/rTjDZPhwpumuGJjos/TTcdq1OkQEmHo3VbF0+vkcdnOaJgCNVJWEt6nGeEusaqapkxi51biIX8sMrumqTNcVdVYqDScqz+5tD4ojq0h7jLejI8TZc0ZjHD3CJ2ZX1ukYhW3quM35ufczUOTw0bXXANZoaMotNJtlDD40IjoAAD+8jxUyD2JasuFj7nh/jWL7k611nlL3nzDWUpgBCWwKGsSiQxZYOxUlBlUhOYfqZ1mU0nrDLJVcZMqAVWovabAw/nuBxr3FXUtrVLm0mJlasxRPMyiAYTvKBeJpbobe8kiJaE33MKFWv+ImxjL9bc1kaMntKO5OWAsgt2oaCteOclMJHFrbxFoIJipxh2wmxvNPgoj6m/ksERM93/hhDPn2RRa1eoNZedjty5Wp8PBaBJZc101FiJfdwOaittEhSmDhs55prhmdYV3JzNEDAvu6kIGQZdN7APAFVn+iRWL+paxmKUuQPFo4RiPCBDD7uCzd207e1Af64RTwiDmr9XgAMbh8VLTjkCMLdwemSAD3mCDkDuU+j02EjZ0Y2RIV0chfKMe5NUgkYnvSzl4/2X+QEtttIJVZ58drWTVf8/GcV4zyfyMy1pW9hvjfhG4wOfZYDL605z+A33J9r8UwLPWbf9AVrpEZyUn4cCvMeNtkv3Qsn83JgFzvCQHS5M3hL1mEN8GE9dpVqwQ7MRVVn5x+1l2WoI4WhlhflNXcGsa57wmQ6ewrx47iUnKbYQ+/Lb9ePUmMCA/ZFN8362vCzwEn28oVXqDIpiXpmahtFAaKuSnS55LnNTC3CzqNIfNIlJInNFvQANJdyGthfKNwavebln2kfLOT0ad1+Rs+2AU9g5ZGdzBIM06VFxRWqr1pgcabKfhrQ2IWcjXMsA7vHwkL9LSAvdg0dfoPRigMrub4+NhU48wnK7zvf/eb4WwhQAwKXjMbxU0RXzzkIdkma1PScH+ErglZLYtuhUwjhQDOZbDgAPT0SPfvvYQj98r4kpGEKtZaQfu97Jxd1A8sdmVuBN7/2uJ3PV95i02wGBTbfO/nwzTwmMqbJudk2vn+kJbZxh938jMdbDmU4BwoM33/wh9DHcwAiVFvdB7pZ+LakBI2wqcDpcAZMmD5mwBMicjbqq6Io4e+IuJ+mne4gqmFxT06cdwHqzT+o8G/cMd4ez83XNcf3l40cd4ocnHtzzeSlTaMCq5dTeenKD4oIvGQfcXb5VfnFwL0B6T8yfaSzmJgqPAzBSOsGtFDH6XfRBeniHtc8DKJ00Abl6J6kkPQTbio8nH1bVwD9r2oyeYy4jozfIE3c89Fk5ORzJtwzfz8oiHvie+4fYy8r4vUvTfKj1HtA++WblN5CXP2jzEcFn+W3yNvhbDxDCzPJwoxm3p4CCpA24PSiNNs/i1TN6afMF9Lb0OPsa1bbKn1w2gKo0t/taJwJL1E0X/W6nJ0FylXHeNGyeJiCBwPDlMRP0zz6BVRONF5x+PWLyXuJNqmIhGq/2xTpngbz8DBQf9WMCEbslMXzSzu2ktWkNRGWfQxil6zxJP5ze0dltFQXR/mpHhUCSlBaOvARmIOrX0gmM8OZnVn07ChVH21tAfQfoE5C9xxizdLnL2PlYTRPeBxcev+KV7d9PPQdp/VlSIWpcDZZZ35DbfKnYaNxFdUjb+KhI3bO7N3i3728DHLuTs9Rz02QeO9vE+5QS972GQHlWsUl+KmSldFJvdyYhOQh3gxxtiOz6mxao+ZrkWS60pbqQGgd/9EwfPzeJ+4M1bMiUXJScs4vDsndEPrCufl9vtdFJbRYBNtcDL3HOZykMFBxp9jGvCGzgMTSBxWOeNTI/W+fn+k5hkWs06Ev5Vf4glipVS9N1LzEYe6BiA1OZzouNOpkC/oc+ykPlaiwR6xmgaMgQ9+O3tqc7Q0+LNczFmYSDM8gn4CwGg7cBTTRTFul22XwDdfowcL8dmcmJzUqHmNXGfhwjkNVK3U8Uiu2s/EMatkq+3wa6qZtoe8lS0XT202ei1Qc6KfxA/yFmoY/04xWfgZG9sMGM6RPk7SD2HH0a/LwteNyRyyOm4ZJGPJMvs40JF7BBjeThMIYEhlQxQX5ZzoE2swfD6ZQNZfshxVBv6jsWCp0pDs56P6FaBdwsX2xTbq+tWlmurOnQ/8VfIP0PznwGx03dzxsEJA7p4t9/cXrtoara1BU5Xkkohc8etkEgIRY/UKkVcV9qdqX2fQkzlBTUr4g8UOVnv0jXwY2LHTTi1bhwtnQ3nNn57fHlkJIBpySvhyvI+/oC1y10FmJxRksHchNPbKcDTvJJ8hlzLZzqi4tl7aFL/ZgmG2IbdrViQtlpu0NnnbvpKNA2/CtEUeLi0TiHkKcaDQSXrXE/IVHf3QPJ/kPt0Dw8JwPwxeKibqxY4cOcx3OR28+I88RrmVlLX2meYJIyn2mBYNGi69vmBZZlyFrb7RFSMep8Sro6DZxeDwpdZdgl3y1MxXQAeEHvwYULkYJntSG0vuKD3RvDVBLOP1jrn8V6pIQ3KlYWJrJUy1yH4Ce7hjA3EoewGwRj2hmp+MI8+wO9sz40gxE0vPn4R/zMmoO7p8BbTWGDhfe3fdypV0kiTAFTjp24yscghUYj8Zk8ThZ5sn9m6hjrPemJ4KpCluQBvxM1lT4OmTswYpHA4JGMsOVox91GSmA/gN7BMQgmM1wIXm8r3GU5GgPr1UsqXcqut5ichOJ7ZliMTmVSa24J5YAWAPI422WYStwtFfXkUGcboYnUyT5W2/mGPVZhYZCRzabtS7Nz2N/Ie/B6KrphmR2OGFoLwARkkozfqDke4Nj44eSnzjioZRkDRmgkRZI8Soy0CGSctMBW7rCZp5+3zh0Wj6h+qNZkWAddp/HYkXWKE2YTXJ69sySNLlWlgWUzhP2EsDsDmgLuC/g6qyA/axQrxQVWRx8KBt8QCiq3bEDkMNi68yqIpbMN8DpFN+HKuqj9gMG5unxJXqb1kiBscaU2cJPUaLX8e6W7Etv9qfg1LzbrLcu6Dwz/aEHHIZCMbSlU8tOjfojUzBZwSHwwzminEYf18QDmIaaCuSoW/BUQQ+v+PWYNQQJPgCsugWOrwvctThDiTPrB9edtWxUut6T3wpZm1vBboumHOf3IKTeKpWVnuavIC1TGlydPyBB2OlrIAsi3H6UKIGjwHKz7roG7QpTDyMERvmiS41b3fryUxDeCa8OVR034BQPEmCvejuVpL1ebMeu539COjZY5w4O8A7Q9Ni6C665Jphq038uYoG6Ayxu6pkjFH3EKUokttCFmaIt765XZzyVdPrPLHlR8js178LoY+qdiFYgVt6b1/TUU38KuazNrP7zHDoRW7EzbBe0fi8+Uaf682ixkXZMyR0Fy0H0wHvQ75KrGz1ezwkNUr3l3mtfnUkEf4B7cT8X6vbMoEwWBK39OGeM3ZH1dX9gG21Jki/IyC2Yfr64XujF/O51RIjtXa4hSv094KGO0hYjcq6iq9cnOhcq6/zEDyUTu56GnKZZrR4DzEVrWAAg9/ljwxyex+pFfottp4rYUfvFAYQGrtcrlIoNj/GeCUlNeYIjhvdfCu8tZBUyGqaf5SvJYRbii9GHQzsor7o8meChM4r327l3uCqxw7hIL9IOkf6IiBE9LO+zFtjW6qO4QncAmayw7kGP22y7Qym5SGpKcSi/o/xIEFD5r1GbpPP2qcd8tKEj/kje+nk9I7kcshLXtM/FpPf2zK12kUEKskBdaTaNBEnCu3uBHyyzoMwpkT1QlI0b4210UnOft7bOyqCGPs7MhrLZ0jARM4Xv/5W4sEPDyShxwsz9oAQ2v8Nm9sU0BdPREu9Iq8r18KpnvMp2tz+gtHFS6nkFIB41gSbl+OvcOtKmNX7Z8ZjY4Sks3Aj1kNNvNtmY7AQZeRGCG/qyOgzJelsNd5fKTUtFCku4iy0F2XD9GuBuVl5xUd7Li5yv6jqF8B5vKKx8Ar0HekWBN1EXGK8LobvLMQ8A1tDPHiwuSaJZhAjeILoLVrR1iAbkwnX2cHlUJXZWM0amT1hVN0eUggJkSRanEYeOcDf0hQmASz6xdXjVz37YbmGUUlNlzjPFBoafu6Ady3zKH6XZNix+2bZjM7LYy6VXxt4hCRAnLE1NEdfL4x8CbHcmN6MbyyN47LmmGqcfo8j3e2YCgthSBtObQ8WVddvfZFLf5+MyKPS5yOkL5yXpiLZCqC/tsFrRPGsp5vNbJcrSQGdK2fY8t6Ry3BW7gqmmBqJelLepdVcAuqzRERpYscjWwDxN6pX8Eu1D7ViM3xqM/Z4+psyR0ADckvqs6FQE6itB0lG8H3+uZahqEquYFnWC8kpCyVkd/2CAXySvEA2BAt29xsuFWRKQFRTn+qZky6eWduVaAAIQ10rzPfiig45tgrs3lFLON5V5fJUrcgAZeiFxtx1QlwozpZ4wpMlJgXOFQMVIdb+9cpb6O6eOgm47pNpBESHjpBofmrxVxTgjJbrmWufr7ZY+uFF/5jyEr+ve1vcH3ZU6yUmO/F2E9ZR5XbWDEvvXIruCWhCO6sPX39edqaq8GApoicMomR9fZJM9jBeIa6Wb3ywQO629Q4qCiCclCeT92IrzK06jUpnZa+dIXK3jZbzpXdJRtkblG9b6sl4cb9s1AxsGWXSEv6plD7Jul2bwNErif8a7YhD6f6iQTdqfDBlXQu/pzIbK/03xfO8WhA4KCiCFPOmHDXer0///Hs5z1cxxUnlYpXTXRVvc/AVtB1Nd5tIC94/hN6I0ccgD4vx9M6g0W2ohNK1lR0gx0u6kwZ2efm2DeofEhvIMi+FRBC/qovNj6ZRmu4wRfcGsAVTvryAC9iC1vO4obUKxJCkCVRhrmFtxiuUgCx4HMOALqzgU1sVRG3WTNgC6OWrNTd3sU+TsxqGhokBYQdOwzU/WwkHU9hsFc4iiHyeaD1k9UXcAQlecFHuJoAIFz8wKOEwMn6MOtuNJ5VfNAIZAABW4jVVEE51O7MnZK1XRhd3+JBe1SMQc30MlUGeYldbJl9dlmqH09ed5iCFqGdqeI5RKv1VsYePHxkQnM3wORsmeQKTncEEuGlq8LNsgH/V8oogUPaQ/Hvfp64XRUi83D4Z9FAFkE8l3AECPkytewenHNOPH9EhsEyOKO6I0FnfuujDwPQtArxRfRxKaTQS45TR4ZHvhj1250IH0l43402DjK9qu1g44JRvVmfw9GwVKZU9sf+J7Av10aSc+hPVPTUt4ak9+LqEkjp1GT67EbmvWLI9E9dhHOOPRdlPkdCU50ZOvDbin4ufF7i7EhPsRq0N9WJehFew7ibZmIqc5vfG8sUrj3aK+X32wfBGAkxzlpRYCD8c2dFcEy6ljT0snV7Z2lqfilyb4cfjf3iCcfAv3/45SbdoES6nBpyhLeEUbYHb8NOYl6cDHD2C4cJdPZhGN70hM2WYDNgJF5f+9QRGFADms9+GemVhoFRY51Rj/8yLGtf2ZMbF4xPoMHrbqZPMmCasbjMs8RdkEImj0UjWC8V61iG+TEdMp/ofJ7IxoOsdibx/8ku1ky8OU6eQ1g17gtj42sLXO64td0iBQ/nyzj8ojMt8bgwE16drNpg0SplFXIeuMutYgaKc9Ea3+XLMQ1Frn30S+GELfDlBFPcoWkCRwAKvJGytKeO/hM9gt0U9Tm8SLqIUVo4zWYmOleez5OIZE4KAEEgl5z1cIcGECB4CkDbqYDiYyj60rOaVvSfnT7QwpzHUvK6CnWuBccaqpuhPMtKDfJ/QspFeAay6eXd2e+WkAPPWRGmFchd8UYph/Dkt00cI8Z7FMeToNk5kiP7VhB3Q9I3e5JtOC6HZisLltlMuAxcQ3jfytSHfX11xNft1RQ6hk3Ne48LPaXrTOLPuaiuV8rL/YeiOy7UJX5pIQGlq8QB7lHcfOb8zCMag1mceaQGrDlTlPfYBw1yxDqph3P8+z38aFVkNl0qRJQaUOR3fAfOULzT9u2q7dCxYpub9yVlPd0yLEBbb2JXExQxwk4iRs9Z//0I+BDmvgbpY6Bo9sUXsLdnvDS+IVOU0iyGQAs9Z6bFAIeD3mSfSNhOkB+HP/2iPSxTryknd1snI9zOxxZoBneAxfHmxE/VVMmfHpMsHrJNbfbkCvUk7vOAxo6E2mpiHDZ3QmUSzljCMm/LTuJz29pUw+2WMCw4yw+fq6lgK6OhthtMsJSocIi/1U0KPG1EQwgsJWmR4mZHGQSsTSVeacqyDJDVFLaLxG3UVH2Gau7aJKJtRQFUBM1uNZFHUhyv2jvs/hiZYdVIfJisdu1++ynRbCYL389iZ5yMmap20Tkt0IJ3uWW2hamxqvWH3CdNK3yfh0NRxkWxCy/ETUwXcVHzPXtqseSrCg75y3BJ+EYLp07EWx/lCIMOf5JWdZkosG6lWGHgudCj72ANH/FoDMw13N9QK/r06yr8D6lctoda8ng7/qqVQMvLFJW3r/ZXmb1RFV7+91jxXrSGlaWhzgwRZiif9KV9QGnBi8lP2Am+RHli8dc64aZHneiKja+2Q/aDAR42aG31SpKLWyXw2OkMI1LFcg44OPUQzAY7aQGQGMxQQiMydkWW5jQs6yYgJA1jAujfNFwEnYyBWQazCfUqCZD4LY77YWo11Itz1XdD5FlwiZgv5hE1DdrVdVPe9yIU0DhezW2R1TbEGcj5XQrDiWB6HAb1LdBH3lC3XgZcWF3X9wcm+BYG6DLOmzmo5Pu6eW+71iRS+4VJB9O8R0CVq+I6zmvhA7uR3AYYsoMnD8pcBp7m4luHSb+41WQSXWzPren4cyMH+05UuuS8yjdrgdJiDZpyDEapPUu2/6SCUPTXS1xRU1crW38aX94R8/VFXUeTZJqPS/0DkN3Ckf7sfGsBBu1cU+NlziGdzBnzTQBjJu8GZcs6WOLVrhFrq6KZHYjSHPDwGtAHSFoUfqsPLFny880xwyJ/1aGBtdJ6mhSvB6UEV5HH74bBx5eYn5H8L6jCkt3eQ5Fr0OZz/0+g+wAiCWTl9hGBL7IAqJXvu1uUHAjBhSq1Kzd33WxqGKPrcFOSHdDUj3/DM1tDTCFEt995Rl2Sj+WDCTneAcvI3r52luw+eAWr6Y81Khb7e+GQDrsaJjN2g3BmvPAKQwfSjpUmsnNlYn40pkxWL6oIh3l6hpgS4Q1YRt1V7IypwP2klYBbU3UL7DvuzC6zOHjs/ue3wIoE3wOgkSHWpbt2wYw6j0577bjGopnIpGDQJIKQ1POqm4uJVhGYFsb5wu8DJF7Hy4Q9pWCcSSpde2+xe34cx9WPHpiOKr/W6KaqO8j8mH6lgupHpkq6n4anMkMzYpp3gY17MaXAwuJhT+J+5QPTXV121Xa+U4Tm1WVE2a6CX/RkuY1CowfGwF8xXmdSRWP1uwzdQ3mfwE1ZLqLiPzm9GVFeiN3fGNQOu8E8JckNyjElmNevUB1vieKjhgE9Z09p+hOJGBZxSMLH5LBg81WT9sVCZMOJEu19LjLd4P/lj71EVCQMrUdU5VHuCKuVoh4hQz/qPwjCYtYUxbDrBURNcBYfxs/fFcscNHzfgtbzUkjBF5M8U4A5TvqlTBTpz9HaROpghT7URuCXQsC9fOCzTDbzwkMLKcsGgku9t02MVV8FDjcYOgDDXgyNp+W6L7agEWoIz7aNDg7R6ByQDg6/RiGRmtjsGngsmsHe62tjoge9TK8GSW9dRM4I1kicpI6tqJ1ElGfDlzXrzfi0kaLky3WbuhjM2Ruisq0lMdTb4a5gEcc1IKZoBV1r07Sk/YYKS1H7ppjecvpwGRfia8FcjLx5+XmBZLABr4AtI+CqKOqIQRJm3jygcI22lNLbZBmt91VsyeOhhyVil2qcavaHeD9uz8iiVaYBenBT/6uHH8PZngc2P5b5iLx5e7LbzxzTnfCdAsnrB8GoxsOcJS2a7pD0K+vTtZdFhpM4n4IxwWUsxyR6Vqinmom9d3Qocx8IhG8PFwgi03Ti9AxtTefBqFsLlhCZZ2Gt/z3yAxfqNMQgZp50vxT2r9snLuswXCOQw5gA7m+0aQMsB5PaW8p+3yhngyOldc2D/ZoMpMh3q00BawD5uFq9hxYHY+WsG28tX+veL/3tAwbUJ8RpIZGCmLNa7gLYooq+kN9mOretFA2zq933tFsfXe3TMrVr0m9c3iA2OkRTajHzYuSUKCpDb1pD8nbo66+yvKTeoR5pxXh99tiVSToXM+c9Otj3XAqqN5QVyJRZRq29s3YSQnamYH7tLaiKkxOODS35aSMDVC7ymd3FLew6TTDTQsS+XS3TYxesTsI/qY9ZJsA/yV0GRlcQOPyTd2+cMoBeDpmbp40ZeZ64Pj3qihbiFjp9zSg5hb4VU7H6ZQqPioxqoxQvsupbhqe0+UqFLRnreutHzOyEKD8e4LBRDUZlCvuR+zqx6nycI5LOBU78IHEfcavla+CBPtTdb5E9MWuIAccZgdExz3nvRQAeltXBlWdCxOPLaLwJxxpPSG+saZ7VN0R59DUrig3IknRQ+RMV6S+EBOTtNK+F0r/SRCSTw36P9Yiyza+yVWLu8CBOV5PLx7S5o+mclQi5NIuh2RdeOXVm4STISSlJT8Ec4H1sNeurnfM3nVzbT6DX9KhoP0e7xXuzxSqPKu/oDfJrB28dERd8DcZI01jeuGqtIMo1kt7q/3vEcYoSpsLqArlp5ptJFTGPnlqPCrqs3xiC6yw53OZwkiw/NS1xDZ6F4uZQ6g9LPP8mv3K+pKYquiu4Xv4pUOzkjv+ZMotgPeDTAugZrSwAaCIX1czQYizHvRaO7N4Njav4cA+2LDOPfnRsft/KtJLzHW8N9wHN+KqWUgX6fKOvcG9VbfbfeiSYNsMznxj5J24ly4sF/89icaeFIj477KXiZOSXorNYkN+SbV3oRWUvRsG2nK1U6NMzx8KDlSje5NwG9HHekx70hPl34FhWzn0d1KGb1ALN6uo33SL5BAzq/Yi5HgcaJXYK5gl0MdbUrt25csorX+TlkPfW8Ridtj5HrXzjSdEKW5nbjfAYbRagoHMrLzEkhp+VNBfLLXaH6g+tTZIITLGPUZWxs3FD2eBTJ7Rs/bvue4rpBEVl+Xfkq3RoRZ11VIR691tGOD1A1MLNOVBtwizQy+002r/rOvJ+iDzyCZE3lsiC7fnZ0nvHQKH3Tnc88bMdJwqdGSEHGK0Ia4EqvnmsIclnapEBCRziRe2U/T88QJfj7hWm7LTDPZQqo8zxsQCdhRfvh2WCq2h5wV5WEZA0Vlpj+63yPDLPkVpb3ysH/GmVmuVW231DRVPhVmkKhYZJXJozx+xKTSd1C9kFtnwChqtBkisGTLClJz8uHSiK4FcyU9Zn7vW9Um18w8/YpB0AmbS/zDVISs9rH73PVPUSeWqD+912G5ETn02ThvfFQL8UsQBh/TFlETfCjcpvnJ+rKtBcDiQoIOzmVL5bSDuQ/MivXmms7oQbC+QkT3QFeyFJgKEmRx+0BqxO61s55oqhJY1TAL2C+xqtII4hDooVMcDjvXsipqtktLwFzfsmjRU71r52T5wwLAj2vguv17i4l9kH72jI2KqH/qszXr3bIkyIfzxq/nDRGL9ysRl4LrWrFCiLgteUqkwt+/C8p9Wesf4BsBtrMRtkUsMMWp6UmOJtr1r/w8neXkVPJLE6lBBDMv0Xv5vPQH/ucVK6xzMbmQGKi0j00ZV/KmhdbS7G/r4a64fN0Vc3ALtQjMERbvF1y+wn9/k+ARbCeZuqD7YGYkmv2Fbvil4rfX/17gjbkPcWBCGaIO22Ra9eA0WgWJ0kzxdQgPHbOIQE/QIZysitxNZoBn5BDyVfGQDKyYf/JTOsQjfWMWoxix1d6ccUvC/5PGT2NOF6eGoafYtbnyT8GbdBPuQMxwjp6z7myKs7IT4lN5TqyE1DCU7Cj+V3U2rpM5q0pFuNJnOqh4GfWIEXkhPpnJq+Gy/r2i9YD62z9p+/Agq/4Q363q7tTPJ0ay/28TunMsHJAzixq3J1lfyflIk35vAC4I/ON8ewG2B88rcVC1ev/p3iYHliTnfHi4joa8MhGDEJcWHIC04PrIqhD6cINzY5duXGBecNvbAwjrXDSCivNyJ6PlC1oC5YWItXbH/VOX9H+qVyNub5yTTMUJXnsH8M0eA3Ne+cIBTlJ4z83VgqKTD0pv1W/Q1rMUG7HT4Dd25EQ/raQvRwRq6RtlL4AFVebK7Z+8VL0q2H5+7ZCPTZAoXdwOkmB1IeBQ/1f1BNfl2WpE+2TShQzFgexNLslyrYFhgweLAoJrS8iEcFbomKtUQdFTgxJ6Nx9FM5f1VzBx1e8zJzoE6necF13p+1DgN+eMnpM0PSsbJXo/Tvu7jcNJfKdqevCDBnoPFOfwbFkgAdDKqTRMnsxYqFNPIPCILZw/1nGXquNFgi5xYstmnVSyywMeK9tmvA65ONSZtq1WVovTGyWrhdAJ7cUIhYvSDv7m7hBBeKcd3pWrJ6J7W4mG8gJEe72+efoA3rD5fpzHvzOAVWB26kNTL19pDDYfqL5u8QY7uu/nN+NMNW7bwpeTC/dPXif9kyJJh36AesbN6B62EHS1g5Etd74VH83bCKsw2RpMDRTWgTKUGSC8SSrYIJMLav7hfrUCPn3q5rYLa/U5ah6bVBJXpZ1hWKObJdcwyr7cs4IcAjXNwZlQ7Cs1RyZSl8cZ/1tMTUazdtgV5GZBTjlqape5fAy08ztym9QKRS4k0C+KJuikNf30tDd459hPMDyZvZwpHjMdeNQXbAxeS2D0pRm8SykQgcQBaXQetdlCl0jwmX4s3Br+mHGK7HXoJGjOpAEKyIIewmvFqDq/DykA4gtAt1bHfC4oVSHJD10iKqnE6f90qW7e8APYKP9nDkXHrjojUNFpx5Q3xtR/RJk5lKVGLNYFZWfxo6NhmT1dql9G020T19aTiU7eR2E0hOTr6YfbFCtwq1nKjSc/UXQ20yH7L9GJmJu1l5uXrA1FPK8AJLvJj1rS5jyoGUuEXmTO7QXhCbCvGv2dRa2M+kZ0tv5JJ7oc49RmCGj9PY60aciM4dmsY3mn96w+31CfdavSlF6XV6hSzYzrhp4gRxm2YHDxlkqmtR8CN+GqehyXm4Z5KsS73ifHQvJjPtomd2dvt9bu+XBDHMoG6z7cwMMz+AE/vmRREC4vTWCQWpoRYvvywijTcG4S94mJe7OPNjCrGbH5AOqLw8FdjTQGxW+oVBCm5RI8I4QKNfCU6lgVMJwEdVsB/OdYIEPrKTnG9YTQ4oAXScnz3ArxRlIfju+hgZ2DX4CvEDqLlvUeYyGLHE7NGdWDT45ws3HRbhEwvtkxbULTrFJh0/lLhvKStL27McJtwm/bz0PwVbwoIw5FiEFzD70QBOuMt5LkS70laQH9iJ3paFM/jUf7Og+yzNA9OTxuKkAZjQrg4sy3WBUIJPW7A4sMZaVgUYtD5yEXhoWJDc/HK5kpQ7zDNpY6svRUla+XOmY5z45W6SLY2oLrBY4Q7Me212UE3rKOORQFrYRk1PHQxQwewzprmPRhNr21zkTW1n/q4vN7aVgf/btMlF6fXK5c0w42BAnSKA3ffdTjHp6XbUWndc2yBfUAO+0AZiqNX2XOAdfdAqM5EZlqPHfstMNzmcIFEc+0l/xXIZPmJOCWVJ/GPpcVmCviouQOX6axNbggJ0dcO6H6iJOoFDfKHMX6JC5eicB5C8JMG9hTm22EJoW2zbT4UJlYlPKIPf8aXzpcHYdcL0U46wgYN6BKSUIz78pRzaLlO4aeTlJoQw/lhsbYJO9lNqy/KVg6Ql0ZxzPCy9xFTlXG2zOM7RCiV8o+FGK8lIr9/uBzOWA5yUiFL9jYOjadqlwkjrnpzwGDQ6hQorNIguZr9pBf9Qx+fjPD/wIzrYqOtJXhAfy9NOz+KdWWBxq0r0gA+/B6qj4G3xmjP8+HyIQ1EcUGG0Tm4kWsK46OB+deahwUlinxaYnCZjLvxOFxrrgk5vhivI1n4EmJ5AfjUxttZp0zviZqpRIZkMJDKlfTbb1qpyr/r+ZJS7eoaenCh6XAHQF+sFf4z26alQt9FCgcI275+lriIH8eeGluW9p2gBYSQ8qHFY0t/l5Y1thdZASLwusrYKnxGggcxPt4m7HJXDToqfBp47AJArmNiyw2daGhSsF/52+nfcrAZ2zPLHvO70RavZMjHzIHvUcinUyj9qyzWd2B2B6dIXTlDesZngbo5U2/ZUGv3qH0VdCzbFNFbItSUBBuCEtzKxRHbaik0eE5MyTSU/hHx3bb9KHLWdIMNtuWHPXHH6ywPgmvc8qzrM/ht2fsmZAdlySfVWknlKEnNPuWQKVesqDV/sFvWuqnoEqjCctNQsKwTfVmleuHZ34L4wdD6hCXZF/SlfsIFAXYSeXGjyCf3Yp+2dfiBWb0LlvAq+FbboChbK9adboUM+YkIxncBPyWnC7WMpAu4cJALwiD7ejYyLB7ic2s4ugkEPOdsK+XTTqiwjBBtL33n/Af1j17o3mbWPUxLIsLnpMqGbI/a2Oz8SfCMXkhU4qMTbCTYQeWR5GNfdO7lVnXIeJrkN/n4ue2Fkrb9K8Fhip7Y6FR7o6NaSSHISnZBayeSXnDMqFP75OlQTPRa58jvxFNXx3ECViJInFsG9Dx+9IZEgBUbbQAEG7oa30as6PrKp3u3cLK8tI2ymJAC8CVxr77k0fqUYZ+cXGoWnsnQ9KwUa6UWSukeT5b8Fk1J4i/noWk1wqnW4KKW/UEOAFvGaz262veUfTeJ/c3iDR1WCWb1RXBza9G4mdHjjkJxIkIYqBkJxdUiZrygsQRDaB7a25Vbt9y9ph59Re6lMXlQzK0BWFNKDjm2BfdqPQYWRKBw/ftMU85ubGTN9RdX8PaZzyRc+sDEYe05yDz1sTT373OSj5hB5XpKOtVHCTM3tY9iE5a/XpxUXVHuP3O6IJBT12HToKjhEEA1LspbpO1W2zQq90Ydr3hWILkfYVUqkyrHQMKdmEqdli8I+JPuQOsh35jMhziwtOpyLk2T+QNlt/vQdjVy0HucV1J6GQPREyHigr0Zg1wT05mh2Ie/DUp/GeU0tM50AjUq5hZyykGSOM7kU38Sy20T4HGP9FKbuHQvCexwu/rA9rfgdxYPD/0W0S2eraGw0WUdLysMgB4GJO04If0TMLaPJpJf9xLs4uU99+0cqB/5UPSLH9nnKtocsFhWmVfrxUOuYrlY8nTisjWtX/ni8omgziRTDR1VDSVWGPbFyzsMWqZu8PH3c/Tz9gt9HpKihRa95gSLSCQyvTdXSBbebiz3Fo7D2LHxOfLX1wT76Y4QUDQSA9/AIPhAsLoIEnJk2JST6/p7CtwgJ0KX5hUN1W08vk8glnEhNOjTo7kCrS/hJeXXKBmW/Q44wdBTDeSRBE8Z7f59nCQBM1E1U6sONc9fThzSafQqapZjnwEe8Ju49Hzn3eyD3t/q2+nF/VRW6jUU2LaZDiAQCjR7ljcXYfZYvBAUi2mh8OueiB879+k/xkU1Dq9MPNHYSS4XvQxXNPYX2UQX3V4vJbVK/pi49e5PdinLYUsOq2PAKuQ8unoiKYOq3Fq/WCCKyALhp2tLUF+vHjzwiNorkrEs8NaeubWVX0r4wWnTdkjTsYEPXxyB8TkqADYiAtkH57hhBK/3AjR/4VDBsIY3+/++f65R3EAXj7eATC8BZdkiMgR/OPUIlPh52wd5oC4965n0YPTbZ69/G5VbZHmVX0o7CuK/pBHcwiZ4HzWaDvqZwZZgiWAG3d7JXiaN7eLEoiII/ovmG3RPh3eGbgn4UNu+cRxg8O/UByOy0ik+CbY2pczN/fze9ljW7PPEjkvd4yzQoqtQ+oRhq2xXDPBSoeHCLT+yhqkdA3EHL0INj0sKaXZxbtWlNh/P2PeZQAaOkfsjDLq2eMCxL8U6TwIH+7UXjuu4IluO/dedI0pvQ/PQDDJiZPnd4oancy3VEdGRA7u1zPcr9czckkh5OW04xL7SqY8yZRECQQvx92D/q0S08kyf9392fo58HiIIGdo/YkVS2Y3NxqZ6VoBiCyl9C1WwjO/Ke04c8tHNxCn8X4U9a8IqIC7mAiufe3iU/NaLqbf35xZJhX01ZIreInAS3OEmtkMhBAgWwu2snNYPpO/Z81o69h3zuUehV5PYY0ONnAr8KagHdwkC0+vUbHiRAVi4nOJ6dg/BzBzMKMaO7w2tmHRMBb7UxJ9WknxPTMQsXtXNXbfQAEB/whueCinIj5ezR7vkImJJ5yh8oA2fJ0xVe46IISr6d4FrDHH/G1/6p8iTj5csHHWjgrPDY3sZLKClSSb2mQkW5xxGIejWrmdLaBdCTBVTWTGbfOfFVH3hwh8fblEpqXiD0J5LRSRUyQ8HSExppJxaZN0YRBCIp+1m1MuR1pNLtSq+yfFi3uaOiIfNzEsKpOBNLKxwbBef7tlSozl1Fidbm//6KFbyxN4425VsYpPsk7rjvfjYq4KIQuHnN/e+S5L1c+Sl3qe1ndlJtapZiaD6VkeriAWJebihJr+y2Jy/0fSxvcvHIzDX6TbtHanxwujWD+npGfaRiY1RHU01gmr/W2PwiO5iqVDc7E+GeZxN43jQWorGSckZyh2c0RnlIs2gX1xIQfZ02X5ot95l/VnV9EZvs+uRJF6Nwlly6TZy/bd5VCKLw3R/950UADeLQgf+kkJlfx7cuLjgAslME6ob/AMyb8Noxn8+HI36IxkmcVPYdxoHqe8xYxawp3E06aQhulTe/QAQ3W+AqT+0Q6bkvHMKTPMzMUSPoI2gb+0RyLDn1FSYf/JFeyCbsUvPZz3BvWWZt8jS81Bqu8d55mYuFJ+bwHRJ/l8o04uu8WXtt3/GEJIYvfExzB7oLypELGQodv3VtfTIEmhcFZ5N/6oM+UFfmQbiwyH7tVRj//LNAqWljJJtuhFtS/IgIMG8DjFZljJfZLDRJ5ra/D4sCVBAU7F2O+zfbo4tKnkREaT/+TAAd6gtzJBXxu+bS5AiJWlzuET08lsoAOI0k/PB4VXqZj3Cs7Fz9pUmD+/qronm9ImqoEJo6yl5MrOJkkn8g18+7lrbMbvBLqX4zQODBz7smFYsf52mCpMuBPHe4Qo+Nc38wlAqL/bR04BOWkOpAxRmFhrsVWKBJEyqGVx6PeOH2VdLBsaAzn4RNVznCDityMusnrcUy4SU5+Lqm/rI87ClLOxZMeGms+v0OkCtA/3J8zi1czT6zgHJnHfQz38bZTiF+G8x+5uu8BO/SVpKt2d3YyA5KY5hNWFFZTwsz3URYuvMbs7iN55mMwj9QhbwGjETXXO10wAa7y9gdhybEy5GtEBDMu3/RRITrPsVmKm67JrzD3EkSNdSzORmeGMIZwFTYfZek4LSe/ZZHrZzLI8lPls0x/ZcoxqJ7P7UK/D1zIFF2svRruKz+AOkTcZG3cxE9ZAl9z30FD9wuuiE+Fm9xrrVh9N/yKik5xIoD5TrNt0kJKllU/UWo/ZeekV1rRJ8ggG9YrpnRliYbD9U/VoMFJxzJ4cjKFb1I+AQ1A8b4ZoMPS1+dtUoDh3IL9OPkGxLcMlFQLf29pb50qmaJT07o2S1M1EBPgvxqke7LQaQ2jHT18f5/KhYt+H22iT1O5KGRMIj6riL3mxTquRzuNviVP4DUQbCDVNcmYaTw+2Oi+jYcMmDOpHLyRgCeYggt0Zha82wJM+XY/lAhVkzpyFdLM/WZAqGDEti/ikSbnFhOY58T7VFpyMj97UB4vTOOw/FI5SJTdkj+3VeeUqYMgmvjNS+OHbvuSWjaGP/MR3C3e7PrU2cSMobOlZWRCwLGsC7jqr+FID4oAaFcPfP8N6kIHDbRkUK4X34kiTvrmc+UF3V/EDB839eSzIxfP7mBCPwJU0kp0CVZn51DLj+F73IwooRmen99MAwiBvDn/2c4m7r91RFd/SpdqpHhRng8rA17hbMsl++ahdU2NOk6751PbuKCtf6UQyF4N/TaNMiyUuxTDBupfPVC+etudAowEkIBNyUN4ZJjFjOISmh4U4rnm1MokHAtkIFMd+RtOoMKkpPqDFY+0N+KrYaNRPfLEY0DjBjj6zzwi2x9YXdvKJcw1zkHTeeVSKiuy5TJh3QXUupMN0cqJ8yV6xEUOA/Tf1coC5Wvr7C93GjMNAij2hHP/xfSi3bq2AJUTdm/eLC6223c+3u2lvyLhqzXjZu4YWd3eE+LjsIHyf6uRCGUzQfmlvQg+mhODftELHUQUosZbWSkxr2UjRMgBOmem5B3T16p4rLmmdBy33lvje283xN/pVO6lg9STCZ/rRKkQq9waKFyTVfreh+A97w3DRlKN5wSrWSOg/yJmcXk+QCe4NReBUiD5v+9slS7WQuGoS2cPVspa0lRW9RH4i+jcVfVTFrsy/CeHE5XPERx+im2ZUiRSHJU5wt6Z3FuK5dJaLvv4oaaZUBg3Wb56K/pvZbnXjmAsj/Nyk0YOaW4b3UAFLQ3YTkN5lLgnlvtGKZ5s31mlhq6JTo49gAh5zGXHalt3QHNW7OHXEtyvC56uZ0a/H54Pf5kd7zgR4rGxpnJDvUVjHvjO/0cwSTKJFKX2CTsRuf6SzVlSQIGkynEwpTi3ArSAoXWQhYVo4Pi1LDrgjlXPTeFTBAkqG03DEmFrTk72RK0iewhxp4YuM2PG56hxG+7JXSLtaIOObFvZ8lIdvfWCSDN1mLeFb8PP3kN5lT5wpcQuGMcezEFCldhizqE7PThAWlfwzJJdrMqF9jCyrcbzl5l+AmB1cukw2gkVo1BTtkbGeG+cgo/qL2nTK+6XfCmixAPgINWfrYGHhRbvLcB1Lt7edQNlnPaPmG1+iaSVaR1pOe3Ub96AAAA"
                     alt="Scash QtKawaii Mascot"
-                    class="max-w-full h-auto rounded-xl select-none pointer-events-none"
+                    class="w-56 max-w-full h-auto rounded-xl select-none pointer-events-none"
                   />
-                  <!-- Mascot Speech Pill -->
-                  <div id="mascotSpeechBubble" class="mt-1 px-3 py-1.5 rounded-full bg-[#24173d]/95 border border-[#4deeea]/70 text-[11px] text-cyan-200 shadow-lg text-center">
-                    ✨ Zero pool fees! Payouts go straight to your <span class="font-mono-code text-purple-200">scash1</span> wallet in every mined block!
+                  <div id="mascotSpeechBubble" class="mt-1.5 px-3 py-1.5 rounded-full bg-[#24173d]/95 border border-[#4deeea]/70 text-[11px] text-cyan-200 shadow-lg text-center">
+                    Paste your own <span class="font-mono-code text-purple-200">scash1...</span> wallet address to mine with 0% pool fee!
                   </div>
                 </div>
 
-                <!-- Zero-Friction Local Miner Control Card -->
-                <div class="sm:col-span-6 qt-cyan-card p-4 flex flex-col justify-between gap-3">
+                <!-- Real Built-in XMRig Control Card (Zero Fake Simulation Buttons!) -->
+                <div class="sm:col-span-7 qt-cyan-card p-4 flex flex-col justify-between gap-3">
                   <div>
                     <div class="flex items-center justify-between">
-                      <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-300">Built-in XMRig (rx/scash) Auto-Miner</h3>
-                      <span class="text-[11px] font-mono-code text-purple-300">Port :8345</span>
+                      <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-300">Built-in XMRig (rx/scash) CPU Miner</h3>
+                      <span id="minerProcBadge" class="text-[11px] font-mono-code text-purple-300">Stopped</span>
                     </div>
                     <p class="text-[11px] text-purple-200/80 mt-1">
-                      Paste your <span class="font-mono-code text-cyan-300">scash1...</span> address and slide your CPU threads. P2Pool auto-tunes your share difficulty.
+                      Mines directly into your local P2Pool Stratum (<span class="font-mono-code text-cyan-300">127.0.0.1:8345</span>) with zero <span class="font-mono-code">WinRing0</span> drivers.
                     </p>
                   </div>
 
                   <div class="space-y-2.5 text-xs">
                     <div>
-                      <label for="quickWalletInput" class="block text-[11px] text-purple-200 mb-1">Payout Address (Bech32 scash1):</label>
+                      <label for="quickWalletInput" class="block text-[11px] text-purple-200 mb-1">Your Scash Payout Address (Bech32 <span class="font-mono-code">scash1...</span>):</label>
                       <input
                         id="quickWalletInput"
                         type="text"
-                        value="scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2"
+                        placeholder="Paste scash1... receive address from Scash Wallet"
+                        value=""
                         class="w-full bg-[#120a1f] border border-purple-500/70 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 font-mono-code text-[11px] text-white focus:outline-none"
                       />
-                      <div id="walletValidationMsg" class="text-[10px] text-emerald-300 mt-1">✓ Valid Scash Bech32 Mainnet Address</div>
+                      <div id="walletValidationMsg" class="text-[10px] text-purple-300/80 mt-1">Enter your Scash Wallet receive address to save it locally.</div>
                     </div>
 
                     <div>
                       <div class="flex justify-between text-[11px] mb-1">
-                        <label for="cpuThreadSlider" class="text-purple-200">CPU Threads (<span id="threadCountLabel" class="font-mono-code text-cyan-300">8</span> threads):</label>
-                        <span id="autoDiffBadge" class="font-mono-code text-purple-300">+0.004 /0.12</span>
+                        <label for="cpuThreadSlider" class="text-purple-200">CPU Threads (<span id="threadCountLabel" class="font-mono-code text-cyan-300">4</span> threads):</label>
+                        <span id="workerNameBadge" class="font-mono-code text-purple-300">kawaii_rig01</span>
                       </div>
                       <input
                         id="cpuThreadSlider"
                         type="range"
                         min="1"
                         max="32"
-                        value="8"
+                        value="4"
                         class="w-full accent-orange-500 cursor-pointer"
                       />
                     </div>
 
                     <div class="flex items-center justify-between text-[11px] bg-[#140b23] px-2.5 py-1.5 rounded-lg border border-purple-500/30">
-                      <span class="text-purple-200">RandomX 2GB LargePages</span>
+                      <span class="text-purple-200">RandomX 2GB HugePages</span>
                       <input id="largePagesToggle" type="checkbox" checked class="accent-cyan-400 w-3.5 h-3.5 cursor-pointer" />
                     </div>
                   </div>
 
                   <div class="flex flex-col gap-2 pt-1">
-                    <button type="button" id="toggleAutoMineBtn" class="qt-orange-btn w-full py-2 text-xs">
-                      <span id="toggleAutoMineText">▶ Start Built-in XMRig (rx/scash)</span>
+                    <button type="button" id="toggleMinerBtn" class="qt-orange-btn w-full py-2 text-xs">
+                      <span id="toggleMinerBtnText">&#9654; Start Built-in XMRig (rx/scash)</span>
                     </button>
-                    <div class="grid grid-cols-2 gap-2">
-                      <button type="button" id="mineSingleShareBtn" class="qt-action-btn text-[11px] py-1.5">
-                        + Mine Share
-                      </button>
-                      <button type="button" id="solveBlockBtn" class="qt-action-btn text-[11px] py-1.5 border-purple-400 text-purple-200">
-                        ★ Solve Block
-                      </button>
+                    <div class="qt-purple-inner p-2">
+                      <div class="text-[10px] text-purple-300/80 mb-1 flex justify-between">
+                        <span>Live XMRig Worker Log:</span>
+                        <span id="xmrigAcceptedLabel" class="font-mono-code text-emerald-300">Accepted: 0</span>
+                      </div>
+                      <pre id="xmrigLiveLogPre" class="font-mono-code text-[10px] text-cyan-200/90 max-h-24 overflow-y-auto whitespace-pre-wrap">Miner idle. Paste your scash1... address and click Start.</pre>
                     </div>
-                    <button type="button" id="copyQuickCommandBtn" class="text-[11px] text-cyan-300 hover:text-white underline text-center pt-0.5 cursor-pointer">
-                      Copy Built-in XMRig (rx/scash) Command
-                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Right Column: Recent Sharechain & Block Activity (Matches Recent transactions in image_0cac88.jpg) -->
+            <!-- Right Column: Real Solved Blocks & Active Sharechain Stream -->
             <div class="lg:col-span-6">
               <div class="qt-cyan-card p-4 sm:p-5 flex flex-col h-full">
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
-                    <h2 class="text-sm font-semibold text-purple-100">Recent sharechain &amp; block payouts</h2>
-                    <p class="text-[11px] text-purple-300/75">Live PPLNS share log &amp; RandomX commitment stream (15s target share period)</p>
+                    <h2 class="text-sm font-semibold text-purple-100">Live P2Pool Blocks &amp; Sharechain Activity</h2>
+                    <p class="text-[11px] text-purple-300/75">100% live data from <code class="font-mono-code text-cyan-300">/recent_blocks</code>, <code class="font-mono-code text-cyan-300">/current_payouts</code> &amp; <code class="font-mono-code text-cyan-300">/local_stats</code></p>
                   </div>
-                  <div class="flex items-center gap-1.5 text-[11px]">
-                    <button type="button" data-filter="all" class="share-filter-btn px-2.5 py-1 rounded-md bg-purple-600/40 border border-cyan-400 text-white font-medium">All</button>
-                    <button type="button" data-filter="mine" class="share-filter-btn px-2.5 py-1 rounded-md bg-[#24193a] border border-purple-500/40 text-purple-200 hover:text-white">My Shares</button>
-                    <button type="button" data-filter="block" class="share-filter-btn px-2.5 py-1 rounded-md bg-[#24193a] border border-purple-500/40 text-purple-200 hover:text-white">Blocks</button>
-                    <button type="button" data-filter="stale" class="share-filter-btn px-2.5 py-1 rounded-md bg-[#24193a] border border-purple-500/40 text-purple-200 hover:text-white">DOA/Orphan</button>
-                  </div>
+                  <span id="poolUptimeBadge" class="text-[11px] font-mono-code px-2.5 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">
+                    Uptime: &mdash;
+                  </span>
                 </div>
 
-                <!-- Inner Purple Border Frame (Exact match to QtKawaii Recent transactions inner frame) -->
-                <div class="qt-purple-inner p-3 flex-1 min-h-[420px] max-h-[520px] overflow-y-auto space-y-2.5" id="recentSharesList">
-                  <!-- Populated dynamically via JS -->
+                <div class="qt-purple-inner p-3 flex-1 min-h-[410px] max-h-[520px] overflow-y-auto space-y-2.5" id="liveActivityContainer">
+                  <div class="text-center py-12 text-xs text-purple-300/75">Connecting to local Scash P2Pool node on 127.0.0.1:8345...</div>
                 </div>
 
-                <!-- Footer summary inside Recent Sharechain card -->
                 <div class="mt-3 pt-2.5 border-t border-purple-500/25 flex flex-wrap items-center justify-between gap-2 text-xs text-purple-300">
-                  <div>
-                    Best Share Hash: <span id="bestShareHashText" class="font-mono-code text-cyan-300">000000048f9c2b1e...d93a14c7</span>
+                  <div class="truncate max-w-[60%]">
+                    Tip Block Hash: <span id="bestBlockHashText" class="font-mono-code text-cyan-300">&mdash;</span>
                   </div>
                   <div class="flex items-center gap-3">
-                    <span>Block Height: <strong id="currentBlockHeightText" class="font-mono-code text-white">152791</strong></span>
-                    <span>P2Pool Port: <strong class="font-mono-code text-cyan-300">8344</strong></span>
+                    <span>Height: <strong id="currentBlockHeightText" class="font-mono-code text-white">&mdash;</strong></span>
+                    <span>P2Pool P2P: <strong class="font-mono-code text-cyan-300">:8344</strong></span>
                   </div>
                 </div>
               </div>
@@ -488,119 +380,14 @@
           </div>
         </section>
 
-        <!-- ==================== TAB 2: 1-CLICK START (MINIMIZE USER FRICTION) ==================== -->
-        <section id="tab-setup" class="tab-panel hidden">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div class="lg:col-span-5 qt-cyan-card p-5 space-y-4">
-              <div class="flex items-center justify-between">
-                <h2 class="text-base font-bold text-white">Zero-Friction Setup Configurator</h2>
-                <span class="px-2.5 py-0.5 rounded-full text-[11px] bg-orange-500/20 border border-orange-400 text-orange-300 font-semibold">Easy Mode</span>
-              </div>
-              <p class="text-xs text-purple-200/85 leading-relaxed">
-                Legacy Bitcoin P2Pool required manual terminal setup across 3 programs. Our <code class="font-mono-code text-cyan-300">start_scash_p2pool.py</code> launcher in the <code class="font-mono-code text-purple-200">scash-kawaii</code> branch automates <code class="font-mono-code text-cyan-300">scash.conf</code>, starts the P2Pool sharechain node, and connects your RandomX CPU miner in one command.
-              </p>
-
-              <div class="space-y-3 text-xs">
-                <div>
-                  <label class="block text-purple-200 font-medium mb-1">1. Target Operating System</label>
-                  <div class="grid grid-cols-3 gap-2">
-                    <button type="button" data-os="windows" class="os-select-btn qt-tab-btn active justify-center py-1.5 text-xs">Windows</button>
-                    <button type="button" data-os="linux" class="os-select-btn qt-tab-btn justify-center py-1.5 text-xs">Linux / HiveOS</button>
-                    <button type="button" data-os="macos" class="os-select-btn qt-tab-btn justify-center py-1.5 text-xs">macOS (ARM64)</button>
-                  </div>
-                </div>
-
-                <div>
-                  <label for="setupMinerSoftware" class="block text-purple-200 font-medium mb-1">2. Preferred RandomX Miner</label>
-                  <select id="setupMinerSoftware" class="w-full bg-[#120a1f] border border-cyan-400/70 rounded-lg px-3 py-2 text-xs text-white font-mono-code">
-                    <option value="cpuminer-scash">cpuminer-scash v3.0.9 (Official RandomX Miner)</option>
-                    <option value="xmrigcc">XMRigCC (Algo: rx/scash)</option>
-                    <option value="srbminer">SRBMiner-Multi (Algo: randomscash)</option>
-                  </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label for="setupWorkerName" class="block text-purple-200 font-medium mb-1">Worker Name</label>
-                    <input id="setupWorkerName" type="text" value="kawaii_rig01" class="w-full bg-[#120a1f] border border-purple-500/70 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono-code" />
-                  </div>
-                  <div>
-                    <label for="setupCpuHashrate" class="block text-purple-200 font-medium mb-1">Est. CPU Hashrate (H/s)</label>
-                    <input id="setupCpuHashrate" type="number" min="100" max="200000" step="250" value="4250" class="w-full bg-[#120a1f] border border-purple-500/70 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300 font-mono-code" />
-                  </div>
-                </div>
-
-                <div class="qt-purple-inner p-3 space-y-1.5">
-                  <div class="text-[11px] font-semibold text-cyan-300">Auto-Calculated P2Pool Stratum Username:</div>
-                  <div id="computedStratumUser" class="font-mono-code text-[11px] text-white break-all bg-[#120a1f] p-2 rounded border border-purple-500/40">
-                    scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2.kawaii_rig01+0.004/0.11
-                  </div>
-                  <div class="text-[10px] text-purple-300/80">
-                    <span class="text-cyan-300">+0.004</span> sets local UI graph responsiveness (10s pseudoshares); <span class="text-purple-200">/0.11</span> sets your optimal PPLNS sharechain target.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="lg:col-span-7 qt-cyan-card p-5 space-y-4">
-              <h3 class="text-sm font-bold text-cyan-300 uppercase tracking-wider">Generated Zero-Friction Launch Commands</h3>
-
-              <!-- Step A: One-Click All-in-One Launcher -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-semibold text-white">Option A — One-Click Unified Launcher (Recommended)</span>
-                  <button type="button" data-copy-target="cmdUnifiedLauncher" class="copy-code-btn qt-action-btn py-1 px-2.5 text-[11px]">Copy Command</button>
-                </div>
-                <pre id="cmdUnifiedLauncher" class="qt-purple-inner p-3 text-[11px] font-mono-code text-cyan-200 overflow-x-auto">python start_scash_p2pool.py --wallet scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2 --threads 8 --open-ui</pre>
-              </div>
-
-              <!-- Step B: Auto-configured scash.conf -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between text-xs">
-                  <span id="scashConfPathLabel" class="font-semibold text-white">Step 1 — Scash Core Config (C:\Users\you\AppData\Local\Scash\scash.conf)</span>
-                  <button type="button" data-copy-target="cmdScashConf" class="copy-code-btn qt-action-btn py-1 px-2.5 text-[11px]">Copy scash.conf</button>
-                </div>
-                <pre id="cmdScashConf" class="qt-purple-inner p-3 text-[11px] font-mono-code text-purple-200 overflow-x-auto">chain=scash
-server=1
-daemon=1
-txindex=1
-rpcuser=scashminer
-rpcpassword=kawaiip2poolpass
-rpcallowip=127.0.0.1
-rpcport=8342
-port=8343
-[scash]
-dnsseed=1
-addnode=seed.scash.one:8343
-addnode=scash.tv:8343
-addnode=scash.pool-pay.com:8343
-addnode=satoshicash.cedric-crispin.com:8343
-addnode=pool.rplant.xyz:8343
-addnode=[2600:1700:bc80:69d0::40]:8343
-addnode=5.59.96.54:8343
-addnode=144.76.17.34:8343</pre>
-              </div>
-
-              <!-- Step C: Miner Command -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-semibold text-white">Step 2 — Connect RandomX CPU Miner to Local P2Pool Stratum (:8345)</span>
-                  <button type="button" data-copy-target="cmdMinerCli" class="copy-code-btn qt-action-btn py-1 px-2.5 text-[11px]">Copy Miner CLI</button>
-                </div>
-                <pre id="cmdMinerCli" class="qt-purple-inner p-3 text-[11px] font-mono-code text-emerald-300 overflow-x-auto">minerd -a randomx -o stratum+tcp://127.0.0.1:8345 -u scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2.kawaii_rig01+0.004/0.11 -p x --largepages --threads=8</pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ==================== TAB 3: PPLNS PAYOUTS & ACTIVE MINERS ==================== -->
+        <!-- ==================== TAB 2: REAL PPLNS PAYOUTS ==================== -->
         <section id="tab-payouts" class="tab-panel hidden">
           <div class="qt-cyan-card p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 class="text-base font-bold text-white">Current PPLNS Sharechain Payouts (50.00000000 SCASH Block Reward)</h2>
+                <h2 class="text-base font-bold text-white">Live PPLNS Sharechain Payouts (<span id="payoutHeaderReward">50.00000000</span> SCASH Block Reward)</h2>
                 <p class="text-xs text-purple-200/80">
-                  99.5% of every solved Scash block is distributed proportionally across the last 8,640 shares (24h window); 0.5% (<span class="font-mono-code text-cyan-300">0.25000000 SCASH</span>) goes directly to the block finder.
+                  Fetched directly from <code class="font-mono-code text-cyan-300">GET /current_payouts</code> on your local P2Pool node. Zero simulated addresses.
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -610,7 +397,6 @@ addnode=144.76.17.34:8343</pre>
                   placeholder="Filter by scash1 address..."
                   class="bg-[#120a1f] border border-cyan-400/70 rounded-lg px-3 py-1.5 text-xs font-mono-code text-white focus:outline-none"
                 />
-                <button type="button" id="highlightMyAddressBtn" class="qt-action-btn text-xs">Highlight My Wallet</button>
               </div>
             </div>
 
@@ -620,915 +406,675 @@ addnode=144.76.17.34:8343</pre>
                   <tr class="border-b border-purple-500/40 text-purple-200 bg-[#211538]">
                     <th class="py-2.5 px-3 font-semibold">Rank</th>
                     <th class="py-2.5 px-3 font-semibold">Scash Miner Address (Bech32 / P2WPKH)</th>
-                    <th class="py-2.5 px-3 font-semibold text-right">Local/Peer Hashrate</th>
-                    <th class="py-2.5 px-3 font-semibold text-right">Window Shares</th>
-                    <th class="py-2.5 px-3 font-semibold text-right">DOA / Stale</th>
-                    <th class="py-2.5 px-3 font-semibold text-right">Share %</th>
-                    <th class="py-2.5 px-3 font-semibold text-right">Next Block Payout (SCASH)</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">Local Stratum Hashrate</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">Payout Share %</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">Est. Next Block Payout (SCASH)</th>
                   </tr>
                 </thead>
                 <tbody id="payoutsTableBody" class="divide-y divide-purple-500/20 font-mono-code">
-                  <!-- Populated dynamically via JS -->
+                  <tr><td colspan="5" class="py-8 text-center text-purple-300/75 font-sans">Loading live /current_payouts from local P2Pool node...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- ==================== TAB 4: SHARECHAIN GRAPHS & 112-BYTE RANDOMX INSPECTOR ==================== -->
+        <!-- ==================== TAB 3: LIVE HASHRATE GRAPH ==================== -->
         <section id="tab-graphs" class="tab-panel hidden">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <!-- Left: Interactive Hashrate & Difficulty Chart -->
-            <div class="lg:col-span-7 qt-cyan-card p-5 space-y-4">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 class="text-base font-bold text-white">P2Pool RandomX Hashrate &amp; Share Difficulty</h2>
-                  <p class="text-xs text-purple-300/80">Live telemetry from <code class="font-mono-code text-cyan-300">/web/log</code> and <code class="font-mono-code text-cyan-300">/local_stats</code></p>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <button type="button" data-period="hour" class="chart-period-btn qt-tab-btn active py-1 px-3 text-xs">1 Hour</button>
-                  <button type="button" data-period="day" class="chart-period-btn qt-tab-btn py-1 px-3 text-xs">24 Hours</button>
-                  <button type="button" data-period="week" class="chart-period-btn qt-tab-btn py-1 px-3 text-xs">7 Days</button>
-                </div>
-              </div>
-
-              <div class="qt-purple-inner p-3">
-                <div class="relative h-72 w-full">
-                  <canvas id="hashrateChartCanvas"></canvas>
-                </div>
+          <div class="qt-cyan-card p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-base font-bold text-white">Real-Time Local &amp; P2Pool RandomX Hashrate (H/s)</h2>
+                <p class="text-xs text-purple-300/80">Recorded live every 3 seconds from <code class="font-mono-code text-cyan-300">/miner_status</code>, <code class="font-mono-code text-cyan-300">/local_stats</code>, and <code class="font-mono-code text-cyan-300">/global_stats</code></p>
               </div>
             </div>
-
-            <!-- Right: 112-Byte Scash RandomX Block Header & Commitment Verifier -->
-            <div class="lg:col-span-5 qt-cyan-card p-5 space-y-3.5">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold text-cyan-300 uppercase tracking-wider">112-Byte Scash RandomX Header Verifier</h2>
-                <span class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-purple-900/70 border border-purple-400/50 text-purple-200">RandomX v1.2.1</span>
+            <div class="qt-purple-inner p-3">
+              <div class="relative h-80 w-full">
+                <canvas id="hashrateChartCanvas"></canvas>
               </div>
-              <p class="text-xs text-purple-200/85 leading-relaxed">
-                Unlike Bitcoin's 80-byte SHA-256d header, <a href="https://github.com/scash-project/cpuminer-scash/blob/master/randomx-miner.c" target="_blank" rel="noopener noreferrer" class="text-cyan-300 underline">Scash</a> uses a <strong>112-byte header</strong> (<code class="font-mono-code text-purple-200">uint32_t blockHeader[28]</code>) where bytes 80..111 hold <code class="font-mono-code text-cyan-300">rx_hash</code> (zeroed during hashing) and PoW is validated via <code class="font-mono-code text-cyan-300">randomx_calculate_commitment</code>.
-              </p>
-
-              <div class="qt-purple-inner p-3 space-y-2 text-[11px] font-mono-code">
-                <div class="flex justify-between">
-                  <span class="text-purple-300">Words 0..19 (80B Base Header):</span>
-                  <span class="text-emerald-300">ver + prev + merkle + time + bits + nonce</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-purple-300">Words 20..27 (32B rx_hash):</span>
-                  <span id="inspectorRxHash" class="text-cyan-300 truncate max-w-[210px]">7f4e9a1b3c8d2051...8821c04f</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-purple-300">Commitment (rx_cm &lt; Target):</span>
-                  <span id="inspectorRxCm" class="text-amber-300 truncate max-w-[210px]">000000019b4d82e1...4a19f002</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-purple-300">Nonce (Word 19 LE):</span>
-                  <span id="inspectorNonce" class="text-white">0x48a91f0c (1,219,043,084)</span>
-                </div>
-              </div>
-
-              <button type="button" id="verifyRandomXBtn" class="qt-action-btn w-full py-2 text-xs">
-                Re-Compute RandomX Commitment on Latest Share
-              </button>
             </div>
           </div>
         </section>
 
-        <!-- ==================== TAB 5: GITHUB BRANCH CODE (scash-kawaii) ==================== -->
-        <section id="tab-code" class="tab-panel hidden">
-          <div class="qt-cyan-card p-5 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 class="text-base font-bold text-white">Ready-to-Push <code class="font-mono-code text-cyan-300">scash-kawaii</code> Branch Files for <code class="font-mono-code text-purple-200">iscpuminingreal/peer2peer-pool</code></h2>
-                <p class="text-xs text-purple-200/80">
-                  Select any file below to inspect or copy its complete source code, or use the downloadable <code class="font-mono-code text-cyan-300">scash-p2pool-kawaii-branch.zip</code> package.
-                </p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <button type="button" data-codefile="net_bitcoin_scash" class="code-tab-btn qt-tab-btn active py-1.5 px-3 text-xs">p2pool/bitcoin/networks/scash.py</button>
-                <button type="button" data-codefile="net_p2pool_scash" class="code-tab-btn qt-tab-btn py-1.5 px-3 text-xs">p2pool/networks/scash.py</button>
-                <button type="button" data-codefile="scash_randomx" class="code-tab-btn qt-tab-btn py-1.5 px-3 text-xs">p2pool/bitcoin/scash_randomx.py</button>
-                <button type="button" data-codefile="launcher" class="code-tab-btn qt-tab-btn py-1.5 px-3 text-xs">start_scash_p2pool.py</button>
-                <button type="button" data-codefile="git_push" class="code-tab-btn qt-tab-btn py-1.5 px-3 text-xs">Git Branch Commands</button>
+        <!-- ==================== TAB 4: EXTERNAL MINER SETUP ==================== -->
+        <section id="tab-setup" class="tab-panel hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div class="lg:col-span-5 qt-cyan-card p-5 space-y-4">
+              <h2 class="text-base font-bold text-white">Connect Extra LAN Rigs to Your Local P2Pool</h2>
+              <p class="text-xs text-purple-200/85 leading-relaxed">
+                Your local P2Pool Stratum server listens on <code class="font-mono-code text-cyan-300">stratum+tcp://127.0.0.1:8345</code> (or your PC's LAN IP on port <code class="font-mono-code text-cyan-300">8345</code>). Use your <code class="font-mono-code text-purple-200">scash1...</code> address as the username!
+              </p>
+              <div class="space-y-3 text-xs">
+                <div>
+                  <label for="setupMinerSoftware" class="block text-purple-200 font-medium mb-1">Miner Software</label>
+                  <select id="setupMinerSoftware" class="w-full bg-[#120a1f] border border-cyan-400/70 rounded-lg px-3 py-2 text-xs text-white font-mono-code">
+                    <option value="xmrigcc">XMRigCC (Algo: rx/scash)</option>
+                    <option value="cpuminer-scash">cpuminer-scash (Algo: randomx)</option>
+                    <option value="srbminer">SRBMiner-Multi (Algo: randomscash)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="setupWorkerName" class="block text-purple-200 font-medium mb-1">Worker Rig Name</label>
+                  <input id="setupWorkerName" type="text" value="kawaii_rig01" class="w-full bg-[#120a1f] border border-purple-500/70 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono-code" />
+                </div>
               </div>
             </div>
 
-            <div class="flex items-center justify-between bg-[#140b24] px-3.5 py-2 rounded-lg border border-purple-500/40 text-xs">
-              <span id="activeCodeFilename" class="font-mono-code text-cyan-300 font-semibold">p2pool/bitcoin/networks/scash.py</span>
-              <button type="button" id="copyActiveCodeBtn" class="qt-action-btn py-1 px-3 text-xs">Copy File Contents</button>
-            </div>
+            <div class="lg:col-span-7 qt-cyan-card p-5 space-y-4">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-semibold text-white">External CPU Miner Command (Stratum :8345)</span>
+                  <button type="button" id="copyMinerCliBtn" class="qt-action-btn py-1 px-2.5 text-[11px]">Copy Command</button>
+                </div>
+                <pre id="cmdMinerCli" class="qt-purple-inner p-3 text-[11px] font-mono-code text-emerald-300 overflow-x-auto"></pre>
+              </div>
 
-            <pre id="codeViewerPre" class="qt-purple-inner p-4 text-xs font-mono-code text-purple-100 overflow-x-auto max-h-[460px] leading-relaxed"></pre>
+              <div class="space-y-1.5">
+                <div class="text-xs font-semibold text-white">Active Scash Mainnet Seed Peers Configured in <code class="font-mono-code text-cyan-300">scash.conf</code> (:8343)</div>
+                <pre id="configuredPeersPre" class="qt-purple-inner p-3 text-[11px] font-mono-code text-purple-200 max-h-48 overflow-y-auto">Loading /nodes_list...</pre>
+              </div>
+            </div>
           </div>
         </section>
 
       </main>
     </div>
 
-    <!-- Floating Qt Node Window Modal (Exact replica of "Node window" in image_0cac88.jpg) -->
-    <div id="nodeWindowModal" class="fixed bottom-10 right-6 z-50 w-[94vw] max-w-[540px] qt-node-window hidden">
+    <!-- Floating Qt Node Window Modal (100% Real Node + P2Pool Telemetry) -->
+    <div id="nodeWindowModal" class="fixed bottom-10 right-6 z-50 w-[94vw] max-w-[560px] qt-node-window hidden">
       <div class="qt-node-titlebar flex items-center justify-between select-none">
         <div class="flex items-center gap-2 text-xs font-semibold text-purple-100">
           <span class="w-3 h-3 rounded-full bg-purple-400 inline-block"></span>
-          <span>Node window — Scash P2Pool</span>
+          <span>Node window &mdash; Live Scash Core 30.4 + P2Pool</span>
         </div>
-        <div class="flex items-center gap-2">
-          <button type="button" id="closeNodeWindowBtn" class="text-gray-300 hover:text-white px-1.5 text-sm leading-none">✕</button>
-        </div>
+        <button type="button" id="closeNodeWindowBtn" class="text-gray-300 hover:text-white px-1.5 text-sm leading-none">&#10005;</button>
       </div>
 
-      <!-- Node Window Sub-Tabs (Information | Console | Network Traffic | Peers) -->
       <div class="px-3 pt-2 bg-[#252525] flex items-center gap-1 border-b border-[#444]">
         <button type="button" data-nodetab="info" class="qt-node-tab active">Information</button>
-        <button type="button" data-nodetab="peers" class="qt-node-tab">Peers (10)</button>
-        <button type="button" data-nodetab="console" class="qt-node-tab">P2Pool JSON API</button>
+        <button type="button" data-nodetab="peers" id="nodePeersTabBtn" class="qt-node-tab">P2Pool Peers (0)</button>
+        <button type="button" data-nodetab="console" class="qt-node-tab">Raw JSON API</button>
       </div>
 
-      <!-- Tab: Information (Exact fields from user's screenshot!) -->
       <div id="nodetab-info" class="node-subpanel p-4 text-xs space-y-2.5 font-sans">
         <div class="font-bold text-gray-200">General</div>
         <div class="grid grid-cols-12 gap-1 text-[11.5px]">
-          <div class="col-span-5 text-gray-400">Client version</div>
-          <div class="col-span-7 font-mono-code text-gray-100">v3.0.0-mid-world-core-30.4.0</div>
-          <div class="col-span-5 text-gray-400 pl-2">User Agent</div>
-          <div class="col-span-7 font-mono-code text-gray-100">/Scash:30.4.0/ + /Scash-P2Pool:17.0-kawaii/</div>
+          <div class="col-span-5 text-gray-400">User Agent</div>
+          <div id="nodeWinSubversion" class="col-span-7 font-mono-code text-gray-100">&mdash;</div>
+          <div class="col-span-5 text-gray-400">P2Pool Version</div>
+          <div id="nodeWinP2PoolVer" class="col-span-7 font-mono-code text-cyan-300">&mdash;</div>
           <div class="col-span-5 text-gray-400">Datadir</div>
-          <div class="col-span-7 font-mono-code text-gray-300 truncate">C:\Users\scash\AppData\Local\Scash\scash</div>
+          <div id="nodeWinDatadir" class="col-span-7 font-mono-code text-gray-300 break-all">&mdash;</div>
         </div>
 
         <div class="font-bold text-gray-200 pt-1">Network</div>
         <div class="grid grid-cols-12 gap-1 text-[11.5px]">
-          <div class="col-span-5 text-gray-400">Name</div>
-          <div class="col-span-7 font-mono-code text-cyan-300">scash (RandomX + ASERT)</div>
+          <div class="col-span-5 text-gray-400">Chain</div>
+          <div id="nodeWinChain" class="col-span-7 font-mono-code text-cyan-300">scash</div>
           <div class="col-span-5 text-gray-400">Connections</div>
-          <div class="col-span-7 font-mono-code text-gray-100">10 (In: 2 / Out: 8) • P2Pool Peers: 6</div>
-          <div class="col-span-5 text-gray-400">Ports</div>
+          <div id="nodeWinConns" class="col-span-7 font-mono-code text-gray-100">&mdash;</div>
+          <div class="col-span-5 text-gray-400">Local Ports</div>
           <div class="col-span-7 font-mono-code text-gray-200">Scash P2P :8343 | RPC :8342 | Pool :8344 | Stratum :8345</div>
         </div>
 
-        <div class="font-bold text-gray-200 pt-1">Block chain &amp; Sharechain</div>
+        <div class="font-bold text-gray-200 pt-1">Blockchain &amp; Mempool</div>
         <div class="grid grid-cols-12 gap-1 text-[11.5px]">
           <div class="col-span-5 text-gray-400">Current block height</div>
-          <div id="nodeWinBlockHeight" class="col-span-7 font-mono-code text-gray-100">152791</div>
+          <div id="nodeWinBlockHeight" class="col-span-7 font-mono-code text-gray-100">&mdash;</div>
           <div class="col-span-5 text-gray-400">Memory Pool</div>
-          <div class="col-span-7 font-mono-code text-gray-200">2 txns (2.77 kB / 300.00 MB)</div>
-        </div>
-
-        <div class="flex items-center justify-between pt-2 border-t border-[#444]">
-          <span class="text-[11px] text-gray-400">P2Pool Live JSON API Poll</span>
-          <button type="button" id="pollLiveNodeBtn" class="qt-action-btn py-1 px-3 text-xs">
-            ↻ Poll local_stats
-          </button>
+          <div id="nodeWinMempool" class="col-span-7 font-mono-code text-gray-200">&mdash;</div>
         </div>
       </div>
 
-      <!-- Tab: Peers -->
       <div id="nodetab-peers" class="node-subpanel hidden p-4 text-xs">
-        <div class="space-y-1.5 font-mono-code text-[11px] max-h-56 overflow-y-auto">
-          <div class="flex justify-between py-1 border-b border-[#3d3d3d] text-cyan-300">
-            <span>Peer Endpoint</span><span>Subversion</span><span>Ping</span>
-          </div>
-          <div class="flex justify-between py-1"><span>seed.scash.one:8344</span><span>/Scash-P2Pool:17.0/</span><span class="text-emerald-400">28 ms</span></div>
-          <div class="flex justify-between py-1"><span>144.76.17.34:8344</span><span>/Scash-P2Pool:17.0/</span><span class="text-emerald-400">42 ms</span></div>
-          <div class="flex justify-between py-1"><span>198.199.73.40:8344</span><span>/Scash-P2Pool:17.0/</span><span class="text-emerald-400">51 ms</span></div>
-          <div class="flex justify-between py-1"><span>88.190.223.96:8344</span><span>/Scash-P2Pool:17.0/</span><span class="text-emerald-400">64 ms</span></div>
-          <div class="flex justify-between py-1"><span>209.141.46.154:8344</span><span>/Scash-P2Pool:17.0/</span><span class="text-emerald-400">79 ms</span></div>
+        <div id="nodePeersListContainer" class="space-y-1.5 font-mono-code text-[11px] max-h-56 overflow-y-auto text-gray-300">
+          No P2Pool peers connected on :8344 yet.
         </div>
       </div>
 
-      <!-- Tab: P2Pool JSON API -->
       <div id="nodetab-console" class="node-subpanel hidden p-4 text-xs space-y-2">
         <div class="flex items-center gap-2">
           <select id="apiEndpointSelect" class="bg-[#1e1e1e] border border-cyan-400/60 rounded px-2 py-1 text-xs font-mono-code text-cyan-300 flex-1">
+            <option value="/node_sync_status">GET /node_sync_status</option>
+            <option value="/miner_status">GET /miner_status</option>
             <option value="/local_stats">GET /local_stats</option>
             <option value="/global_stats">GET /global_stats</option>
             <option value="/current_payouts">GET /current_payouts</option>
             <option value="/recent_blocks">GET /recent_blocks</option>
           </select>
-          <button type="button" id="runApiQueryBtn" class="qt-action-btn py-1 px-3 text-xs">Fetch</button>
+          <button type="button" id="runApiQueryBtn" class="qt-action-btn py-1 px-3 text-xs">Fetch Live</button>
         </div>
-        <pre id="apiConsoleOutput" class="bg-[#1a1a1a] border border-[#444] rounded p-2.5 font-mono-code text-[11px] text-emerald-300 max-h-48 overflow-y-auto"></pre>
+        <pre id="apiConsoleOutput" class="bg-[#1a1a1a] border border-[#444] rounded p-2.5 font-mono-code text-[11px] text-emerald-300 max-h-52 overflow-y-auto">Click "Fetch Live" to inspect raw JSON from your local node.</pre>
       </div>
     </div>
 
-    <!-- Toast Notification Banner -->
     <div id="kawaiiToast" class="fixed top-16 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-[#24173d] border-2 border-[#4deeea] text-xs text-white shadow-2xl flex items-center gap-2.5">
-      <span class="text-cyan-300 font-bold">★</span>
-      <span id="kawaiiToastText">Copied to clipboard!</span>
+      <span class="text-cyan-300 font-bold">&#9733;</span>
+      <span id="kawaiiToastText">Saved!</span>
     </div>
 
-    <!-- Bottom Qt Status Bar (Matches bottom-right SCASH status bar in image_0cac88.jpg) -->
-    <footer class="qt-menubar px-4 py-1.5 flex flex-wrap items-center justify-between text-[11px] text-purple-300/80 select-none">
+    <footer class="qt-menubar px-4 py-2 flex flex-wrap items-center justify-between text-[11px] text-purple-300/85 select-none">
       <div class="flex items-center gap-3">
-        <span>Repository: <a href="https://github.com/iscpuminingreal/peer2peer-pool" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-mono-code">iscpuminingreal/peer2peer-pool</a></span>
-        <span>•</span>
-        <span>Branch: <strong class="font-mono-code text-purple-200">scash-kawaii</strong></span>
+        <span>Repository: <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-mono-code">ScashNetworkCommunity/Scash-peer-to-peer-mining-pool</a></span>
+        <span>&bull;</span>
+        <span>Publisher: <strong class="text-cyan-300">magicalgirlsunite</strong></span>
       </div>
       <div class="flex items-center gap-3 font-mono-code">
-        <span id="footerSyncStatus" class="text-emerald-300">● Sharechain Synced (8,640 shares)</span>
-        <span>SCASH</span>
-        <span>HD</span>
+        <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
+        <span>v0.2.0-beta.5 (Core 30.4)</span>
       </div>
     </footer>
   </div>
 
   <script>
-    // ==================== STATE & GROUNDED SCASH DATA ====================
-    const state = {
-      activeTab: 'overview',
-      shareFilter: 'all',
-      selectedOs: 'windows',
-      selectedMiner: 'xmrigcc',
-      walletAddress: 'scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2',
-      workerName: 'kawaii_rig01',
-      threads: 8,
-      largePages: true,
-      cpuHashrateHs: 4250,
-      poolHashrateKhs: 252.40,
-      availableBalance: 1.97990238,
-      mySharesCount: 145,
-      totalWindowShares: 8640,
-      blockHeight: 152791,
-      autoMineTimer: null,
-      highlightMyAddress: true,
-      chartPeriod: 'hour',
-      shares: [
-        {
-          id: 'sh-908',
-          type: 'share',
-          mine: true,
-          timestamp: '11/9/2026 13:41',
-          address: 'scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2',
-          label: 'test1 (local stratum worker)',
-          rxHash: '7f4e9a1b3c8d2051a904e2c1b8f730194c2e8a91d04f7b3e11209c8a8821c04f',
-          rxCm: '000000019b4d82e1c4092a8f71d3e5b092a1c4d8e7f601239a8b7c6d4a19f002',
-          nonce: 1219043084,
-          deltaScash: 0.84210526
-        },
-        {
-          id: 'sh-907',
-          type: 'block',
-          mine: false,
-          timestamp: '11/9/2026 13:34',
-          address: 'scash1q9k8m2x4v7n5p3r8t6w2y4z6a8c0e2g4j6l8n0p',
-          label: 'Block #152,791 Solved by Pool (50.00000000 SCASH)',
-          rxHash: '3a91c04e8b2d17f65092e1a4c8b7d0931f2e4a6b8c0d9e1f3a5b7c9d2e4f6a8b',
-          rxCm: '00000000048f9c2b1e7d3a5f9012c4e6b8d0f2a4c6e8b0d2f4a6c8e0d93a14c7',
-          nonce: 894120519,
-          deltaScash: 0.83650190
-        },
-        {
-          id: 'sh-906',
-          type: 'share',
-          mine: true,
-          timestamp: '11/9/2026 13:29',
-          address: 'scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2',
-          label: 'test1 (local stratum worker)',
-          rxHash: '9c1d4e7f2a8b3065e1c9d4a7b2f803165c9a2e4d7b1f803265c9d2e4a7b1f803',
-          rxCm: '000000024d1a9e8c3b7f205164a9d2e8c3b7f104265a9d2e8c3b7f104265a9d2',
-          nonce: 3049182741,
-          deltaScash: 0.83102400
-        },
-        {
-          id: 'sh-905',
-          type: 'stale',
-          mine: false,
-          timestamp: '11/9/2026 13:22',
-          address: 'scash1q4x7v9b2n5m8k3j6h4g2f9d7s5a3p8o6i4u2y0t',
-          label: 'Orphan share (competing RandomX propagation)',
-          rxHash: '5b2e8a1c9d4f70362a5b8e1c9d4f70362a5b8e1c9d4f70362a5b8e1c9d4f7036',
-          rxCm: '000000038f1c2e4a6b8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c0e2b4d6f8a0c2e',
-          nonce: 419283716,
-          deltaScash: 0.0
-        },
-        {
-          id: 'sh-904',
-          type: 'share',
-          mine: false,
-          timestamp: '11/9/2026 13:18',
-          address: 'scash1q7m3n9p2v5x8z4c6b1d7f9g3h5j2k4l8q0w2e4r',
-          label: 'Peer share verified (seed.scash.one:8344)',
-          rxHash: '1e8f3a6c9d2b50471e8f3a6c9d2b50471e8f3a6c9d2b50471e8f3a6c9d2b5047',
-          rxCm: '000000012c4e6a8b0d2f4a6c8e0b2d4f6a8c0e2b4d6f8a0c2e4a6b8d0f2a4c6e',
-          nonce: 2184901233,
-          deltaScash: 0.82951000
-        }
-      ],
-      miners: [
-        { address: 'scash1q9k8m2x4v7n5p3r8t6w2y4z6a8c0e2g4j6l8n0p', hashrateKhs: 64.20, shares: 2190, doa: 0.4 },
-        { address: 'scash1q4x7v9b2n5m8k3j6h4g2f9d7s5a3p8o6i4u2y0t', hashrateKhs: 51.80, shares: 1775, doa: 0.9 },
-        { address: 'scash1q7m3n9p2v5x8z4c6b1d7f9g3h5j2k4l8q0w2e4r', hashrateKhs: 44.10, shares: 1510, doa: 0.6 },
-        { address: 'scash1q2w4e6r8t0y2u4i6o8p0a2s4d6f8g0h2j4k6l8z', hashrateKhs: 38.50, shares: 1320, doa: 1.1 },
-        { address: 'scash1q5t7y9u2i4o6p8a0s2d4f6g8h0j2k4l6z8x0c2v', hashrateKhs: 29.15, shares: 1005, doa: 0.7 },
-        { address: 'scash1q8n0b2v4c6x8z0l2k4j6h8g0f2d4s6a8p0o2i4u', hashrateKhs: 20.40, shares: 695, doa: 1.2 }
-      ]
+    const live = {
+      online: false,
+      nodeSync: null,
+      miner: null,
+      localStats: null,
+      globalStats: null,
+      payouts: {},
+      recentBlocks: [],
+      peerAddrs: [],
+      walletEditedByUser: false,
+      threadsEditedByUser: false,
+      chartHistoryLabels: [],
+      chartLocalHs: [],
+      chartPoolHs: []
     };
 
-    const CODE_FILES = {
-      net_bitcoin_scash: {
-        filename: 'p2pool/bitcoin/networks/scash.py',
-        content: `import os
-import platform
-from twisted.internet import defer
-from .. import data, helper
-from p2pool.util import pack
-from p2pool.bitcoin import scash_randomx
+    function fmtHashrate(hs) {
+      const n = Number(hs) || 0;
+      if (n <= 0) return '0 H/s';
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MH/s';
+      if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KH/s';
+      return n.toFixed(1) + ' H/s';
+    }
 
-# Scash Mainnet parent network definition for P2Pool
-# Combines Bitcoin Core v27/v30 protocol with RandomX v1.2.1 PoW commitments
-P2P_PREFIX = 'f9beb4d9'.decode('hex')
-P2P_PORT = 8343
-ADDRESS_VERSION = 63
-ADDRESS_P2SH_VERSION = 125
-HUMAN_READABLE_PART = 'scash'
-RPC_PORT = 8342
+    function fmtUptime(sec) {
+      const s = Math.max(0, Math.floor(Number(sec) || 0));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${r}s`;
+      return `${r}s`;
+    }
 
-RPC_CHECK = defer.inlineCallbacks(lambda bitcoind: defer.returnValue(
-    (yield helper.check_block_header(bitcoind, '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f')) or
-    ((yield bitcoind.rpc_getblockchaininfo()).get('chain') == 'scash')
-))
-
-SUBSIDY_FUNC = lambda height: 50 * 100000000 >> (height + 1) // 210000
-POW_FUNC = lambda header_bytes: scash_randomx.get_pow_commitment_int256(header_bytes)
-BLOCK_PERIOD = 600  # 10 minutes target spacing (ASERT per-block adjustment)
-SYMBOL = 'SCASH'
-
-CONF_FILE_FUNC = lambda: os.path.join(
-    os.path.join(os.environ['APPDATA'], 'Scash') if platform.system() == 'Windows'
-    else os.path.expanduser('~/Library/Application Support/Scash/') if platform.system() == 'Darwin'
-    else os.path.expanduser('~/.scash'),
-    'scash.conf'
-)
-
-BLOCK_EXPLORER_URL_PREFIX = 'https://scash.one/block/'
-ADDRESS_EXPLORER_URL_PREFIX = 'https://scash.one/address/'
-TX_EXPLORER_URL_PREFIX = 'https://scash.one/tx/'
-SANE_TARGET_RANGE = (2**256 // 2**32 - 1, 2**256 // 2**4 - 1)
-DUMB_SCRYPT_DIFF = 2**16
-DUST_THRESHOLD = 0.001e8
-`
-      },
-      net_p2pool_scash: {
-        filename: 'p2pool/networks/scash.py',
-        content: `from p2pool.bitcoin import networks
-from p2pool.util import math
-
-# P2Pool Sharechain configuration for Scash (RandomX)
-PARENT = networks.nets['scash']
-SHARE_PERIOD = 15  # 15 seconds target share interval for responsive CPU mining
-CHAIN_LENGTH = 24 * 60 * 60 // 15       # 5,760 shares (24h window)
-REAL_CHAIN_LENGTH = 24 * 60 * 60 // 15  # 5,760 shares PPLNS payout window
-TARGET_LOOKBEHIND = 200                 # 200 shares difficulty regulation
-SPREAD = 3                              # 3 blocks work spread
-IDENTIFIER = '7363617368703270'.decode('hex')  # 'scashp2p'
-PREFIX = '6b61776169697032'.decode('hex')      # 'kawaiip2'
-P2P_PORT = 8344                         # P2Pool peer-to-peer sharechain port
-MIN_TARGET = 0
-MAX_TARGET = 2**256 // 2**8 - 1         # Allows low-hashrate home CPUs to find shares
-PERSIST = False                         # Set False to allow initial sharechain bootstrap; True once seed nodes are live
-WORKER_PORT = 8345                      # Local Stratum & QtKawaii Web UI port
-BOOTSTRAP_ADDRS = 'seed.scash.one'.split(' ')
-ANNOUNCE_CHANNEL = '#scash-p2pool'
-VERSION_CHECK = lambda v: True
-VERSION_WARNING = lambda v: None
-SEGWIT_ACTIVATION_VERSION = 16          # Enables SegWit & native scash1... Bech32 payouts
-`
-      },
-      scash_randomx: {
-        filename: 'p2pool/bitcoin/scash_randomx.py',
-        content: `"""
-Scash 112-Byte Block Header & RandomX v1.2.1 Commitment Bridge for P2Pool.
-Matches scashnetwork/cpuminer-scash/blob/master/randomx-miner.c:
-- Serialized Scash block header is 112 bytes (uint32_t blockHeader[28]):
-  - Bytes 0..79: standard 80-byte Bitcoin header (version, prev_block, merkle_root, timestamp, bits, nonce)
-  - Bytes 80..111: 32-byte rx_hash field (zeroed when calculating rx_hash and rx_cm)
-- Proof-of-Work target is checked against the 256-bit RandomX commitment (rx_cm).
-"""
-import ctypes
-import hashlib
-from p2pool.util import pack
-
-scash_block_header_type = pack.ComposedType([
-    ('version', pack.IntType(32)),
-    ('previous_block', pack.PossiblyNoneType(0, pack.IntType(256))),
-    ('merkle_root', pack.IntType(256)),
-    ('timestamp', pack.IntType(32)),
-    ('bits', pack.IntType(32)),
-    ('nonce', pack.IntType(32)),
-    ('rx_hash', pack.PossiblyNoneType(0, pack.IntType(256))),
-])
-
-def pack_header_for_randomx(header_bytes):
-    """Ensures 112-byte header has bytes 80..111 zeroed prior to randomx_calculate_hash."""
-    if len(header_bytes) == 80:
-        return header_bytes + ('\\x00' * 32)
-    return header_bytes[:80] + ('\\x00' * 32)
-
-def get_pow_commitment_int256(header_bytes):
-    """
-    Computes RandomX hash & commitment via librandomx C-API if installed,
-    with deterministic BLAKE2b/SHA256 fallback for offline sharechain unit tests.
-    """
-    header_112 = pack_header_for_randomx(header_bytes)
-    try:
-        librx = ctypes.cdll.LoadLibrary('librandomx.so')
-        rx_hash = ctypes.create_string_buffer(32)
-        rx_cm = ctypes.create_string_buffer(32)
-        librx.randomx_calculate_commitment(header_112, 112, rx_hash, rx_cm)
-        return pack.IntType(256).unpack(rx_cm.raw)
-    except Exception:
-        digest = hashlib.sha256(hashlib.sha256(header_112).digest()).digest()
-        return pack.IntType(256).unpack(digest)
-`
-      },
-      launcher: {
-        filename: 'start_scash_p2pool.py',
-        content: `#!/usr/bin/env python
-"""
-Zero-Friction Launcher for Scash P2Pool (QtKawaii Edition).
-Auto-configures scash.conf, verifies scashd RPC connection, launches P2Pool on :8345,
-and opens the QtKawaii Web UI.
-"""
-import argparse
-import os
-import platform
-import subprocess
-import sys
-import webbrowser
-
-def get_scash_conf_path():
-    sys_name = platform.system()
-    if sys_name == 'Windows':
-        base = os.path.join(os.environ.get('APPDATA', ''), 'Scash')
-    elif sys_name == 'Darwin':
-        base = os.path.expanduser('~/Library/Application Support/Scash')
-    else:
-        base = os.path.expanduser('~/.scash')
-    if not os.path.exists(base):
-        os.makedirs(base)
-    return os.path.join(base, 'scash.conf')
-
-def ensure_scash_conf():
-    conf_path = get_scash_conf_path()
-    if not os.path.exists(conf_path):
-        with open(conf_path, 'w') as f:
-            f.write("chain=scash\\nserver=1\\ndaemon=1\\ntxindex=1\\n")
-            f.write("rpcuser=scashminer\\nrpcpassword=kawaiip2poolpass\\n")
-            f.write("rpcport=8342\\nport=8343\\n[scash]\\nadddnsseed=seed.scash.one\\n")
-        print("[Scash-Kawaii] Created default scash.conf at:", conf_path)
-    return conf_path
-
-def main():
-    parser = argparse.ArgumentParser(description="One-Click Scash P2Pool Launcher")
-    parser.add_argument("--wallet", required=True, help="Your scash1... Bech32 payout address")
-    parser.add_argument("--threads", type=int, default=4, help="CPU threads for cpuminer-scash")
-    parser.add_argument("--open-ui", action="store_true", help="Open QtKawaii Web UI in browser")
-    args = parser.parse_args()
-
-    ensure_scash_conf()
-    ui_url = "http://127.0.0.1:8345/static/"
-    print("==========================================================")
-    print("  Scash P2Pool (QtKawaii Edition) Starting on Port 8345   ")
-    print("  Dashboard URL:", ui_url)
-    print("  Miner Stratum: stratum+tcp://127.0.0.1:8345")
-    print("==========================================================")
-    if args.open_ui:
-        webbrowser.open(ui_url)
-    cmd = [sys.executable, "run_p2pool.py", "--net", "scash", "-a", args.wallet]
-    subprocess.call(cmd)
-
-if __name__ == "__main__":
-    main()
-`
-      },
-      git_push: {
-        filename: 'apply_scash_kawaii_branch.sh',
-        content: `#!/usr/bin/env bash
-# Run this script inside your cloned iscpuminingreal/peer2peer-pool repository
-# to create and push the scash-kawaii branch in one step:
-
-set -e
-git checkout -b scash-kawaii
-
-# Copy the generated Scash network definitions, 112-byte RandomX bridge,
-# zero-friction launcher, and QtKawaii web-static/index.html into the repo:
-cp -r p2pool/* ./p2pool/
-cp -r web-static/* ./web-static/
-cp start_scash_p2pool.py ./
-
-git add p2pool/bitcoin/networks/scash.py \\
-        p2pool/networks/scash.py \\
-        p2pool/bitcoin/scash_randomx.py \\
-        start_scash_p2pool.py \\
-        web-static/
-
-git commit -m "Add Scash RandomX network support, 1-click launcher, and QtKawaii Web UI"
-git push -u origin scash-kawaii
-`
-      }
-    };
-
-    // ==================== HELPER FUNCTIONS ====================
     function showToast(msg) {
-      const toast = document.getElementById('kawaiiToast');
-      const text = document.getElementById('kawaiiToastText');
-      if (!toast || !text) return;
-      text.textContent = msg;
-      toast.classList.remove('hidden');
-      clearTimeout(window._toastTimeout);
-      window._toastTimeout = setTimeout(() => {
-        toast.classList.add('hidden');
-      }, 2800);
+      const t = document.getElementById('kawaiiToast');
+      const tx = document.getElementById('kawaiiToastText');
+      if (!t || !tx) return;
+      tx.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.classList.add('hidden'), 2800);
     }
 
-    function copyTextToClipboard(text, label) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast(label || 'Copied to clipboard!');
-        }).catch(() => fallbackCopy(text, label));
-      } else {
-        fallbackCopy(text, label);
-      }
-    }
-
-    function fallbackCopy(text, label) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
+    async function fetchJsonOrNull(url) {
       try {
-        document.execCommand('copy');
-        showToast(label || 'Copied to clipboard!');
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return await r.json();
       } catch (e) {
-        showToast('Copy ready');
+        return null;
       }
-      document.body.removeChild(ta);
     }
 
-    function computeOptimalDiffStrings(hashrateHs) {
-      const safeHr = Math.max(50, Number(hashrateHs) || 1000);
-      const pseudoDiff = Math.max(0.0005, (safeHr * 10) / 10000000).toFixed(4);
-      const shareDiff = Math.max(0.01, (safeHr * 15) / 550000).toFixed(2);
-      return { pseudoDiff, shareDiff };
-    }
-
-    // ==================== RENDER FUNCTIONS ====================
-    function renderOverviewMetrics() {
-      const totalWindow = state.totalWindowShares || 8640;
-      const myShares = state.mySharesCount;
-      const weightRatio = myShares / totalWindow;
-      const blockReward = 50.0;
-      const pplnsPool = blockReward * 0.995; // 99.5% PPLNS
-      const estBlockPayout = pplnsPool * weightRatio;
-
-      const localKhs = (state.cpuHashrateHs / 1000).toFixed(2);
-      const totalPoolKhs = (state.poolHashrateKhs + state.cpuHashrateHs / 1000).toFixed(2);
-      const blocksPerDay = (totalPoolKhs / 1200) * 144;
-      const estDayPayout = estBlockPayout * Math.max(1.2, blocksPerDay);
-
-      document.getElementById('availableBalanceText').textContent = state.availableBalance.toFixed(8) + ' SCASH';
-      document.getElementById('totalBalanceText').textContent = state.availableBalance.toFixed(8) + ' SCASH';
-      document.getElementById('estBlockPayoutText').textContent = estBlockPayout.toFixed(8) + ' SCASH';
-      document.getElementById('estDayPayoutText').textContent = estDayPayout.toFixed(8) + ' SCASH';
-
-      document.getElementById('kpiLocalHashrate').textContent = localKhs + ' KH/s';
-      document.getElementById('kpiPoolHashrate').textContent = totalPoolKhs + ' KH/s';
-      document.getElementById('kpiMyShares').textContent = myShares.toLocaleString() + ' / ' + totalWindow.toLocaleString();
-      document.getElementById('kpiShareWeight').textContent = (weightRatio * 100).toFixed(3) + '% Window Weight';
-      document.getElementById('currentBlockHeightText').textContent = String(state.blockHeight);
-      document.getElementById('nodeWinBlockHeight').textContent = String(state.blockHeight);
-
-      const { pseudoDiff, shareDiff } = computeOptimalDiffStrings(state.cpuHashrateHs);
-      document.getElementById('autoDiffBadge').textContent = `+${pseudoDiff} /${shareDiff}`;
-    }
-
-    function renderRecentShares() {
-      const container = document.getElementById('recentSharesList');
-      if (!container) return;
-
-      const filtered = state.shares.filter(item => {
-        if (state.shareFilter === 'mine') return item.mine;
-        if (state.shareFilter === 'block') return item.type === 'block';
-        if (state.shareFilter === 'stale') return item.type === 'stale';
-        return true;
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-xs text-purple-300/70">No shares match the selected filter yet. Click "+ Mine Share" to generate one!</div>`;
-        return;
+    async function fetchTextOrNull(url) {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return await r.text();
+      } catch (e) {
+        return null;
       }
-
-      container.innerHTML = filtered.map(item => {
-        const isBlock = item.type === 'block';
-        const isStale = item.type === 'stale';
-        const iconColor = isBlock ? 'text-amber-300 border-amber-400/60 bg-amber-500/10' : isStale ? 'text-rose-400 border-rose-500/50 bg-rose-500/10' : 'text-cyan-300 border-cyan-400/50 bg-cyan-500/10';
-        const amountStr = isStale
-          ? `<span class="text-rose-400 font-mono-code text-xs">[ORPHAN / 0.00000000 SCASH]</span>`
-          : `<span class="${isBlock ? 'text-amber-300 font-bold' : 'text-emerald-300'} font-mono-code text-xs">+${item.deltaScash.toFixed(8)} SCASH</span>`;
-
-        return `
-          <div class="flex items-start justify-between gap-3 p-2.5 rounded-lg bg-[#160d26]/90 border ${isBlock ? 'border-amber-400/60' : 'border-purple-500/30'} hover:border-cyan-400/60 transition">
-            <div class="flex items-start gap-2.5 min-w-0">
-              <div class="w-7 h-7 rounded-full border ${iconColor} flex items-center justify-center text-xs shrink-0 mt-0.5">
-                ${isBlock ? '★' : isStale ? '✕' : '↻'}
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold text-white">${item.timestamp}</span>
-                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-purple-900/70 text-purple-200">${item.label}</span>
-                </div>
-                <div class="font-mono-code text-[11px] text-purple-300/90 truncate mt-0.5">
-                  (${item.address})
-                </div>
-                <div class="font-mono-code text-[10px] text-cyan-300/75 truncate mt-0.5">
-                  rx_cm: ${item.rxCm.slice(0, 24)}... • nonce: ${item.nonce}
-                </div>
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              ${amountStr}
-              <div class="text-[10px] text-purple-300/70 font-mono-code mt-0.5">${isBlock ? 'BLOCK FOUND' : isStale ? 'DOA/STALE' : 'PPLNS EST'}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
     }
 
-    function renderPayoutsTable() {
-      const tbody = document.getElementById('payoutsTableBody');
-      if (!tbody) return;
-
-      const query = (document.getElementById('payoutSearchInput')?.value || '').trim().toLowerCase();
-      const myEntry = {
-        address: state.walletAddress,
-        hashrateKhs: +(state.cpuHashrateHs / 1000).toFixed(2),
-        shares: state.mySharesCount,
-        doa: 0.8,
-        isMe: true
-      };
-
-      const allMiners = [myEntry, ...state.miners.map(m => ({ ...m, isMe: m.address === state.walletAddress }))];
-      const totalShares = allMiners.reduce((acc, m) => acc + m.shares, 0) || 1;
-      const sorted = allMiners
-        .filter(m => !query || m.address.toLowerCase().includes(query))
-        .sort((a, b) => b.shares - a.shares);
-
-      tbody.innerHTML = sorted.map((m, idx) => {
-        const sharePct = (m.shares / totalShares) * 100;
-        const payoutScash = 49.75 * (m.shares / totalShares);
-        const highlightRow = m.isMe && state.highlightMyAddress
-          ? 'bg-purple-900/55 border-l-4 border-l-[#4deeea]'
-          : 'hover:bg-purple-950/40';
-
-        return `
-          <tr class="${highlightRow} transition">
-            <td class="py-2.5 px-3 text-purple-300">#${idx + 1}</td>
-            <td class="py-2.5 px-3">
-              <div class="flex items-center gap-2">
-                <span class="text-white">${m.address}</span>
-                ${m.isMe ? '<span class="px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
-              </div>
-            </td>
-            <td class="py-2.5 px-3 text-right text-cyan-300">${m.hashrateKhs.toFixed(2)} KH/s</td>
-            <td class="py-2.5 px-3 text-right text-white">${m.shares.toLocaleString()}</td>
-            <td class="py-2.5 px-3 text-right text-purple-300">${m.doa.toFixed(1)}%</td>
-            <td class="py-2.5 px-3 text-right text-amber-300">${sharePct.toFixed(2)}%</td>
-            <td class="py-2.5 px-3 text-right font-bold text-emerald-300">+${payoutScash.toFixed(8)} SCASH</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function renderSetupWizard() {
-      const { pseudoDiff, shareDiff } = computeOptimalDiffStrings(state.cpuHashrateHs);
-      const stratumUser = `${state.walletAddress}.${state.workerName}+${pseudoDiff}/${shareDiff}`;
-      document.getElementById('computedStratumUser').textContent = stratumUser;
-
-      const confLabel = document.getElementById('scashConfPathLabel');
-      if (state.selectedOs === 'windows') {
-        confLabel.textContent = 'Step 1 — Scash Core Config (C:\\Users\\you\\AppData\\Local\\Scash\\scash.conf)';
-      } else if (state.selectedOs === 'macos') {
-        confLabel.textContent = 'Step 1 — Scash Core Config (~/Library/Application Support/Scash/scash.conf)';
-      } else {
-        confLabel.textContent = 'Step 1 — Scash Core Config (~/.scash/scash.conf)';
-      }
-
-      const pyBin = state.selectedOs === 'windows' ? 'python' : 'python3';
-      document.getElementById('cmdUnifiedLauncher').textContent =
-        `${pyBin} start_scash_p2pool.py --wallet ${state.walletAddress} --threads ${state.threads} --open-ui`;
-
-      const lpFlag = state.largePages ? ' --largepages' : '';
-      const binPrefix = state.selectedOs === 'windows' ? '.\\' : './';
-      let minerCmd = '';
-      if (state.selectedMiner === 'cpuminer-scash') {
-        minerCmd = `${binPrefix}minerd -a randomx -o stratum+tcp://127.0.0.1:8345 -u ${stratumUser} -p x${lpFlag} --threads=${state.threads}`;
-      } else if (state.selectedMiner === 'xmrigcc') {
-        minerCmd = `${binPrefix}xmrigDaemon --algo=rx/scash -o 127.0.0.1:8345 -u ${stratumUser} -p x -t ${state.threads}`;
-      } else {
-        minerCmd = `${binPrefix}SRBMiner-MULTI --algorithm randomscash --pool 127.0.0.1:8345 --wallet ${stratumUser} --cpu-threads ${state.threads}`;
-      }
-      document.getElementById('cmdMinerCli').textContent = minerCmd;
-    }
-
-    // ==================== ACTIONS: MINE SHARE & SOLVE BLOCK ====================
-    function randomHex(len) {
-      const chars = '0123456789abcdef';
-      let out = '';
-      for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * 16)];
-      return out;
-    }
-
-    function simulateMineShare(isBlock = false) {
-      state.mySharesCount += 1;
-      state.totalWindowShares = Math.min(8640, state.totalWindowShares + 1);
-
-      const weightRatio = state.mySharesCount / state.totalWindowShares;
-      const estPayout = 49.75 * weightRatio + (isBlock ? 0.25 : 0);
-      if (isBlock) {
-        state.blockHeight += 1;
-        state.availableBalance += estPayout;
-      }
-
-      const now = new Date();
-      const ts = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-      const rxHash = randomHex(64);
-      const rxCm = (isBlock ? '000000000' : '00000001') + randomHex(55);
-      const nonce = Math.floor(100000000 + Math.random() * 3000000000);
-
-      state.shares.unshift({
-        id: 'sh-' + Date.now(),
-        type: isBlock ? 'block' : 'share',
-        mine: true,
-        timestamp: ts,
-        address: state.walletAddress,
-        label: isBlock ? `Block #${state.blockHeight} Solved! (+0.5% Finder Bonus)` : `${state.workerName} (RandomX share verified)`,
-        rxHash,
-        rxCm,
-        nonce,
-        deltaScash: estPayout
-      });
-
-      document.getElementById('bestShareHashText').textContent = `${rxCm.slice(0, 16)}...${rxCm.slice(-8)}`;
-      document.getElementById('inspectorRxHash').textContent = `${rxHash.slice(0, 16)}...${rxHash.slice(-8)}`;
-      document.getElementById('inspectorRxCm').textContent = `${rxCm.slice(0, 16)}...${rxCm.slice(-8)}`;
-      document.getElementById('inspectorNonce').textContent = `0x${nonce.toString(16)} (${nonce.toLocaleString()})`;
-
-      const bubble = document.getElementById('mascotSpeechBubble');
-      if (bubble) {
-        bubble.innerHTML = isBlock
-          ? `🎉 <strong>Kawaii Block #${state.blockHeight} Found!</strong> Credited <span class="font-mono-code text-amber-300">+${estPayout.toFixed(8)} SCASH</span> to your wallet!`
-          : `✨ Accepted RandomX share! Your PPLNS weight is now <span class="font-mono-code text-cyan-300">${state.mySharesCount} shares</span> (${(weightRatio * 100).toFixed(3)}%).`;
-      }
-
-      renderOverviewMetrics();
-      renderRecentShares();
-      renderPayoutsTable();
-      updateChartSeries();
-    }
-
-    // ==================== CHART.JS HASHRATE & DIFFICULTY ====================
     let hashrateChart = null;
     function initChart() {
       const ctx = document.getElementById('hashrateChartCanvas');
       if (!ctx || typeof Chart === 'undefined') return;
-
-      const labels = ['-50m', '-40m', '-30m', '-20m', '-10m', 'Now'];
       hashrateChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels,
+          labels: [],
           datasets: [
             {
-              label: 'Local Miner (KH/s)',
-              data: [3.95, 4.10, 4.18, 4.12, 4.22, +(state.cpuHashrateHs / 1000).toFixed(2)],
+              label: 'Local Miner (H/s)',
+              data: [],
               borderColor: '#4deeea',
               backgroundColor: 'rgba(77, 238, 234, 0.15)',
               fill: true,
-              tension: 0.35
+              tension: 0.3
             },
             {
-              label: 'Pool Share Difficulty (x100)',
-              data: [10.4, 10.6, 10.8, 10.7, 11.0, 11.2],
+              label: 'P2Pool Sharechain (H/s)',
+              data: [],
               borderColor: '#c77dff',
               backgroundColor: 'rgba(199, 125, 255, 0.1)',
               fill: false,
-              tension: 0.35
+              tension: 0.3
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: { color: '#e6ddf8', font: { family: 'Inter', size: 11 } }
-            }
-          },
+          plugins: { legend: { labels: { color: '#e6ddf8', font: { family: 'Inter', size: 11 } } } },
           scales: {
-            x: {
-              ticks: { color: '#b5a6d4' },
-              grid: { color: 'rgba(138, 79, 255, 0.15)' }
-            },
-            y: {
-              ticks: { color: '#b5a6d4' },
-              grid: { color: 'rgba(138, 79, 255, 0.15)' }
-            }
+            x: { ticks: { color: '#b5a6d4' }, grid: { color: 'rgba(138, 79, 255, 0.15)' } },
+            y: { beginAtZero: true, ticks: { color: '#b5a6d4' }, grid: { color: 'rgba(138, 79, 255, 0.15)' } }
           }
         }
       });
     }
 
-    function updateChartSeries() {
-      if (!hashrateChart) return;
-      const localKhs = +(state.cpuHashrateHs / 1000).toFixed(2);
-      const ds = hashrateChart.data.datasets[0].data;
-      ds.shift();
-      ds.push(localKhs);
-      hashrateChart.update();
+    function computeLocalHashrateHs() {
+      const xmrigHs = (live.miner && live.miner.running) ? (Number(live.miner.hashrate_hs) || 0) : 0;
+      let stratumHs = 0;
+      if (live.localStats && live.localStats.miner_hash_rates) {
+        for (const v of Object.values(live.localStats.miner_hash_rates)) {
+          stratumHs += Number(v) || 0;
+        }
+      }
+      return Math.max(xmrigHs, stratumHs);
     }
 
-    // ==================== LIVE P2POOL JSON API POLLING ====================
-    async function pollLiveP2PoolApi(endpoint = '/local_stats') {
-      const consoleOut = document.getElementById('apiConsoleOutput');
-      try {
-        const res = await fetch(endpoint, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        document.getElementById('apiConnectionBadge').textContent = '● LIVE P2POOL NODE CONNECTED';
-        if (consoleOut) {
-          consoleOut.textContent = JSON.stringify(data, null, 2);
+    function renderAllLive() {
+      const topBadge = document.getElementById('apiConnectionBadge');
+      const stateBadge = document.getElementById('minerStateBadge');
+      const syncBanner = document.getElementById('scashNodeSyncBanner');
+      const syncText = document.getElementById('scashNodeSyncText');
+      const footerStatus = document.getElementById('footerSyncStatus');
+      const bubble = document.getElementById('mascotSpeechBubble');
+
+      if (!live.online) {
+        topBadge.className = 'px-2.5 py-0.5 rounded-full bg-rose-950/90 border border-rose-400 text-rose-300 font-mono-code text-[11px]';
+        topBadge.textContent = '● OFFLINE — START P2POOL LAUNCHER';
+        stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/60 text-rose-300 font-medium';
+        stateBadge.textContent = '● Server Disconnected';
+        syncBanner.style.display = 'none';
+        footerStatus.className = 'text-rose-300';
+        footerStatus.textContent = '● Local P2Pool Offline (127.0.0.1:8345 unreachable)';
+        if (bubble) bubble.textContent = 'Local P2Pool server is offline. Launch Start-Scash-P2Pool to connect!';
+        document.getElementById('kpiLocalHashrate').textContent = '0 H/s';
+        document.getElementById('kpiLocalSub').textContent = 'Offline';
+        document.getElementById('kpiPoolHashrate').textContent = '0 H/s';
+        document.getElementById('kpiPoolMiners').textContent = '0 Active Miners';
+        document.getElementById('liveActivityContainer').innerHTML =
+          '<div class="text-center py-12 px-4 text-xs text-rose-300">Disconnected from <code class="font-mono-code">127.0.0.1:8345</code>. Start <code class="font-mono-code">Start-Scash-P2Pool-Windows.bat</code> or <code class="font-mono-code">Start-Scash-P2Pool.exe</code> to view live node telemetry.</div>';
+        return;
+      }
+
+      const ns = live.nodeSync || {};
+      const ls = live.localStats;
+      const gs = live.globalStats;
+      const ms = live.miner || {};
+      const isSyncing = Boolean(ns.syncing) || !ls;
+
+      // Populate saved wallet & thread controls once without overwriting user typing
+      const wInput = document.getElementById('quickWalletInput');
+      if (!live.walletEditedByUser && ms.wallet && wInput && !wInput.value) {
+        wInput.value = ms.wallet;
+      }
+      if (!live.threadsEditedByUser && ms.threads) {
+        const slider = document.getElementById('cpuThreadSlider');
+        if (slider) {
+          if (ms.max_threads) slider.max = String(Math.max(4, ms.max_threads));
+          slider.value = String(ms.threads);
         }
-        showToast(`Fetched live P2Pool ${endpoint}`);
-      } catch (err) {
-        // Fallback simulated P2Pool JSON payload when previewed in Canvas or offline
-        const mockResponses = {
-          '/local_stats': {
-             version: '17.0-scash-kawaii',
-             protocol_version: 1700,
-             my_hash_rates_in_last_hour: { [state.walletAddress]: state.cpuHashrateHs },
-             miner_hash_rates: { [state.walletAddress]: state.cpuHashrateHs },
-             shares: { total: state.mySharesCount, orphan: 1, dead: 1 },
-             block_value: 50.0,
-             efficiency: 0.9842,
-             peers: { incoming: 2, outgoing: 4 }
-          },
-          '/global_stats': {
-             pool_hash_rate: state.poolHashrateKhs * 1000,
-             pool_nonstale_hash_rate: state.poolHashrateKhs * 984,
-             network_block_difficulty: 1842.65,
-             min_difficulty: 0.11
-          },
-          '/current_payouts': {
-             [state.walletAddress]: +(49.75 * (state.mySharesCount / state.totalWindowShares)).toFixed(8),
-             'scash1q9k8m2x4v7n5p3r8t6w2y4z6a8c0e2g4j6l8n0p': 12.61420000
-          },
-          '/recent_blocks': [
-            { ts: 1794249040, number: state.blockHeight, hash: '00000000048f9c2b1e7d3a5f9012c4e6b8d0f2a4c6e8b0d2f4a6c8e0d93a14c7', share: '7f4e9a1b3c8d2051' }
-          ]
-        };
-        if (consoleOut) {
-          consoleOut.textContent = JSON.stringify(mockResponses[endpoint] || mockResponses['/local_stats'], null, 2);
+        document.getElementById('threadCountLabel').textContent = String(ms.threads);
+      }
+
+      // Miner button & log box
+      const btnText = document.getElementById('toggleMinerBtnText');
+      const procBadge = document.getElementById('minerProcBadge');
+      if (ms.running) {
+        btnText.textContent = '⏹ Stop Built-in XMRig Miner';
+        procBadge.textContent = `Running (PID ${ms.pid || 'active'})`;
+        procBadge.className = 'text-[11px] font-mono-code text-emerald-300';
+      } else {
+        btnText.textContent = ns.syncing ? '⏳ Queue Auto-Mine After Sync' : '▶ Start Built-in XMRig (rx/scash)';
+        procBadge.textContent = ms.has_binary === false ? 'NodeOnly (External Miner)' : 'Idle';
+        procBadge.className = 'text-[11px] font-mono-code text-purple-300';
+      }
+      document.getElementById('xmrigAcceptedLabel').textContent = `Accepted: ${ms.accepted_shares || 0}`;
+      if (Array.isArray(ms.logs) && ms.logs.length > 0) {
+        document.getElementById('xmrigLiveLogPre').textContent = ms.logs.slice(-10).join('\n');
+      }
+
+      const blks = Number(ns.blocks || 0);
+      const hdrs = Number(ns.headers || 0);
+      const scashPeers = Number(ns.connections || 0);
+      const p2pPeers = ls && ls.peers ? (Number(ls.peers.incoming || 0) + Number(ls.peers.outgoing || 0)) : 0;
+
+      document.getElementById('chainHeightRowText').textContent =
+        hdrs > 0 ? `#${blks.toLocaleString()} / #${hdrs.toLocaleString()}` : (blks > 0 ? `#${blks.toLocaleString()}` : 'Loading block index...');
+      document.getElementById('currentBlockHeightText').textContent = blks > 0 ? blks.toLocaleString() : '—';
+      document.getElementById('bestBlockHashText').textContent =
+        ns.bestblockhash ? `${ns.bestblockhash.slice(0, 16)}...${ns.bestblockhash.slice(-8)}` : '—';
+      document.getElementById('connectedPeersRowText').textContent =
+        `Scash Core: ${scashPeers} • P2Pool: ${p2pPeers}`;
+
+      if (isSyncing) {
+        syncBanner.style.display = 'block';
+        const stMsg = ns.status_text || `Block ${blks.toLocaleString()} / ${hdrs.toLocaleString()} (${ns.progress_pct || 0}%) • Peers: ${scashPeers}`;
+        syncText.textContent = stMsg;
+        topBadge.className = 'px-2.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-400 text-amber-300 font-mono-code text-[11px]';
+        topBadge.textContent = '⚡ SCASH CORE 30.4 SYNCING';
+        stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 font-medium';
+        stateBadge.textContent = '⚡ Syncing Local Blockchain';
+        footerStatus.className = 'text-amber-300';
+        footerStatus.textContent = `⚡ Scash Core Syncing: ${stMsg}`;
+        if (bubble) bubble.textContent = 'Hold tight! Scash Core 30.4 is verifying local blocks before P2Pool opens Stratum :8345.';
+      } else {
+        syncBanner.style.display = 'none';
+        const localHs = computeLocalHashrateHs();
+        if (ms.running) {
+          topBadge.className = 'px-2.5 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-400 text-emerald-300 font-mono-code text-[11px]';
+          topBadge.textContent = `● XMRIG MINING (${fmtHashrate(localHs)})`;
+          stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-medium';
+          stateBadge.textContent = '● Hashing rx/scash on :8345';
+        } else {
+          topBadge.className = 'px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-cyan-400/70 text-cyan-300 font-mono-code text-[11px]';
+          topBadge.textContent = '● LIVE P2POOL NODE (:8344 / :8345)';
+          stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 font-medium';
+          stateBadge.textContent = '● P2Pool Stratum Ready (:8345)';
+        }
+        footerStatus.className = 'text-emerald-300';
+        footerStatus.textContent = `● Scash Block #${blks.toLocaleString()} • P2Pool Sharechain Ready`;
+      }
+
+      // KPIs & Payouts (100% Real!)
+      const localHs = computeLocalHashrateHs();
+      const poolHs = gs ? (Number(gs.pool_hash_rate) || 0) : 0;
+      const effPoolHs = Math.max(poolHs, localHs);
+      const payoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) > 0);
+      const activeStratumWorkers = ls && ls.miner_hash_rates ? Object.keys(ls.miner_hash_rates).length : 0;
+      const activeMinerCount = Math.max(payoutEntries.length, activeStratumWorkers, ms.running ? 1 : 0);
+
+      const blockReward = ls && ls.block_value ? Number(ls.block_value) : 50.0;
+      document.getElementById('blockRewardRowText').textContent = blockReward.toFixed(8) + ' SCASH';
+      document.getElementById('payoutHeaderReward').textContent = blockReward.toFixed(8);
+
+      const userWallet = (wInput?.value || ms.wallet || '').trim();
+      const myPayout = userWallet && live.payouts && live.payouts[userWallet] ? Number(live.payouts[userWallet]) : 0.0;
+      document.getElementById('myCurrentPayoutText').textContent = myPayout.toFixed(8) + ' SCASH';
+
+      document.getElementById('kpiLocalHashrate').textContent = fmtHashrate(localHs);
+      document.getElementById('kpiLocalSub').textContent = ms.running ? `${ms.threads || 1} CPU Threads Active` : (activeStratumWorkers > 0 ? `${activeStratumWorkers} Stratum Worker(s)` : 'Miner Idle');
+      document.getElementById('kpiPoolHashrate').textContent = fmtHashrate(effPoolHs);
+      document.getElementById('kpiPoolMiners').textContent = `${activeMinerCount} Active Miner${activeMinerCount === 1 ? '' : 's'}`;
+
+      const shTotal = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
+      const shOrph = ls && ls.shares ? Number(ls.shares.orphan || 0) : 0;
+      const shDead = ls && ls.shares ? Number(ls.shares.dead || 0) : 0;
+      document.getElementById('kpiNodeShares').textContent = `${shTotal} Total`;
+      document.getElementById('kpiNodeSharesSub').textContent = `${shOrph} Orphan • ${shDead} Dead`;
+
+      const netDiff = gs && gs.network_block_difficulty ? Number(gs.network_block_difficulty) : null;
+      const minDiff = gs && gs.min_difficulty ? Number(gs.min_difficulty) : null;
+      document.getElementById('kpiNetDiff').textContent = netDiff !== null ? netDiff.toFixed(4) : '—';
+      document.getElementById('kpiShareDiffSub').textContent = minDiff !== null ? `Share Diff: ${minDiff.toFixed(4)}` : 'Share Diff: —';
+
+      document.getElementById('poolUptimeBadge').textContent = ls && ls.uptime ? `Uptime: ${fmtUptime(ls.uptime)}` : 'Uptime: —';
+
+      renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries);
+      renderRealPayoutsTable(payoutEntries, ls, userWallet, isSyncing);
+      renderNodeWindow(ns, ls);
+      renderExternalMinerCmd();
+
+      // Update live chart
+      if (hashrateChart && !isSyncing) {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        live.chartHistoryLabels.push(nowStr);
+        live.chartLocalHs.push(localHs);
+        live.chartPoolHs.push(effPoolHs);
+        if (live.chartHistoryLabels.length > 30) {
+          live.chartHistoryLabels.shift();
+          live.chartLocalHs.shift();
+          live.chartPoolHs.shift();
+        }
+        hashrateChart.data.labels = live.chartHistoryLabels;
+        hashrateChart.data.datasets[0].data = live.chartLocalHs;
+        hashrateChart.data.datasets[1].data = live.chartPoolHs;
+        hashrateChart.update('none');
+      }
+    }
+
+    function renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries) {
+      const box = document.getElementById('liveActivityContainer');
+      if (!box) return;
+      const items = [];
+
+      if (isSyncing) {
+        items.push(`
+          <div class="p-3.5 rounded-lg bg-[#160d26]/90 border border-amber-400/50">
+            <div class="text-xs font-semibold text-amber-300">&#9889; Local Scash Core 30.4 Node Warming Up / Syncing</div>
+            <div class="text-[11px] text-purple-200 mt-1 font-mono-code">${ns.status_text || 'Loading block index...'}</div>
+            <div class="text-[11px] text-purple-300/80 mt-1.5">Once local Scash sync reaches 100%, P2Pool automatically opens the sharechain (:8344) and Stratum (:8345).</div>
+          </div>
+        `);
+        box.innerHTML = items.join('');
+        return;
+      }
+
+      const blocks = Array.isArray(live.recentBlocks) ? live.recentBlocks : [];
+      for (const b of blocks.slice(0, 15)) {
+        const dt = b.ts ? new Date(b.ts * 1000).toLocaleString() : 'Solved Block';
+        items.push(`
+          <div class="flex items-start justify-between gap-3 p-3 rounded-lg bg-[#160d26]/90 border border-amber-400/60">
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-amber-300">&#9733; Scash Block #${b.number} Solved by P2Pool!</div>
+              <div class="text-[11px] text-purple-200 mt-0.5">${dt}</div>
+              <div class="font-mono-code text-[10px] text-cyan-300 truncate mt-0.5">Block Hash: ${b.hash || ''}</div>
+            </div>
+            <div class="text-right shrink-0 font-mono-code text-xs text-amber-300 font-bold">BLOCK FOUND</div>
+          </div>
+        `);
+      }
+
+      if (ls && ls.shares && Number(ls.shares.total || 0) > 0) {
+        items.push(`
+          <div class="p-3 rounded-lg bg-[#160d26]/90 border border-cyan-400/50 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-semibold text-cyan-300">&#10003; Verified Local P2Pool Shares Found</div>
+              <div class="text-[11px] text-purple-200 mt-0.5 font-mono-code">Total: ${ls.shares.total} | Orphan: ${ls.shares.orphan || 0} | Dead: ${ls.shares.dead || 0}</div>
+            </div>
+            <span class="font-mono-code text-xs text-emerald-300">LIVE SHARECHAIN</span>
+          </div>
+        `);
+      }
+
+      if (payoutEntries.length > 0) {
+        for (const [addr, amt] of payoutEntries.slice(0, 8)) {
+          items.push(`
+            <div class="p-2.5 rounded-lg bg-[#160d26]/90 border border-purple-500/35 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-[11px] text-purple-300">Active Sharechain Payout Address</div>
+                <div class="font-mono-code text-xs text-white truncate">${addr}</div>
+              </div>
+              <div class="font-mono-code text-xs text-emerald-300 font-semibold shrink-0">+${Number(amt).toFixed(8)} SCASH</div>
+            </div>
+          `);
+        }
+      }
+
+      if (items.length === 0) {
+        items.push(`
+          <div class="p-5 rounded-lg bg-[#160d26]/80 border border-purple-500/30 text-center space-y-2">
+            <div class="text-xs font-semibold text-cyan-300">P2Pool Node Online &mdash; 0 Shares Mined Yet</div>
+            <div class="text-[11px] text-purple-200/85 leading-relaxed">
+              Your local Scash Core 30.4 node (Block <strong class="font-mono-code text-white">#${Number(ns.blocks || 0).toLocaleString()}</strong>) and P2Pool Stratum (<code class="font-mono-code text-cyan-300">127.0.0.1:8345</code>) are synced and ready.<br/>
+              Paste your <code class="font-mono-code text-purple-200">scash1...</code> address on the left and click <strong>Start Built-in XMRig</strong> to mine the first real share!
+            </div>
+          </div>
+        `);
+      }
+      box.innerHTML = items.join('');
+    }
+
+    function renderRealPayoutsTable(payoutEntries, ls, userWallet, isSyncing) {
+      const tbody = document.getElementById('payoutsTableBody');
+      if (!tbody) return;
+      if (isSyncing) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-amber-300 font-sans">Waiting for local Scash Core 30.4 node to finish syncing before starting P2Pool sharechain...</td></tr>';
+        return;
+      }
+      const q = (document.getElementById('payoutSearchInput')?.value || '').trim().toLowerCase();
+      const hrMap = (ls && ls.miner_hash_rates) ? ls.miner_hash_rates : {};
+      const totalPayout = payoutEntries.reduce((acc, [, v]) => acc + (Number(v) || 0), 0);
+
+      const rows = payoutEntries
+        .map(([addr, amt]) => ({
+          address: addr,
+          amount: Number(amt) || 0,
+          hs: Number(hrMap[addr] || 0),
+          pct: totalPayout > 0 ? ((Number(amt) || 0) / totalPayout) * 100 : 0,
+          isMe: Boolean(userWallet && addr.toLowerCase() === userWallet.toLowerCase())
+        }))
+        .filter(r => !q || r.address.toLowerCase().includes(q))
+        .sort((a, b) => b.amount - a.amount);
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-purple-300/80 font-sans">No shares in the current PPLNS window yet (0 active miners on sharechain). Start mining on :8345 to earn the first share!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((r, i) => `
+        <tr class="${r.isMe ? 'bg-purple-900/55 border-l-4 border-l-[#4deeea]' : 'hover:bg-purple-950/40'}">
+          <td class="py-2.5 px-3 text-purple-300">#${i + 1}</td>
+          <td class="py-2.5 px-3 text-white">
+            ${r.address}
+            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
+          </td>
+          <td class="py-2.5 px-3 text-right text-cyan-300">${fmtHashrate(r.hs)}</td>
+          <td class="py-2.5 px-3 text-right text-amber-300">${r.pct.toFixed(2)}%</td>
+          <td class="py-2.5 px-3 text-right font-bold text-emerald-300">+${r.amount.toFixed(8)} SCASH</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderNodeWindow(ns, ls) {
+      document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-beta.5-scash-kawaii');
+      document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
+      document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
+      const p2pPeers = ls && ls.peers ? (Number(ls.peers.incoming || 0) + Number(ls.peers.outgoing || 0)) : 0;
+      document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
+      document.getElementById('nodeWinBlockHeight').textContent = ns.blocks !== undefined ? String(ns.blocks) : '—';
+      document.getElementById('nodeWinMempool').textContent =
+        ns.mempool_txs !== undefined ? `${ns.mempool_txs} txns (${((ns.mempool_bytes || 0) / 1024).toFixed(2)} KB)` : '—';
+
+      const peersBtn = document.getElementById('nodePeersTabBtn');
+      if (peersBtn) peersBtn.textContent = `P2Pool Peers (${live.peerAddrs.length})`;
+      const peersBox = document.getElementById('nodePeersListContainer');
+      if (peersBox) {
+        if (live.peerAddrs.length === 0) {
+          peersBox.textContent = '0 P2Pool sharechain peers connected on :8344 (Solo / Bootstrap Sharechain Mode).';
+        } else {
+          peersBox.innerHTML = live.peerAddrs.map(p => `<div class="py-1 border-b border-[#3a3a3a] text-cyan-300">${p}</div>`).join('');
         }
       }
     }
 
-    // ==================== COSMIC KAWAII STARFIELD CANVAS ====================
+    function renderExternalMinerCmd() {
+      const sw = document.getElementById('setupMinerSoftware')?.value || 'xmrigcc';
+      const wk = (document.getElementById('setupWorkerName')?.value || 'kawaii_rig01').trim();
+      const w = (document.getElementById('quickWalletInput')?.value || live.miner?.wallet || '<YOUR_SCASH1_ADDRESS>').trim();
+      const t = document.getElementById('cpuThreadSlider')?.value || '4';
+      const user = `${w}.${wk}`;
+      let cmd = '';
+      if (sw === 'xmrigcc') {
+        cmd = `xmrigMiner -a rx/scash -o 127.0.0.1:8345 -u ${user} -p x -t ${t}`;
+      } else if (sw === 'cpuminer-scash') {
+        cmd = `minerd -a randomx -o stratum+tcp://127.0.0.1:8345 -u ${user} -p x --threads=${t}`;
+      } else {
+        cmd = `SRBMiner-MULTI --algorithm randomscash --pool 127.0.0.1:8345 --wallet ${user} --cpu-threads ${t}`;
+      }
+      const el = document.getElementById('cmdMinerCli');
+      if (el) el.textContent = cmd;
+    }
+
+    async function pollAllLiveEndpoints() {
+      const [ns, ms] = await Promise.all([
+        fetchJsonOrNull('/node_sync_status'),
+        fetchJsonOrNull('/miner_status')
+      ]);
+
+      if (!ns && !ms) {
+        live.online = false;
+        live.nodeSync = null;
+        live.localStats = null;
+        renderAllLive();
+        return;
+      }
+
+      live.online = true;
+      live.nodeSync = ns || {};
+      live.miner = ms || {};
+
+      if (ns && ns.syncing) {
+        live.localStats = null;
+        live.globalStats = null;
+        live.payouts = {};
+        live.recentBlocks = [];
+        live.peerAddrs = [];
+        renderAllLive();
+        return;
+      }
+
+      const [ls, gs, pay, rb, peersTxt] = await Promise.all([
+        fetchJsonOrNull('/local_stats'),
+        fetchJsonOrNull('/global_stats'),
+        fetchJsonOrNull('/current_payouts'),
+        fetchJsonOrNull('/recent_blocks'),
+        fetchTextOrNull('/peer_addresses')
+      ]);
+
+      live.localStats = (ls && !ls.syncing) ? ls : null;
+      live.globalStats = gs || null;
+      live.payouts = pay || {};
+      live.recentBlocks = Array.isArray(rb) ? rb : [];
+      if (peersTxt) {
+        const cleaned = peersTxt.replace(/"/g, '').trim();
+        live.peerAddrs = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+      } else {
+        live.peerAddrs = [];
+      }
+      renderAllLive();
+    }
+
     function initStarfield() {
       const canvas = document.getElementById('starfieldCanvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       let stars = [];
-
       function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        const count = Math.min(110, Math.floor((canvas.width * canvas.height) / 12000));
+        const count = Math.min(100, Math.floor((canvas.width * canvas.height) / 13000));
         const palette = ['#4deeea', '#ff70a6', '#c77dff', '#ffd166', '#ffffff'];
         stars = Array.from({ length: count }, () => ({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          r: Math.random() * 1.9 + 0.6,
+          r: Math.random() * 1.8 + 0.6,
           color: palette[Math.floor(Math.random() * palette.length)],
           phase: Math.random() * Math.PI * 2,
-          speed: 0.015 + Math.random() * 0.025,
+          speed: 0.015 + Math.random() * 0.02,
           sparkle: Math.random() < 0.22
         }));
       }
-
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (const s of stars) {
           s.phase += s.speed;
-          const alpha = 0.35 + 0.65 * Math.abs(Math.sin(s.phase));
           ctx.save();
-          ctx.globalAlpha = alpha;
+          ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(s.phase));
           ctx.fillStyle = s.color;
           if (s.sparkle) {
-            // Draw 4-point QtKawaii pixel star
-            const sz = s.r * 2.4;
+            const sz = s.r * 2.3;
             ctx.beginPath();
             ctx.moveTo(s.x, s.y - sz);
             ctx.lineTo(s.x + sz * 0.32, s.y - sz * 0.32);
@@ -1547,260 +1093,102 @@ git push -u origin scash-kawaii
         }
         requestAnimationFrame(draw);
       }
-
       window.addEventListener('resize', resize);
       resize();
       draw();
     }
 
-    // ==================== EVENT WIRING ====================
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       initStarfield();
-      renderOverviewMetrics();
-      renderRecentShares();
-      renderPayoutsTable();
-      renderSetupWizard();
       initChart();
-      pollLiveP2PoolApi('/local_stats');
 
-      // Populate initial code viewer
-      const initialCode = CODE_FILES.net_bitcoin_scash;
-      document.getElementById('activeCodeFilename').textContent = initialCode.filename;
-      document.getElementById('codeViewerPre').textContent = initialCode.content;
+      // Load configured seed peers once
+      const nodesData = await fetchJsonOrNull('/nodes_list');
+      if (nodesData && Array.isArray(nodesData.addnodes)) {
+        document.getElementById('configuredPeersPre').textContent = nodesData.addnodes.map(n => `addnode=${n}`).join('\n');
+      }
 
-      // Top Navigation Tabs
       document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
           const target = btn.getAttribute('data-tab');
-          state.activeTab = target;
           document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
-          document.querySelectorAll('.tab-panel').forEach(panel => {
-            panel.classList.toggle('hidden', panel.id !== `tab-${target}`);
-          });
-          if (target === 'graphs' && hashrateChart) {
-            setTimeout(() => hashrateChart.resize(), 40);
-          }
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${target}`));
+          if (target === 'graphs' && hashrateChart) setTimeout(() => hashrateChart.resize(), 40);
         });
       });
 
-      // Menu bar shortcuts
-      document.getElementById('menuFileBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-tab="code"]')?.click();
-      });
-      document.getElementById('menuSettingsBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-tab="setup"]')?.click();
-      });
-      document.getElementById('menuHelpBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-tab="graphs"]')?.click();
-      });
+      document.getElementById('menuSettingsBtn')?.addEventListener('click', () => document.querySelector('[data-tab="setup"]')?.click());
+      document.getElementById('menuHelpBtn')?.addEventListener('click', () => document.querySelector('[data-tab="graphs"]')?.click());
+      document.getElementById('refreshNowBtn')?.addEventListener('click', () => { pollAllLiveEndpoints(); showToast('Refreshed live telemetry'); });
 
-      // Wallet preset dropdown
-      document.getElementById('walletPresetSelect')?.addEventListener('change', e => {
-        state.walletAddress = e.target.value;
-        document.getElementById('quickWalletInput').value = state.walletAddress;
-        renderOverviewMetrics();
-        renderPayoutsTable();
-        renderSetupWizard();
-        showToast('Switched active Scash wallet profile');
-      });
-
-      
-      // Trigger built-in XMRig backend (/miner_start) whenever wallet address is entered or Start is clicked
-      async function syncBuiltInXmrig(action) {
-        try {
-          const url = action === 'stop'
-            ? '/miner_stop'
-            : `/miner_start?wallet=${encodeURIComponent(state.walletAddress)}&threads=${state.threads}&worker=${encodeURIComponent(state.workerName)}`;
-          const res = await fetch(url, { cache: 'no-store' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.running) {
-              document.getElementById('apiConnectionBadge').textContent = '● BUILT-IN XMRIG (rx/scash) MINING';
-            }
-          }
-        } catch (e) {
-          // Offline / Canvas preview mode
-        }
-      }
-
-      // Quick Wallet Input live validation
-      document.getElementById('quickWalletInput')?.addEventListener('input', e => {
+      const wInput = document.getElementById('quickWalletInput');
+      wInput?.addEventListener('input', e => {
+        live.walletEditedByUser = true;
         const val = e.target.value.trim();
         const msg = document.getElementById('walletValidationMsg');
-        if (val.startsWith('scash1') && val.length >= 20) {
-          state.walletAddress = val;
-          msg.textContent = '✓ Valid Scash Bech32 Address — Auto-Synced to Built-in XMRig (rx/scash)'; syncBuiltInXmrig('start');
+        if (val.toLowerCase().startsWith('scash1') && val.length >= 26) {
+          msg.textContent = '✓ Valid Scash Bech32 Mainnet Address';
           msg.className = 'text-[10px] text-emerald-300 mt-1';
-          renderPayoutsTable();
-          renderSetupWizard();
+        } else if (!val) {
+          msg.textContent = 'Enter your Scash Wallet receive address to save it locally.';
+          msg.className = 'text-[10px] text-purple-300/80 mt-1';
         } else {
-          msg.textContent = '⚠ Address should start with scash1... (Bech32)';
+          msg.textContent = '⚠ Address must start with scash1... (Bech32)';
           msg.className = 'text-[10px] text-amber-300 mt-1';
         }
+        renderExternalMinerCmd();
       });
 
-      // CPU Thread slider
       document.getElementById('cpuThreadSlider')?.addEventListener('input', e => {
-        state.threads = parseInt(e.target.value, 10) || 4;
-        state.cpuHashrateHs = state.threads * (state.largePages ? 530 : 290);
-        document.getElementById('threadCountLabel').textContent = String(state.threads);
-        document.getElementById('setupCpuHashrate').value = String(state.cpuHashrateHs);
-        renderOverviewMetrics();
-        renderPayoutsTable();
-        renderSetupWizard();
-        updateChartSeries();
+        live.threadsEditedByUser = true;
+        document.getElementById('threadCountLabel').textContent = e.target.value;
+        renderExternalMinerCmd();
       });
 
-      // LargePages toggle
-      document.getElementById('largePagesToggle')?.addEventListener('change', e => {
-        state.largePages = e.target.checked;
-        state.cpuHashrateHs = state.threads * (state.largePages ? 530 : 290);
-        document.getElementById('setupCpuHashrate').value = String(state.cpuHashrateHs);
-        renderOverviewMetrics();
-        renderSetupWizard();
-        updateChartSeries();
-      });
-
-      // Mine single share & solve block buttons
-      document.getElementById('mineSingleShareBtn')?.addEventListener('click', () => {
-        simulateMineShare(false);
-        showToast('New RandomX share added to P2Pool sharechain!');
-      });
-
-      document.getElementById('solveBlockBtn')?.addEventListener('click', () => {
-        simulateMineShare(true);
-        showToast(`Block #${state.blockHeight} solved! 50 SCASH distributed via PPLNS!`);
-      });
-
-      // Auto-mine simulation toggle
-      document.getElementById('toggleAutoMineBtn')?.addEventListener('click', () => {
-        const label = document.getElementById('toggleAutoMineText');
-        if (state.autoMineTimer) {
-          clearInterval(state.autoMineTimer);
-          state.autoMineTimer = null;
-          label.textContent = '▶ Start Built-in XMRig (rx/scash)';
-          syncBuiltInXmrig('stop'); showToast('Stopped built-in XMRig miner');
-        } else {
-          simulateMineShare(false);
-          state.autoMineTimer = setInterval(() => {
-            simulateMineShare(Math.random() < 0.15);
-          }, 2600);
-          label.textContent = '⏹ Stop Built-in XMRig Miner';
-          syncBuiltInXmrig('start'); showToast('Built-in XMRig (rx/scash) mining into local P2Pool (:8345)!');
-        }
-      });
-
-      // Copy Quick Command button
-      document.getElementById('copyQuickCommandBtn')?.addEventListener('click', () => {
-        renderSetupWizard();
-        const cmd = document.getElementById('cmdMinerCli').textContent;
-        copyTextToClipboard(cmd, 'Copied cpuminer-scash Stratum command!');
-      });
-
-      // Share filter buttons
-      document.querySelectorAll('.share-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.shareFilter = btn.getAttribute('data-filter');
-          document.querySelectorAll('.share-filter-btn').forEach(b => {
-            const active = b === btn;
-            b.className = active
-              ? 'share-filter-btn px-2.5 py-1 rounded-md bg-purple-600/40 border border-cyan-400 text-white font-medium'
-              : 'share-filter-btn px-2.5 py-1 rounded-md bg-[#24193a] border border-purple-500/40 text-purple-200 hover:text-white';
-          });
-          renderRecentShares();
-        });
-      });
-
-      // Setup Wizard OS buttons
-      document.querySelectorAll('.os-select-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.selectedOs = btn.getAttribute('data-os');
-          document.querySelectorAll('.os-select-btn').forEach(b => b.classList.toggle('active', b === btn));
-          renderSetupWizard();
-        });
-      });
-
-      document.getElementById('setupMinerSoftware')?.addEventListener('change', e => {
-        state.selectedMiner = e.target.value;
-        renderSetupWizard();
-      });
-
-      document.getElementById('setupWorkerName')?.addEventListener('input', e => {
-        state.workerName = e.target.value.trim() || 'kawaii_rig01';
-        renderSetupWizard();
-      });
-
-      document.getElementById('setupCpuHashrate')?.addEventListener('input', e => {
-        state.cpuHashrateHs = Math.max(50, parseInt(e.target.value, 10) || 1000);
-        renderOverviewMetrics();
-        renderSetupWizard();
-      });
-
-      // Copy buttons in Setup tab
-      document.querySelectorAll('.copy-code-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const targetId = btn.getAttribute('data-copy-target');
-          const el = document.getElementById(targetId);
-          if (el) copyTextToClipboard(el.textContent, 'Copied configuration snippet!');
-        });
-      });
-
-      // Payouts search & highlight
+      document.getElementById('setupMinerSoftware')?.addEventListener('change', renderExternalMinerCmd);
+      document.getElementById('setupWorkerName')?.addEventListener('input', renderExternalMinerCmd);
       document.getElementById('payoutSearchInput')?.addEventListener('input', () => {
-        renderPayoutsTable();
+        const entries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) > 0);
+        renderRealPayoutsTable(entries, live.localStats, wInput?.value || '', Boolean(live.nodeSync?.syncing));
       });
 
-      document.getElementById('highlightMyAddressBtn')?.addEventListener('click', () => {
-        state.highlightMyAddress = !state.highlightMyAddress;
-        renderPayoutsTable();
-        showToast(state.highlightMyAddress ? 'Highlighted your wallet row' : 'Removed wallet row highlight');
+      document.getElementById('copyMinerCliBtn')?.addEventListener('click', () => {
+        const txt = document.getElementById('cmdMinerCli')?.textContent || '';
+        navigator.clipboard?.writeText(txt);
+        showToast('Copied Stratum miner command!');
       });
 
-      // Chart timeframe buttons
-      document.querySelectorAll('.chart-period-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.chart-period-btn').forEach(b => b.classList.toggle('active', b === btn));
-          const period = btn.getAttribute('data-period');
-          if (!hashrateChart) return;
-          if (period === 'hour') {
-            hashrateChart.data.labels = ['-50m', '-40m', '-30m', '-20m', '-10m', 'Now'];
-          } else if (period === 'day') {
-            hashrateChart.data.labels = ['-20h', '-16h', '-12h', '-8h', '-4h', 'Now'];
-          } else {
-            hashrateChart.data.labels = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Today'];
-          }
-          hashrateChart.update();
-        });
+      document.getElementById('toggleMinerBtn')?.addEventListener('click', async () => {
+        if (live.miner && live.miner.running) {
+          await fetchJsonOrNull('/miner_stop');
+          showToast('Stopped local XMRig miner');
+          await pollAllLiveEndpoints();
+          return;
+        }
+        const wallet = (wInput?.value || '').trim();
+        if (!wallet.toLowerCase().startsWith('scash1') || wallet.length < 26) {
+          showToast('Paste your real scash1... wallet address first!');
+          wInput?.focus();
+          return;
+        }
+        const threads = document.getElementById('cpuThreadSlider')?.value || '4';
+        const worker = (document.getElementById('setupWorkerName')?.value || 'kawaii_rig01').trim();
+        const lp = document.getElementById('largePagesToggle')?.checked ? '1' : '0';
+        const res = await fetchJsonOrNull(`/miner_start?wallet=${encodeURIComponent(wallet)}&threads=${encodeURIComponent(threads)}&worker=${encodeURIComponent(worker)}&large_pages=${lp}`);
+        if (res && res.ok === false && res.error) {
+          showToast(res.error);
+        } else if (res && res.notice) {
+          showToast(res.notice);
+        } else if (res && res.queued_after_sync) {
+          showToast('Saved wallet! XMRig will start automatically when Scash node sync hits 100%.');
+        } else {
+          showToast('Launched Built-in XMRig (rx/scash) on 127.0.0.1:8345!');
+        }
+        await pollAllLiveEndpoints();
       });
 
-      // Verify RandomX commitment button
-      document.getElementById('verifyRandomXBtn')?.addEventListener('click', () => {
-        simulateMineShare(false);
-        showToast('Verified 112-byte Scash RandomX header & commitment!');
-      });
-
-      // Code Viewer tabs
-      document.querySelectorAll('.code-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const key = btn.getAttribute('data-codefile');
-          const fileObj = CODE_FILES[key];
-          if (!fileObj) return;
-          document.querySelectorAll('.code-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-          document.getElementById('activeCodeFilename').textContent = fileObj.filename;
-          document.getElementById('codeViewerPre').textContent = fileObj.content;
-        });
-      });
-
-      document.getElementById('copyActiveCodeBtn')?.addEventListener('click', () => {
-        const text = document.getElementById('codeViewerPre')?.textContent || '';
-        const fname = document.getElementById('activeCodeFilename')?.textContent || 'file';
-        copyTextToClipboard(text, `Copied ${fname}!`);
-      });
-
-      // Node Window modal controls
       const nodeModal = document.getElementById('nodeWindowModal');
-      const toggleNodeModal = () => nodeModal?.classList.toggle('hidden');
-      document.getElementById('toggleNodeWindowBtn')?.addEventListener('click', toggleNodeModal);
+      document.getElementById('toggleNodeWindowBtn')?.addEventListener('click', () => nodeModal?.classList.toggle('hidden'));
       document.getElementById('menuNodeWinBtn')?.addEventListener('click', () => nodeModal?.classList.remove('hidden'));
       document.getElementById('closeNodeWindowBtn')?.addEventListener('click', () => nodeModal?.classList.add('hidden'));
 
@@ -1808,48 +1196,29 @@ git push -u origin scash-kawaii
         btn.addEventListener('click', () => {
           const t = btn.getAttribute('data-nodetab');
           document.querySelectorAll('[data-nodetab]').forEach(b => b.classList.toggle('active', b === btn));
-          document.querySelectorAll('.node-subpanel').forEach(p => {
-            p.classList.toggle('hidden', p.id !== `nodetab-${t}`);
-          });
+          document.querySelectorAll('.node-subpanel').forEach(p => p.classList.toggle('hidden', p.id !== `nodetab-${t}`));
         });
       });
 
-      document.getElementById('pollLiveNodeBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-nodetab="console"]')?.click();
-        pollLiveP2PoolApi('/local_stats');
+      document.getElementById('runApiQueryBtn')?.addEventListener('click', async () => {
+        const ep = document.getElementById('apiEndpointSelect')?.value || '/local_stats';
+        const out = document.getElementById('apiConsoleOutput');
+        try {
+          const r = await fetch(ep, { cache: 'no-store' });
+          const txt = await r.text();
+          try {
+            out.textContent = JSON.stringify(JSON.parse(txt), null, 2);
+          } catch (_) {
+            out.textContent = txt;
+          }
+        } catch (err) {
+          out.textContent = 'Error: Local P2Pool server on 127.0.0.1:8345 is unreachable (' + err + ')';
+        }
       });
 
-      document.getElementById('runApiQueryBtn')?.addEventListener('click', () => {
-        const ep = document.getElementById('apiEndpointSelect')?.value || '/local_stats';
-        pollLiveP2PoolApi(ep);
-      });
+      await pollAllLiveEndpoints();
+      setInterval(pollAllLiveEndpoints, 3000);
     });
   </script>
-<div style="text-align:center;padding:10px 0 18px;font-size:12px;color:#b8aee0;opacity:0.9;">Publisher: <strong style="color:#4deeea;">magicalgirlsunite</strong> &bull; ScashNetworkCommunity &bull; v0.2.0-beta.4</div>
-
-<script>
-(function(){
-  async function pollNodeSync(){
-    try {
-      const r = await fetch('/node_sync_status', {cache: 'no-store'});
-      if (!r.ok) return;
-      const d = await r.json();
-      const b = document.getElementById('scashNodeSyncBanner');
-      const t = document.getElementById('scashNodeSyncText');
-      if (b && t) {
-        if (d && d.syncing) {
-          b.style.display = 'block';
-          t.textContent = d.status_text || ('Block ' + (d.blocks||0) + ' / ' + (d.headers||0) + ' (' + (d.progress_pct||0) + '%) • Peers: ' + (d.connections||0));
-        } else {
-          b.style.display = 'none';
-        }
-      }
-    } catch(e) {}
-  }
-  pollNodeSync();
-  setInterval(pollNodeSync, 3000);
-})();
-</script>
-
 </body>
 </html>

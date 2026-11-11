@@ -189,7 +189,6 @@ class _ScashBitcoindProxy(object):
         self._inner = inner
 
     def rpc_help(self, *args):
-        # Bypasses Scash Core 30.4.0's C++ RPCHelpMan::ToString() assertion bug (!m_description.starts_with('\n') in ./rpc/util.cpp:803)
         return _jr_defer.succeed(
             'getblock\ngetblockchaininfo\ngetblockhash\ngetblockheader\n'
             'getblocktemplate\ngetinfo\ngetmininginfo\ngetnetworkinfo\n'

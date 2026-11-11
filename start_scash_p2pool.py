@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """
-Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.2.0-beta.4).
+Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.2.0-beta.5).
 Publisher: magicalgirlsunite | Community: ScashNetworkCommunity
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
-Includes Win32 Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) + ConsoleCtrlHandler
-and Linux PR_SET_PDEATHSIG + SIGHUP/SIGTERM handlers so closing the terminal window
-ALWAYS shuts down scashd, P2Pool, and xmrigMiner cleanly with zero orphan processes!
+- Wraps stdout/stderr safely on PyPy 2.7 so Unicode strings from Scash Core 30.4.0
+  (e.g. u"Loading block index\u2026") NEVER raise UnicodeEncodeError on cp437!
+- Includes Win32 Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) + ConsoleCtrlHandler
+  and Linux PR_SET_PDEATHSIG + SIGHUP/SIGTERM handlers for zero-orphan shutdown.
 """
 from __future__ import print_function
 import argparse
@@ -31,6 +32,86 @@ try:
 except Exception:
     pass
 
+
+def ascii_safe(val):
+    if val is None:
+        return ""
+    try:
+        u = val.decode("utf-8", "replace") if isinstance(val, bytes) else val
+        if not isinstance(u, str) and sys.version_info[0] < 3:
+            # Python 2 unicode
+            u = (
+                u.replace(u"\u2026", u"...")
+                .replace(u"\u2014", u"--")
+                .replace(u"\u2013", u"-")
+                .replace(u"\u2022", u"*")
+                .replace(u"\u2018", u"'")
+                .replace(u"\u2019", u"'")
+                .replace(u"\u201c", u'"')
+                .replace(u"\u201d", u'"')
+            )
+            return u.encode("ascii", "replace")
+        if sys.version_info[0] >= 3 and isinstance(u, str):
+            return (
+                u.replace("\u2026", "...")
+                .replace("\u2014", "--")
+                .replace("\u2013", "-")
+                .replace("\u2022", "*")
+            )
+        return str(u)
+    except Exception:
+        try:
+            return repr(val)
+        except Exception:
+            return ""
+
+
+class _SafeConsoleStream(object):
+    """Prevents PyPy 2.7 cp437/cp1252 UnicodeEncodeError on any print() call."""
+    def __init__(self, inner):
+        self._inner = inner
+
+    def write(self, data):
+        if sys.version_info[0] < 3:
+            try:
+                if not isinstance(data, bytes):
+                    data = (
+                        data.replace(u"\u2026", u"...")
+                        .replace(u"\u2014", u"--")
+                        .replace(u"\u2013", u"-")
+                        .replace(u"\u2022", u"*")
+                    )
+                    enc = getattr(self._inner, "encoding", None) or "ascii"
+                    data = data.encode(enc, "replace")
+            except Exception:
+                try:
+                    data = data.encode("ascii", "replace")
+                except Exception:
+                    pass
+        else:
+            if isinstance(data, str):
+                try:
+                    enc = getattr(self._inner, "encoding", None) or "utf-8"
+                    data.encode(enc)
+                except Exception:
+                    data = ascii_safe(data).encode(enc, "replace").decode(enc, "replace")
+        return self._inner.write(data)
+
+    def flush(self):
+        try:
+            return self._inner.flush()
+        except Exception:
+            pass
+
+    def __getattr__(self, attr):
+        return getattr(self._inner, attr)
+
+
+if not isinstance(sys.stdout, _SafeConsoleStream):
+    sys.stdout = _SafeConsoleStream(sys.stdout)
+if not isinstance(sys.stderr, _SafeConsoleStream):
+    sys.stderr = _SafeConsoleStream(sys.stderr)
+
 try:
     import urllib.request as urllib_req
     import urllib.error as urllib_err
@@ -49,7 +130,6 @@ from p2pool import xmrig_manager
 
 _NO_PROXY_OPENER = urllib_req.build_opener(urllib_req.ProxyHandler({}))
 
-# Keep Win32 Job handle & Ctrl handler referenced at module level so GC never collects them!
 _WIN_JOB_HANDLE = None
 _WIN_CTRL_HANDLER = None
 
@@ -58,7 +138,7 @@ KAWAII_ANSI_BANNER_ZB64 = (
     "eNrlXMuOXEdy3fsXtKmNAQkGm/l+qFYyMbYFeySanIENC160qQLZMJstNFuSB/BC8HoWsyAGMuCF"
     "YRj+CH8Ov8RxIp+Rt/rhEUZkS1JLVJXy5s1XnDhxIrI/+MKmvdnHuDf4D+v2Dp+N3Wv6T33+9s1v"
     "37757mfz87sPvlDnf/LBrYvyb7WJcba08aa0cWpv1T74811toXPea+OphT9/+/v/3D53vnv67PT1"
-    "i91j8/ji4uXuwe6rw+HS4F8PvsIXH/7t1V+ffnt6drb7Rp2YE/Xgnw5Xpyfuo139azPY80cXl4ed"
+    "i91j8/ji4uXuwe6rw+HS4F8PvsIXH/7t1V+ffnt6drb7Rp2YE/Xgnw5Xpyf+o139azPY80cXl4ed"
     "VSfuRB173e5O0/thy2Ax4b1PfRlo+v2f2ovaa5X2lkb09vf/u/v8m8PlN2eHb3e3d0lNylrT024f"
     "A63g1eXp1dfnu4+Tdb7975seqIuN9u5oex5DwjBoC73aL89/dvHlYffk8SPuwdxtzMfXQeuE/9CJ"
     "jswX9Sj84+7O63rXTdT075jn5e/t/uPnZOD//Yef7POjxvb23//neNPFPrHyWtNGhHD+9rv/uvMz"
@@ -141,11 +221,11 @@ KAWAII_ANSI_BANNER_ZB64 = (
     "IhQz0hCYGqKMvP2dHNkOas05WaGC1EIf3cun1wuflpEsmPmCpHAMqSSWdbvzzXWGaikL9vX46XHV"
     "nquk5Uh0HEly5srCMyQucuwXmZze8GfHNxH6JQEGtLVqCbCs+yDQQ5LOZdOpYiAe+T4TJBnBV3GA"
     "4LZTz/6mXaol6gPKHZZXTNJP+eR+FBgVv8WMUPOTr68uHrz+zatnr3cvL56dvqxZPr7u8uriy8P7"
-    "j6KTyDH/dsfbfqvbH/Db4/5fvzzu9m16865/sdP3f9zdevNz+lWG3/Oi/B82UaA6"
+    "j6KTyDH/dsfbfqvbH/Db4/5fvzzu9m16865/sdP3f9zdevNz+lWG3/Oi/B+KWqA7"
 )
 
 KAWAII_ASCII_FALLBACK = """+------------------------------------------------------------------------------+
-| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.2.0-beta.4)   Core 30.4.0 |
+| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.2.0-beta.5)   Core 30.4.0 |
 | [ > Overview ]  [ Stratum :8345 ]  [ P2Pool :8344 ]  [ Scash RPC :8342 ]     |
 +------------------------------------------------------------------------------+
 |  * SCASH PEER-TO-PEER MINING POOL (Sovereign Node + Sharechain + CPU Miner)  |
@@ -194,11 +274,6 @@ class _JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
 
 
 def setup_win32_kill_on_close_job():
-    """
-    Creates a non-inheritable Win32 Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE (0x2000)
-    and assigns the current launcher process to it so Windows kernel automatically terminates
-    all child/grandchild processes (scashd.exe, pypy.exe, xmrigMiner.exe) if the console closes!
-    """
     global _WIN_JOB_HANDLE
     if platform.system() != "Windows":
         return None
@@ -220,7 +295,6 @@ def setup_win32_kill_on_close_job():
         h_job = k32.CreateJobObjectW(None, None)
         if not h_job:
             return None
-        # Strictly prevent child processes from inheriting h_job so refcount drops to 0 immediately when launcher exits!
         HANDLE_FLAG_INHERIT = 0x00000001
         k32.SetHandleInformation(h_job, HANDLE_FLAG_INHERIT, 0)
 
@@ -245,7 +319,7 @@ def assign_popen_to_win32_job(proc):
         k32 = ctypes.windll.kernel32
         h_proc = getattr(proc, "_handle", None)
         if h_proc:
-            k32.AssignProcessToJobObject(ctypes.c_void_p(int(h_proc)), _WIN_JOB_HANDLE)
+            k32.AssignProcessToJobObject(ctypes.c_void_p(_WIN_JOB_HANDLE), ctypes.c_void_p(int(h_proc)))
     except Exception:
         pass
 
@@ -395,11 +469,6 @@ def probe_working_credentials(host, port, datadirs, conf_user, conf_pass):
 
 
 def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass, primary_datadir):
-    """
-    Detects and cleanly shuts down any orphaned headless scashd / xmrigMiner left behind
-    by an earlier Scash-P2Pool beta run (never touches the user's Scash-Qt GUI wallet!),
-    freeing port 8342 and unlocking old beta folders automatically.
-    """
     if platform.system() != "Windows":
         return
     try:
@@ -424,7 +493,6 @@ def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass,
             pid = item.get("Id")
             pname = (item.get("ProcessName") or "").lower()
             ppath = (item.get("Path") or "").lower()
-            # Match any headless scashd/xmrig running from a Scash-P2Pool bundle (or any orphaned headless scashd)
             if pname in ("xmrigminer", "xmrigdaemon"):
                 if "p2pool" in ppath or not ppath:
                     stale_pids.append((pid, pname))
@@ -433,7 +501,6 @@ def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass,
                     has_stale_scashd = True
                     stale_pids.append((pid, pname))
 
-        # Also check if a headless scashd on :8342 is stuck at block 0 while primary_datadir has real blk*.dat files
         if not has_stale_scashd and any((x.get("ProcessName") or "").lower() == "scashd" for x in procs if isinstance(x, dict)):
             u, pw, ok, info, _ = probe_working_credentials("127.0.0.1", rpc_port, all_datadirs, conf_user, conf_pass)
             if ok and isinstance(info, dict) and int(info.get("blocks", 0)) == 0 and scash_nodes._has_blocks_dir(primary_datadir):
@@ -445,7 +512,7 @@ def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass,
         if not stale_pids:
             return
 
-        print("[1/3] Detected leftover background process from previous P2Pool session — stopping cleanly...")
+        print("[1/3] Detected leftover background process from previous P2Pool session -- stopping cleanly...")
         if has_stale_scashd:
             u, pw, ok, _, err = probe_working_credentials("127.0.0.1", rpc_port, all_datadirs, conf_user, conf_pass)
             if ok or (err and err.get("code") != -999):
@@ -558,6 +625,7 @@ def make_sync_handler(sync_state, ctrl):
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Cache-Control", "no-store")
+            self.send_header("Connection", "close")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -570,11 +638,16 @@ def make_sync_handler(sync_state, ctrl):
             if path == "/":
                 self.send_response(302)
                 self.send_header("Location", "/static/")
+                self.send_header("Connection", "close")
                 self.end_headers()
                 return
 
-            if path in ("/node_sync_status", "/local_stats"):
+            if path == "/node_sync_status":
                 self._send_json(sync_state)
+                return
+
+            if path == "/local_stats":
+                self._send_json({"syncing": True, "p2pool_ready": False}, code=503)
                 return
 
             if path == "/miner_status":
@@ -587,7 +660,8 @@ def make_sync_handler(sync_state, ctrl):
                 w = qs.get("wallet", [None])[0]
                 t = qs.get("threads", [None])[0]
                 wk = qs.get("worker", [None])[0]
-                ctrl.save_wallet_settings(w or ctrl.wallet, threads=t, worker=wk)
+                lp = qs.get("large_pages", [None])[0]
+                ctrl.save_wallet_settings(w if w is not None else ctrl.wallet, threads=t, worker=wk, large_pages=lp)
                 st = ctrl.get_status()
                 st["running"] = False
                 st["queued_after_sync"] = True
@@ -625,12 +699,15 @@ def make_sync_handler(sync_state, ctrl):
                     raw = open(fp, "rb").read()
                     self.send_response(200)
                     self.send_header("Content-Type", ctype)
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Connection", "close")
                     self.send_header("Content-Length", str(len(raw)))
                     self.end_headers()
                     self.wfile.write(raw)
                     return
 
             self.send_response(404)
+            self.send_header("Connection", "close")
             self.end_headers()
 
     return SyncHTTPHandler
@@ -649,8 +726,6 @@ def main():
     parser.add_argument("--allow-unsynced", action="store_true", help="Start P2Pool without waiting for Mainnet block sync")
     args, unknown = parser.parse_known_args()
 
-    # Bind current process to a non-inheritable Win32 Job Object so closing the terminal window
-    # NEVER leaves scashd.exe, pypy.exe, or xmrigMiner.exe running in Task Manager!
     setup_win32_kill_on_close_job()
 
     if not args.no_banner:
@@ -665,7 +740,7 @@ def main():
 
     primary_datadir = args.datadir or scash_nodes.get_scash_datadir()
     conf_path, rpc_user, rpc_pass, rpc_port = scash_nodes.configure_scash_conf(custom_datadir=primary_datadir)
-    print("[1/3] Configured scash.conf with active Scash peers:", conf_path)
+    print("[1/3] Configured scash.conf with active Scash peers:", ascii_safe(conf_path))
 
     active_datadir = primary_datadir
     all_datadirs = scash_nodes.get_candidate_datadirs(primary_datadir)
@@ -714,7 +789,6 @@ def main():
             CTRL_HANDLER_FUNC = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_uint32)
 
             def _win_ctrl_cb(ctrl_type):
-                # 0=CTRL_C, 1=CTRL_BREAK, 2=CTRL_CLOSE (X button!), 5=LOGOFF, 6=SHUTDOWN
                 if ctrl_type in (0, 1, 2, 5, 6):
                     _graceful_shutdown_all()
                     if ctrl_type in (2, 5, 6):
@@ -739,7 +813,6 @@ def main():
                 except Exception:
                     pass
 
-    # Clean up any leftover headless scashd.exe / xmrigMiner.exe from an older beta session before probing :8342!
     cleanup_stale_p2pool_processes(rpc_port, all_datadirs, rpc_user, rpc_pass, primary_datadir)
 
     u, pw, ok, info, err = probe_working_credentials(
@@ -754,7 +827,7 @@ def main():
             print("[ERROR] Bundled scashd binary not found and 127.0.0.1:%d is offline." % rpc_port)
             sys.exit(1)
 
-        print("[1/3] Spinning up bundled local Scash Core 30.4 node (%s)..." % os.path.basename(scashd_bin))
+        print("[1/3] Spinning up bundled local Scash Core 30.4 node (%s)..." % ascii_safe(os.path.basename(scashd_bin)))
         proc = start_bundled_scashd(scashd_bin, active_datadir, active_creds[2])
         spawned_proc[0] = proc
 
@@ -766,10 +839,10 @@ def main():
             if proc.poll() is not None and not used_fallback:
                 used_fallback = True
                 fallback_dd = os.path.join(ROOT_DIR, "node_data")
-                print("[1/3] Notice: %s is currently locked by an open Scash-Qt Wallet window." % primary_datadir)
+                print("[1/3] Notice: %s is currently locked by an open Scash-Qt Wallet window." % ascii_safe(primary_datadir))
                 print("      Tip: Restart Scash-Qt Wallet once (or close it before launching P2Pool)")
                 print("      to share your existing synced Scash blocks immediately without re-syncing!")
-                print("      Spinning up dedicated P2Pool Scash node in:", fallback_dd)
+                print("      Spinning up dedicated P2Pool Scash node in:", ascii_safe(fallback_dd))
                 active_datadir = fallback_dd
                 _, rpc_user, rpc_pass, rpc_port = scash_nodes.configure_scash_conf(custom_datadir=active_datadir)
                 active_creds = [rpc_user, rpc_pass, rpc_port]
@@ -787,7 +860,7 @@ def main():
 
         if not connected:
             print("[ERROR] Local Scash node did not open RPC port 127.0.0.1:%d." % active_creds[2])
-            print("        Check debug.log in:", active_datadir)
+            print("        Check debug.log in:", ascii_safe(active_datadir))
             sys.exit(1)
 
     ui_url = "http://127.0.0.1:8345/static/"
@@ -806,10 +879,12 @@ def main():
     if not already_synced:
         sync_state = {
             "syncing": True,
+            "p2pool_ready": False,
             "blocks": 0,
             "headers": 0,
             "progress_pct": 0.0,
             "connections": 0,
+            "datadir": active_datadir,
             "status_text": "Connecting to Scash Mainnet peers on :8343...",
         }
         sync_srv = None
@@ -823,7 +898,7 @@ def main():
                 webbrowser.open(ui_url)
                 browser_opened[0] = True
         except Exception as e:
-            print("[2/3] Note: Port 8345 busy during sync check:", e)
+            print("[2/3] Note: Port 8345 busy during sync check:", ascii_safe(e))
 
         print("      Waiting for local Scash node to finish syncing before starting P2Pool sharechain...")
         last_kick = 0.0
@@ -836,7 +911,8 @@ def main():
             _, net_info, _ = jsonrpc_call(
                 "127.0.0.1", active_creds[2], u, pw, "getnetworkinfo", timeout=3.0
             )
-            peers = (net_info or {}).get("connections", 0) if isinstance(net_info, dict) else 0
+            peers = int((net_info or {}).get("connections", 0)) if isinstance(net_info, dict) else 0
+            subver = ascii_safe((net_info or {}).get("subversion", "/Scash:30.4.0/")) if isinstance(net_info, dict) else "/Scash:30.4.0/"
 
             if peers == 0 and (time.time() - last_kick) >= 15.0:
                 last_kick = time.time()
@@ -856,13 +932,17 @@ def main():
                     msg = "Syncing Scash blockchain: %d / %d blocks (%.1f%%) | Peers: %d" % (blks, hdrs, pct, peers)
                 sync_state.update({
                     "syncing": True,
+                    "p2pool_ready": False,
                     "blocks": blks,
                     "headers": hdrs,
                     "progress_pct": pct,
                     "connections": peers,
+                    "subversion": subver,
+                    "bestblockhash": bc_info.get("bestblockhash", ""),
+                    "datadir": active_datadir,
                     "status_text": msg,
                 })
-                print("      [Scash Node]", msg)
+                print("      [Scash Node]", ascii_safe(msg))
                 if is_mainnet_node_synced(bc_info, net_info, allow_unsynced=args.allow_unsynced):
                     gbt_ok2, gbt_res2, _ = jsonrpc_call(
                         "127.0.0.1", active_creds[2], u, pw,
@@ -872,8 +952,14 @@ def main():
                         synced_height = blks
                         break
             else:
-                warm_msg = (bc_err or {}).get("message", "Starting Scash node...")
-                sync_state["status_text"] = "Scash node warming up: %s" % warm_msg
+                raw_warm = (bc_err or {}).get("message", "Starting Scash node...")
+                warm_msg = ascii_safe(raw_warm)
+                sync_state.update({
+                    "syncing": True,
+                    "p2pool_ready": False,
+                    "datadir": active_datadir,
+                    "status_text": "Scash node warming up: %s" % warm_msg,
+                })
                 print("      [Scash Node] Warming up:", warm_msg)
 
             for _ in range(10):
@@ -884,7 +970,10 @@ def main():
         if sync_srv is not None:
             sync_srv.shutdown()
             sync_srv.server_close()
-            time.sleep(0.4)
+            for _ in range(15):
+                if not is_port_open("127.0.0.1", 8345, timeout=0.25):
+                    break
+                time.sleep(0.2)
         if shutting_down[0]:
             sys.exit(0)
         print("[2/3] Local Scash node is synced at block #%d and serving SegWit block templates!" % synced_height)
@@ -892,7 +981,8 @@ def main():
         print("[2/3] Local Scash node is already synced at block #%d!" % int((init_bc or {}).get("blocks", 0)))
 
     ctrl._load_saved_wallet()
-    active_wallet = ctrl.wallet or "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2"
+    # Internal fallback address ONLY for run_p2pool.py's required -a flag if user hasn't saved their own wallet yet
+    node_fallback_wallet = ctrl.wallet or "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2"
 
     def _post_p2pool_ready():
         for _ in range(45):
@@ -902,15 +992,15 @@ def main():
                 if (not args.no_browser) and (not browser_opened[0]):
                     webbrowser.open(ui_url)
                     browser_opened[0] = True
-                if ctrl.wallet and ctrl.wallet.lower().startswith(("scash1", "tcash1")):
+                if ctrl.wallet and ctrl.wallet.lower().startswith(("scash1", "tcash1")) and len(ctrl.wallet) >= 26:
                     try:
                         start_url = "http://127.0.0.1:8345/miner_start?wallet=%s&threads=%d" % (
                             ctrl.wallet, int(ctrl.threads)
                         )
                         _NO_PROXY_OPENER.open(start_url, timeout=5.0).read()
-                        print("[3/3] Auto-started local worker on 127.0.0.1:8345 for:", ctrl.wallet)
+                        print("[3/3] Auto-started local XMRig worker on 127.0.0.1:8345 for:", ascii_safe(ctrl.wallet))
                     except Exception as e:
-                        print("[3/3] Note: Start worker from Web UI (%s)" % e)
+                        print("[3/3] Note: Start worker from Web UI (%s)" % ascii_safe(e))
                 break
             time.sleep(1.0)
 
@@ -919,6 +1009,12 @@ def main():
     t_ready.start()
 
     print("[3/3] Launching Scash P2Pool Sharechain Node on :8344 (P2P) & :8345 (Stratum + QtKawaii UI)...")
+    p2pool_env = dict(os.environ)
+    p2pool_env["SCASH_ACTIVE_DATADIR"] = str(active_datadir)
+    p2pool_env["SCASH_RPC_PORT"] = str(active_creds[2])
+    p2pool_env["SCASH_RPC_USER"] = str(active_creds[0])
+    p2pool_env["SCASH_RPC_PASS"] = str(active_creds[1])
+
     p2pool_cmd = [
         sys.executable,
         os.path.join(ROOT_DIR, "run_p2pool.py"),
@@ -927,14 +1023,14 @@ def main():
         "--bitcoind-address", "127.0.0.1",
         "--bitcoind-rpc-port", str(active_creds[2]),
         "--bitcoind-p2p-port", "8343",
-        "-a", active_wallet,
+        "-a", node_fallback_wallet,
     ]
     for peer in args.peer:
         p2pool_cmd.extend(["-n", peer])
     p2pool_cmd.extend(unknown)
     p2pool_cmd.extend([str(active_creds[0]), str(active_creds[1])])
 
-    p2p_kwargs = {}
+    p2p_kwargs = {"env": p2pool_env}
     if platform.system() != "Windows":
         preexec = _make_linux_pdeathsig_preexec()
         if preexec is not None:

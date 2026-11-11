@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.4 + Real Scash Core 30.4.0 Daemon!
+End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.5 + Real Scash Core 30.4.0 Daemon!
 Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
 so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
 is verified live on both Linux and Windows before packaging.
@@ -204,15 +204,16 @@ def run_all_live_tests():
             non_git = os.path.join(ci_base, "nongit_check")
             os.makedirs(non_git, exist_ok=True)
             shutil.copytree("p2pool", os.path.join(non_git, "p2pool"))
+            shutil.copy2("start_scash_p2pool.py", os.path.join(non_git, "start_scash_p2pool.py"))
             for fn in os.listdir("."):
                 if fn.startswith(("randomx", "librandomx")) and os.path.isfile(fn):
                     shutil.copy2(fn, os.path.join(non_git, fn))
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.2.0-beta.4' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.2.0-beta.5' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
-                "print('VERSION_OK:', p2pool.__version__)"
+                "import start_scash_p2pool as sp; print('WARM_OK:', sp.ascii_safe(u'Loading block index\\u2026')); print(u'Loading block index\\u2026'); print('VERSION_OK:', p2pool.__version__)"
             )
             p = subprocess.Popen([PYPY_BIN, "-c", code], cwd=non_git, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = p.communicate(timeout=25)
@@ -229,6 +230,10 @@ def run_all_live_tests():
             p2p_log = os.path.join(ci_base, "p2pool_console.log")
             p2p_fh = open(p2p_log, "wb")
             p2p_env = os.environ.copy()
+            p2p_env["SCASH_RPC_PORT"] = str(scash_rpc_port)
+            p2p_env["SCASH_RPC_USER"] = str(u)
+            p2p_env["SCASH_RPC_PASS"] = str(pw)
+            p2p_env["SCASH_ACTIVE_DATADIR"] = str(tmp_dd)
             if not IS_WIN:
                 p2p_env["LD_LIBRARY_PATH"] = ROOT + (":" + p2p_env["LD_LIBRARY_PATH"] if p2p_env.get("LD_LIBRARY_PATH") else "")
 
@@ -266,6 +271,7 @@ def run_all_live_tests():
             )
             try:
                 web_ok = False
+                last_web_err = None
                 for _ in range(90):
                     if p2p_proc.poll() is not None:
                         p2p_fh.flush()
@@ -280,13 +286,22 @@ def run_all_live_tests():
                     try:
                         html = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/static/", timeout=3).read().decode("utf-8", "replace")
                         if "Scash" in html and "magicalgirlsunite" in html:
+                            for fake_tok in ("scash1q9k8m", "1.97990238", "simulateMineShare", "mockResponses"):
+                                assert fake_tok not in html, f"Fake demo token {fake_tok} found in live UI!"
+                            ns_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/node_sync_status", timeout=3).read().decode("utf-8")
+                            ns_obj = json.loads(ns_raw)
+                            assert ns_obj.get("p2pool_ready") is True and ns_obj.get("syncing") is False and ns_obj.get("bestblockhash") == GENESIS_HEX, ns_obj
+                            ms_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/miner_status", timeout=3).read().decode("utf-8")
+                            ms_obj = json.loads(ms_raw)
+                            assert ms_obj.get("running") is False, ms_obj
                             web_ok = True
                             break
-                    except Exception:
+                    except Exception as _we:
+                        last_web_err = _we
                         time.sleep(0.8)
                 if not web_ok:
                     p2p_fh.flush()
-                    raise RuntimeError(f"QtKawaii Web UI did not open :{worker_port} within 90s.\n{read_tail(p2p_log)}")
+                    raise RuntimeError(f"QtKawaii Web UI check failed on :{worker_port} (last_err={last_web_err!r}):\n{read_tail(p2p_log)}")
 
                 s = socket.create_connection(("127.0.0.1", worker_port), timeout=5)
                 login_req = json.dumps({
@@ -377,7 +392,14 @@ def run_all_live_tests():
                 time.sleep(0.3)
             assert closed_ok, f"Orphan scashd STILL listening on :{job_rpc_port} after parent was killed!"
             # Prove folder is 100% unlocked and deletable on Windows & Linux!
-            shutil.rmtree(job_dd)
+            for _rm_i in range(12):
+                try:
+                    shutil.rmtree(job_dd)
+                    break
+                except OSError:
+                    if _rm_i == 11:
+                        raise
+                    time.sleep(0.25)
             print("[LIVE-PASS 4/4] Zero-orphan terminal-close lifecycle verified (child scashd exited & folder unlocked)!")
         finally:
             if holder_proc.poll() is None:

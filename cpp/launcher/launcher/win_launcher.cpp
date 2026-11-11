@@ -20,8 +20,6 @@ static BOOL WINAPI ConsoleCtrlHandler(DWORD dwCtrlType) {
         case CTRL_CLOSE_EVENT:
         case CTRL_LOGOFF_EVENT:
         case CTRL_SHUTDOWN_EVENT:
-            // Give start_scash_p2pool.py up to 3.5s to send graceful JSON-RPC "stop" to scashd.exe,
-            // then close g_hJob so the Windows kernel immediately terminates all remaining child processes!
             if (g_hChildProcess != NULL) {
                 WaitForSingleObject(g_hChildProcess, 3500);
             }
@@ -50,14 +48,14 @@ int main(int /*argc*/, char* /*argv*/[]) {
     if (wargv) {
         for (int i = 1; i < wargc; ++i) {
             if (wcscmp(wargv[i], L"--self-test") == 0 || wcscmp(wargv[i], L"--version") == 0) {
-                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.4 (Publisher: magicalgirlsunite)\n");
+                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.5 (Publisher: magicalgirlsunite)\n");
                 LocalFree(wargv);
                 return 0;
             }
         }
     }
 
-    SetConsoleTitleW(L"Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.4)");
+    SetConsoleTitleW(L"Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.5)");
 
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != NULL && hOut != INVALID_HANDLE_VALUE) {
@@ -67,8 +65,6 @@ int main(int /*argc*/, char* /*argv*/[]) {
         }
     }
 
-    // Create a non-inheritable Win32 Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-    // so scashd.exe, pypy.exe, and xmrigMiner.exe NEVER stay open in Task Manager after exit!
     g_hJob = CreateJobObjectW(NULL, NULL);
     if (g_hJob != NULL) {
         SetHandleInformation(g_hJob, HANDLE_FLAG_INHERIT, 0);
