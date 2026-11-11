@@ -3,21 +3,33 @@
 Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.2.0-beta.4).
 Publisher: magicalgirlsunite | Community: ScashNetworkCommunity
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
+Includes Win32 Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) + ConsoleCtrlHandler
+and Linux PR_SET_PDEATHSIG + SIGHUP/SIGTERM handlers so closing the terminal window
+ALWAYS shuts down scashd, P2Pool, and xmrigMiner cleanly with zero orphan processes!
 """
 from __future__ import print_function
 import argparse
 import atexit
 import base64
+import codecs
 import ctypes
 import json
 import os
 import platform
+import signal
 import socket
 import subprocess
 import sys
 import threading
 import time
 import webbrowser
+import zlib
+
+# Register cp65001 -> utf-8 alias so PyPy 2.7 on Windows UTF-8 consoles never raises LookupError
+try:
+    codecs.register(lambda n: codecs.lookup("utf-8") if n.lower().replace("-", "").replace("_", "") in ("cp65001", "65001") else None)
+except Exception:
+    pass
 
 try:
     import urllib.request as urllib_req
@@ -37,63 +49,266 @@ from p2pool import xmrig_manager
 
 _NO_PROXY_OPENER = urllib_req.build_opener(urllib_req.ProxyHandler({}))
 
+# Keep Win32 Job handle & Ctrl handler referenced at module level so GC never collects them!
+_WIN_JOB_HANDLE = None
+_WIN_CTRL_HANDLER = None
 
-def _enable_ansi_colors():
-    if os.environ.get("NO_COLOR"):
+# Pre-rendered 80x21 24-bit TrueColor ANSI QtKawaii Wallet Terminal Header (WGL4/CP437 safe)
+KAWAII_ANSI_BANNER_ZB64 = (
+    "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"
+)
+
+KAWAII_ASCII_FALLBACK = """+------------------------------------------------------------------------------+
+| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.2.0-beta.4)   Core 30.4.0 |
+| [ > Overview ]  [ Stratum :8345 ]  [ P2Pool :8344 ]  [ Scash RPC :8342 ]     |
++------------------------------------------------------------------------------+
+|  * SCASH PEER-TO-PEER MINING POOL (Sovereign Node + Sharechain + CPU Miner)  |
+|  +------------------------------------------------------------------------+  |
+|  | Core  : Scash 2.3.0 (Core 30.4.0)   | UI   : http://127.0.0.1:8345/    |  |
+|  | Algo  : RandomX rx/scash (0% Fee)   | Mine : stratum+tcp://127.0.0.1   |  |
+|  | Team  : magicalgirlsunite           | Repo : ScashNetworkCommunity     |  |
+|  +------------------------------------------------------------------------+  |
++------------------------------------------------------------------------------+"""
+
+
+class _IO_COUNTERS(ctypes.Structure):
+    _fields_ = [
+        ("ReadOperationCount", ctypes.c_uint64),
+        ("WriteOperationCount", ctypes.c_uint64),
+        ("OtherOperationCount", ctypes.c_uint64),
+        ("ReadTransferCount", ctypes.c_uint64),
+        ("WriteTransferCount", ctypes.c_uint64),
+        ("OtherTransferCount", ctypes.c_uint64),
+    ]
+
+
+class _JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ("PerProcessUserTimeLimit", ctypes.c_int64),
+        ("PerJobUserTimeLimit", ctypes.c_int64),
+        ("LimitFlags", ctypes.c_uint32),
+        ("MinimumWorkingSetSize", ctypes.c_size_t),
+        ("MaximumWorkingSetSize", ctypes.c_size_t),
+        ("ActiveProcessLimit", ctypes.c_uint32),
+        ("Affinity", ctypes.c_size_t),
+        ("PriorityClass", ctypes.c_uint32),
+        ("SchedulingClass", ctypes.c_uint32),
+    ]
+
+
+class _JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ("BasicLimitInformation", _JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        ("IoInfo", _IO_COUNTERS),
+        ("ProcessMemoryLimit", ctypes.c_size_t),
+        ("JobMemoryLimit", ctypes.c_size_t),
+        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+        ("PeakJobMemoryUsed", ctypes.c_size_t),
+    ]
+
+
+def setup_win32_kill_on_close_job():
+    """
+    Creates a non-inheritable Win32 Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE (0x2000)
+    and assigns the current launcher process to it so Windows kernel automatically terminates
+    all child/grandchild processes (scashd.exe, pypy.exe, xmrigMiner.exe) if the console closes!
+    """
+    global _WIN_JOB_HANDLE
+    if platform.system() != "Windows":
+        return None
+    if _WIN_JOB_HANDLE is not None:
+        return _WIN_JOB_HANDLE
+    try:
+        k32 = ctypes.windll.kernel32
+        k32.CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
+        k32.CreateJobObjectW.restype = ctypes.c_void_p
+        k32.SetHandleInformation.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32]
+        k32.SetHandleInformation.restype = ctypes.c_int
+        k32.SetInformationJobObject.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+        k32.SetInformationJobObject.restype = ctypes.c_int
+        k32.AssignProcessToJobObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        k32.AssignProcessToJobObject.restype = ctypes.c_int
+        k32.GetCurrentProcess.argtypes = []
+        k32.GetCurrentProcess.restype = ctypes.c_void_p
+
+        h_job = k32.CreateJobObjectW(None, None)
+        if not h_job:
+            return None
+        # Strictly prevent child processes from inheriting h_job so refcount drops to 0 immediately when launcher exits!
+        HANDLE_FLAG_INHERIT = 0x00000001
+        k32.SetHandleInformation(h_job, HANDLE_FLAG_INHERIT, 0)
+
+        info = _JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        JobObjectExtendedLimitInformation = 9
+        if not k32.SetInformationJobObject(h_job, JobObjectExtendedLimitInformation, ctypes.byref(info), ctypes.sizeof(info)):
+            return None
+
+        k32.AssignProcessToJobObject(h_job, k32.GetCurrentProcess())
+        _WIN_JOB_HANDLE = h_job
+        return h_job
+    except Exception:
+        return None
+
+
+def assign_popen_to_win32_job(proc):
+    if platform.system() != "Windows" or _WIN_JOB_HANDLE is None or proc is None:
+        return
+    try:
+        k32 = ctypes.windll.kernel32
+        h_proc = getattr(proc, "_handle", None)
+        if h_proc:
+            k32.AssignProcessToJobObject(ctypes.c_void_p(int(h_proc)), _WIN_JOB_HANDLE)
+    except Exception:
+        pass
+
+
+def _make_linux_pdeathsig_preexec():
+    if not platform.system().startswith("Linux"):
+        return None
+
+    def _preexec():
+        try:
+            libc = ctypes.CDLL("libc.so.6")
+            PR_SET_PDEATHSIG = 1
+            libc.prctl(PR_SET_PDEATHSIG, int(signal.SIGTERM), 0, 0, 0)
+        except Exception:
+            pass
+
+    return _preexec
+
+
+def print_kawaii_terminal_banner(force_ascii=False):
+    if force_ascii or os.environ.get("NO_COLOR") or os.environ.get("TERM") == "dumb":
+        print(KAWAII_ASCII_FALLBACK)
         return False
-    if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
+
+    try:
+        raw_utf8 = zlib.decompress(base64.b64decode(KAWAII_ANSI_BANNER_ZB64.encode("ascii")))
+        u_banner = raw_utf8.decode("utf-8")
+    except Exception:
+        print(KAWAII_ASCII_FALLBACK)
         return False
-    if platform.system() == "Windows":
+
+    is_win = platform.system() == "Windows"
+    if is_win:
         try:
             k32 = ctypes.windll.kernel32
             h_out = k32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
-            mode = ctypes.c_uint32()
-            if k32.GetConsoleMode(h_out, ctypes.byref(mode)):
-                # ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
-                if k32.SetConsoleMode(h_out, mode.value | 0x0004):
+            mode = ctypes.c_uint32(0)
+            if h_out and h_out != -1 and k32.GetConsoleMode(h_out, ctypes.byref(mode)):
+                ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+                if k32.SetConsoleMode(h_out, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING):
+                    written = ctypes.c_uint32(0)
+                    k32.WriteConsoleW(h_out, ctypes.c_wchar_p(u_banner), len(u_banner), ctypes.byref(written), None)
                     return True
         except Exception:
             pass
-        return bool(os.environ.get("WT_SESSION") or os.environ.get("ANSICON"))
-    return os.environ.get("TERM", "") != "dumb"
+        if os.environ.get("WT_SESSION") or os.environ.get("TERM_PROGRAM") or "xterm" in os.environ.get("TERM", "").lower():
+            try:
+                os.write(1, raw_utf8)
+                return True
+            except Exception:
+                pass
+        print(KAWAII_ASCII_FALLBACK)
+        return False
 
+    try:
+        if hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
+            os.write(1, raw_utf8)
+            return True
+    except Exception:
+        pass
 
-def render_kawaii_ascii_banner(use_color=False):
-    """
-    Renders the Scash QtKawaii Anime Catgirl Mascot holding her glowing `[ S c a s h ]`
-    pixel sign in 100% 7-bit ASCII (<= 75 cols wide so it never wraps on 80-col cmd.exe),
-    compatible with both PyPy 2.7 and Python 3.x!
-    """
-    c = {
-        "r": "\033[0m" if use_color else "",
-        "c": "\033[96m" if use_color else "",   # Cosmic cyan stars & frame
-        "p": "\033[95m" if use_color else "",   # Neon magenta/lavender ($ flower & Scash sign)
-        "y": "\033[93m" if use_color else "",   # Twinkling gold stars & dress trim
-        "g": "\033[92m" if use_color else "",   # Mascot's emerald green anime eyes
-        "b": "\033[91m" if use_color else "",   # Rosy cheek blush & ribbon bow
-        "h": "\033[94m" if use_color else "",   # Deep cosmic indigo hair & cat ears
-        "w": "\033[97m" if use_color else "",   # Bright white pixel lettering
-    }
-    templates = [
-        "   {y}*{r}  {c}.{r}     {h}/\\{r}   {p}*{r}   {h}/\\{r}     {c}.{r}  {y}*{r}       {p}+{r}   {c}*{r}   {y}.{r}   {p}+{r}   {c}*{r}   {y}.{r}   {p}+{r}   {c}*{r}",
-        "     {p}+{r}    {h}//^{r} {h}\\_____/{r} {h}^\\\\{r}        {c}+{r}  {c}.----------------------------------.{r}",
-        "   {c}.{r}     {h}//{r} {p}($){r}{h}/   \\{r} {p}*{r}  {h}\\\\{r}    {y}*{r}     {c}|{r}  {y}*{r}   {w}S C A S H   P 2 P O O L{r}  {y}*{r}  {c}|{r}",
-        "      {y}*{r} {h}||   /|{r}{g}o   o{r}{h}|\\   ||{r}  {c}.{r}   {p}+{r}  {c}|{r}   {p}QtKawaii Edition v0.2.0-beta.4{r} {c}|{r}",
-        "    {p}+{r}   {h}||   |{r}({b}\"{r} v {b}\"{r}){h}|   ||{r}    {y}*{r}    {c}'----------------------------------'{r}",
-        "   {c}.{r}    {h}||   \\{r} `---' {h}/   ||{r}  {p}+{r}    {c}*{r}    {p}+==================+{r}   {y}*{r}  {c}.{r}",
-        "      {y}*{r}  {h}\\\\  /{r}`-{b}><{r}--'{h}\\  //{r} {c}.{r}    {c}+{r}      {p}| {c}*{r} {w}[ S c a s h ]{r}  {p}|{r}  {p}+{r}     {y}*{r}",
-        "    {p}+{r}    {h}/ \\/{r}  {y}/   \\{r}  {h}\\/ \\{r}    {y}*{r}   ___  {p}+==================+{r}    {c}.{r}",
-        "   {c}.{r}    {h}/  /{r}  {y}/     \\{r}  {h}\\  \\{r}______/ _/   {c}Publisher{r} : {w}magicalgirlsunite{r}",
-        "      {y}*{r} {h}`--'{r} {y}/~{p}*{y}~{c}*{y}~{p}*{y}~\\{r}  {h}`---------'{r}     {c}Community{r} : {w}ScashNetworkCommunity{r}",
-        "   {c}.{r}   {p}+{r}    {y}`---------'{r}   {y}*{r}   {c}.{r}         {c}Node Core{r} : {w}Scash 2.3.0 (Core 30.4){r}",
-        "  {c}========================================================================={r}",
-    ]
-    return "\n".join([t.format(**c) for t in templates])
-
-
-def print_kawaii_ascii_banner():
-    print(render_kawaii_ascii_banner(use_color=_enable_ansi_colors()))
-    print("")
+    print(KAWAII_ASCII_FALLBACK)
+    return False
 
 
 def is_port_open(host, port, timeout=1.2):
@@ -169,11 +384,88 @@ def probe_working_credentials(host, port, datadirs, conf_user, conf_pass):
         cu, cp = scash_nodes.read_cookie_credentials(dd)
         if cu and cp and (cu, cp) not in candidates:
             candidates.insert(0, (cu, cp))
+        fu, fp = scash_nodes.read_conf_credentials(dd)
+        if fu and fp and (fu, fp) not in candidates:
+            candidates.append((fu, fp))
     for u, pw in candidates:
         ok, res, err = jsonrpc_call(host, port, u, pw, "getblockchaininfo", timeout=3.0)
         if ok or (err and err.get("code") not in (401, 403, -999)):
             return u, pw, ok, res, err
     return conf_user, conf_pass, False, None, {"code": -999, "message": "RPC unreachable"}
+
+
+def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass, primary_datadir):
+    """
+    Detects and cleanly shuts down any orphaned headless scashd / xmrigMiner left behind
+    by an earlier Scash-P2Pool beta run (never touches the user's Scash-Qt GUI wallet!),
+    freeing port 8342 and unlocking old beta folders automatically.
+    """
+    if platform.system() != "Windows":
+        return
+    try:
+        ps_cmd = (
+            "Get-Process scashd,xmrigMiner,xmrigDaemon -ErrorAction SilentlyContinue | "
+            "Select-Object Id,ProcessName,Path | ConvertTo-Json -Compress"
+        )
+        CREATE_NO_WINDOW = 0x08000000
+        raw = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            creationflags=CREATE_NO_WINDOW,
+        ).decode("utf-8", "replace").strip()
+        if not raw:
+            return
+        parsed = json.loads(raw)
+        procs = parsed if isinstance(parsed, list) else [parsed]
+        stale_pids = []
+        has_stale_scashd = False
+        for item in procs:
+            if not isinstance(item, dict):
+                continue
+            pid = item.get("Id")
+            pname = (item.get("ProcessName") or "").lower()
+            ppath = (item.get("Path") or "").lower()
+            # Match any headless scashd/xmrig running from a Scash-P2Pool bundle (or any orphaned headless scashd)
+            if pname in ("xmrigminer", "xmrigdaemon"):
+                if "p2pool" in ppath or not ppath:
+                    stale_pids.append((pid, pname))
+            elif pname == "scashd":
+                if ("p2pool" in ppath) or ("\\node\\scashd.exe" in ppath):
+                    has_stale_scashd = True
+                    stale_pids.append((pid, pname))
+
+        # Also check if a headless scashd on :8342 is stuck at block 0 while primary_datadir has real blk*.dat files
+        if not has_stale_scashd and any((x.get("ProcessName") or "").lower() == "scashd" for x in procs if isinstance(x, dict)):
+            u, pw, ok, info, _ = probe_working_credentials("127.0.0.1", rpc_port, all_datadirs, conf_user, conf_pass)
+            if ok and isinstance(info, dict) and int(info.get("blocks", 0)) == 0 and scash_nodes._has_blocks_dir(primary_datadir):
+                has_stale_scashd = True
+                for item in procs:
+                    if isinstance(item, dict) and (item.get("ProcessName") or "").lower() == "scashd":
+                        stale_pids.append((item.get("Id"), "scashd"))
+
+        if not stale_pids:
+            return
+
+        print("[1/3] Detected leftover background process from previous P2Pool session — stopping cleanly...")
+        if has_stale_scashd:
+            u, pw, ok, _, err = probe_working_credentials("127.0.0.1", rpc_port, all_datadirs, conf_user, conf_pass)
+            if ok or (err and err.get("code") != -999):
+                jsonrpc_call("127.0.0.1", rpc_port, u, pw, "stop", timeout=2.5)
+                for _ in range(12):
+                    if not is_port_open("127.0.0.1", rpc_port, timeout=0.4):
+                        break
+                    time.sleep(0.4)
+
+        for pid, _ in stale_pids:
+            if pid:
+                subprocess.call(
+                    ["taskkill", "/F", "/PID", str(pid)],
+                    stdout=open(os.devnull, "wb"),
+                    stderr=open(os.devnull, "wb"),
+                    creationflags=CREATE_NO_WINDOW,
+                )
+        time.sleep(0.5)
+    except Exception:
+        pass
 
 
 def find_scashd_binary(custom_bin=None):
@@ -210,7 +502,7 @@ def find_scashd_binary(custom_bin=None):
     return None
 
 
-def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342):
+def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342, p2p_port=None):
     cmd = [
         scashd_bin,
         "-datadir=%s" % datadir,
@@ -222,6 +514,8 @@ def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342):
         "-rpcbind=127.0.0.1",
         "-rpcallowip=127.0.0.1",
     ]
+    if p2p_port is not None:
+        cmd.append("-port=%d" % int(p2p_port))
     for peer in scash_nodes.DEFAULT_SCASH_ADDNODES[:8]:
         cmd.append("-addnode=%s" % peer)
     if platform.system() != "Windows":
@@ -230,10 +524,16 @@ def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342):
     if platform.system() == "Windows":
         CREATE_NO_WINDOW = 0x08000000
         kwargs["creationflags"] = CREATE_NO_WINDOW
+    else:
+        preexec = _make_linux_pdeathsig_preexec()
+        if preexec is not None:
+            kwargs["preexec_fn"] = preexec
     devnull = open(os.devnull, "wb")
     kwargs["stdout"] = devnull
     kwargs["stderr"] = devnull
-    return subprocess.Popen(cmd, **kwargs)
+    proc = subprocess.Popen(cmd, **kwargs)
+    assign_popen_to_win32_job(proc)
+    return proc
 
 
 def kick_peer_connections(host, port, user, pw):
@@ -320,6 +620,8 @@ def make_sync_handler(sync_state, ctrl):
                         ctype = "image/svg+xml"
                     elif ext == ".png":
                         ctype = "image/png"
+                    elif ext == ".webp":
+                        ctype = "image/webp"
                     raw = open(fp, "rb").read()
                     self.send_response(200)
                     self.send_header("Content-Type", ctype)
@@ -335,6 +637,7 @@ def make_sync_handler(sync_state, ctrl):
 
 
 def main():
+    global _WIN_CTRL_HANDLER
     parser = argparse.ArgumentParser(description="One-Click Scash Node + P2Pool + Launcher")
     parser.add_argument("--wallet", default=None, help="Optional scash1... wallet address")
     parser.add_argument("--threads", type=int, default=None, help="CPU threads for local mining")
@@ -342,10 +645,17 @@ def main():
     parser.add_argument("--scashd-bin", default=None, help="Custom path to scashd binary")
     parser.add_argument("--datadir", default=None, help="Custom Scash Core data directory")
     parser.add_argument("--no-browser", action="store_true", help="Do not auto-open browser")
+    parser.add_argument("--no-banner", action="store_true", help="Skip QtKawaii terminal header")
     parser.add_argument("--allow-unsynced", action="store_true", help="Start P2Pool without waiting for Mainnet block sync")
     args, unknown = parser.parse_known_args()
 
-    print_kawaii_ascii_banner()
+    # Bind current process to a non-inheritable Win32 Job Object so closing the terminal window
+    # NEVER leaves scashd.exe, pypy.exe, or xmrigMiner.exe running in Task Manager!
+    setup_win32_kill_on_close_job()
+
+    if not args.no_banner:
+        print_kawaii_terminal_banner()
+        print("")
 
     ctrl = xmrig_manager.GLOBAL_XMRIG
     if args.wallet:
@@ -358,22 +668,82 @@ def main():
     print("[1/3] Configured scash.conf with active Scash peers:", conf_path)
 
     active_datadir = primary_datadir
+    all_datadirs = scash_nodes.get_candidate_datadirs(primary_datadir)
     spawned_proc = [None]
+    p2pool_proc = [None]
     active_creds = [rpc_user, rpc_pass, rpc_port]
+    shutting_down = [False]
 
-    def _cleanup_scashd():
+    def _graceful_shutdown_all():
+        if shutting_down[0]:
+            return
+        shutting_down[0] = True
+        try:
+            _NO_PROXY_OPENER.open("http://127.0.0.1:8345/miner_stop", timeout=0.8).read()
+        except Exception:
+            pass
+        try:
+            ctrl.stop_mining()
+        except Exception:
+            pass
+        if p2pool_proc[0] is not None and p2pool_proc[0].poll() is None:
+            try:
+                p2pool_proc[0].terminate()
+            except Exception:
+                pass
         if spawned_proc[0] is not None and spawned_proc[0].poll() is None:
-            print("\n[Shutdown] Stopping bundled Scash Core 30.4 node cleanly...")
-            jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "stop", timeout=3.0)
+            try:
+                print("\n[Shutdown] Stopping bundled Scash Core 30.4 node cleanly...")
+            except Exception:
+                pass
+            jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "stop", timeout=2.0)
             for _ in range(15):
                 if spawned_proc[0].poll() is not None:
                     break
-                time.sleep(0.5)
+                time.sleep(0.2)
+            if spawned_proc[0].poll() is None:
+                try:
+                    spawned_proc[0].terminate()
+                except Exception:
+                    pass
 
-    atexit.register(_cleanup_scashd)
+    atexit.register(_graceful_shutdown_all)
+
+    if platform.system() == "Windows":
+        try:
+            CTRL_HANDLER_FUNC = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_uint32)
+
+            def _win_ctrl_cb(ctrl_type):
+                # 0=CTRL_C, 1=CTRL_BREAK, 2=CTRL_CLOSE (X button!), 5=LOGOFF, 6=SHUTDOWN
+                if ctrl_type in (0, 1, 2, 5, 6):
+                    _graceful_shutdown_all()
+                    if ctrl_type in (2, 5, 6):
+                        os._exit(0)
+                    return 1
+                return 0
+
+            _WIN_CTRL_HANDLER = CTRL_HANDLER_FUNC(_win_ctrl_cb)
+            ctypes.windll.kernel32.SetConsoleCtrlHandler(_WIN_CTRL_HANDLER, 1)
+        except Exception:
+            pass
+    else:
+        def _posix_sig_handler(signum, frame):
+            _graceful_shutdown_all()
+            sys.exit(0)
+
+        for sig_name in ("SIGINT", "SIGTERM", "SIGHUP"):
+            sig_val = getattr(signal, sig_name, None)
+            if sig_val is not None:
+                try:
+                    signal.signal(sig_val, _posix_sig_handler)
+                except Exception:
+                    pass
+
+    # Clean up any leftover headless scashd.exe / xmrigMiner.exe from an older beta session before probing :8342!
+    cleanup_stale_p2pool_processes(rpc_port, all_datadirs, rpc_user, rpc_pass, primary_datadir)
 
     u, pw, ok, info, err = probe_working_credentials(
-        "127.0.0.1", rpc_port, [primary_datadir], rpc_user, rpc_pass
+        "127.0.0.1", rpc_port, all_datadirs, rpc_user, rpc_pass
     )
     if ok or (err and err.get("code") != -999):
         active_creds[0], active_creds[1] = u, pw
@@ -391,10 +761,14 @@ def main():
         connected = False
         used_fallback = False
         for _ in range(120):
+            if shutting_down[0]:
+                sys.exit(0)
             if proc.poll() is not None and not used_fallback:
                 used_fallback = True
                 fallback_dd = os.path.join(ROOT_DIR, "node_data")
-                print("[1/3] Notice: Default Scash folder is in use by another wallet window.")
+                print("[1/3] Notice: %s is currently locked by an open Scash-Qt Wallet window." % primary_datadir)
+                print("      Tip: Restart Scash-Qt Wallet once (or close it before launching P2Pool)")
+                print("      to share your existing synced Scash blocks immediately without re-syncing!")
                 print("      Spinning up dedicated P2Pool Scash node in:", fallback_dd)
                 active_datadir = fallback_dd
                 _, rpc_user, rpc_pass, rpc_port = scash_nodes.configure_scash_conf(custom_datadir=active_datadir)
@@ -403,7 +777,7 @@ def main():
                 spawned_proc[0] = proc
                 time.sleep(1.5)
             u, pw, ok, info, err = probe_working_credentials(
-                "127.0.0.1", active_creds[2], [active_datadir, primary_datadir], active_creds[0], active_creds[1]
+                "127.0.0.1", active_creds[2], [active_datadir] + all_datadirs, active_creds[0], active_creds[1]
             )
             if ok or (err and err.get("code") != -999):
                 active_creds[0], active_creds[1] = u, pw
@@ -454,9 +828,9 @@ def main():
         print("      Waiting for local Scash node to finish syncing before starting P2Pool sharechain...")
         last_kick = 0.0
         synced_height = 0
-        while True:
+        while not shutting_down[0]:
             u, pw, bc_ok, bc_info, bc_err = probe_working_credentials(
-                "127.0.0.1", active_creds[2], [active_datadir, primary_datadir], active_creds[0], active_creds[1]
+                "127.0.0.1", active_creds[2], [active_datadir] + all_datadirs, active_creds[0], active_creds[1]
             )
             active_creds[0], active_creds[1] = u, pw
             _, net_info, _ = jsonrpc_call(
@@ -475,9 +849,9 @@ def main():
                 hdrs = int(bc_info.get("headers", 0))
                 pct = round((100.0 * blks / hdrs), 1) if hdrs > 0 else 0.0
                 if hdrs == 0 and peers == 0:
-                    msg = "Connecting to Scash Mainnet peers on :8343... (Peers: 0 — discovering network headers)"
+                    msg = "Connecting to Scash Mainnet peers on :8343... (Peers: 0 - discovering network headers)"
                 elif hdrs == 0:
-                    msg = "Connected to %d Scash peer(s) — downloading block headers..." % peers
+                    msg = "Connected to %d Scash peer(s) - downloading block headers..." % peers
                 else:
                     msg = "Syncing Scash blockchain: %d / %d blocks (%.1f%%) | Peers: %d" % (blks, hdrs, pct, peers)
                 sync_state.update({
@@ -502,12 +876,17 @@ def main():
                 sync_state["status_text"] = "Scash node warming up: %s" % warm_msg
                 print("      [Scash Node] Warming up:", warm_msg)
 
-            time.sleep(5)
+            for _ in range(10):
+                if shutting_down[0]:
+                    break
+                time.sleep(0.5)
 
         if sync_srv is not None:
             sync_srv.shutdown()
             sync_srv.server_close()
             time.sleep(0.4)
+        if shutting_down[0]:
+            sys.exit(0)
         print("[2/3] Local Scash node is synced at block #%d and serving SegWit block templates!" % synced_height)
     else:
         print("[2/3] Local Scash node is already synced at block #%d!" % int((init_bc or {}).get("blocks", 0)))
@@ -517,6 +896,8 @@ def main():
 
     def _post_p2pool_ready():
         for _ in range(45):
+            if shutting_down[0]:
+                return
             if is_port_open("127.0.0.1", 8345):
                 if (not args.no_browser) and (not browser_opened[0]):
                     webbrowser.open(ui_url)
@@ -553,8 +934,26 @@ def main():
     p2pool_cmd.extend(unknown)
     p2pool_cmd.extend([str(active_creds[0]), str(active_creds[1])])
 
-    rc = subprocess.call(p2pool_cmd)
-    sys.exit(rc)
+    p2p_kwargs = {}
+    if platform.system() != "Windows":
+        preexec = _make_linux_pdeathsig_preexec()
+        if preexec is not None:
+            p2p_kwargs["preexec_fn"] = preexec
+
+    p2pool_proc[0] = subprocess.Popen(p2pool_cmd, **p2p_kwargs)
+    assign_popen_to_win32_job(p2pool_proc[0])
+
+    try:
+        while p2pool_proc[0].poll() is None:
+            time.sleep(0.4)
+        rc = p2pool_proc[0].returncode
+    except KeyboardInterrupt:
+        _graceful_shutdown_all()
+        rc = 0
+    finally:
+        _graceful_shutdown_all()
+
+    sys.exit(rc if rc is not None else 0)
 
 
 if __name__ == "__main__":

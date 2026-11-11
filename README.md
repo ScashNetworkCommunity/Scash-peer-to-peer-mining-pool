@@ -80,7 +80,7 @@ Outbound mining works behind NAT without router changes, but forwarding **TCP `8
 
 ## Step 3: Launch & Mine!
 
-1. **No separate node install needed!** Bundled `node/scashd` (**Scash 2.3.0 / Mid-World Core 30.4.0**) spins up automatically on `127.0.0.1:8342` (RPC) and `:8343` (P2P with 17 active Scash peers)—or connects to your already-open Scash Core 30.4.0 wallet if running. During initial block sync, the QtKawaii Dashboard opens immediately at `http://127.0.0.1:8345/static/` showing live block sync progress.
+1. **No separate node install needed!** Bundled `node/scashd` (**Scash 2.3.0 / Mid-World Core 30.4.0**) automatically detects your existing `%LOCALAPPDATA%\Scash` wallet blocks (or spins up on `127.0.0.1:8342` RPC & `:8343` P2P with 17 active Scash peers), and cleanly shuts down when you close the terminal window (`Win32 Job Object` + `ConsoleCtrlHandler`).
 2. Start Scash P2Pool using whichever launcher you prefer:
    - **Windows (`.exe` launcher)**: Double-click **`Start-Scash-P2Pool.exe`**
    - **Windows (`.bat` script)**: Double-click **`Start-Scash-P2Pool-Windows.bat`**

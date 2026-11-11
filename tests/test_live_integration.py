@@ -335,6 +335,54 @@ def run_all_live_tests():
                 scashd_proc.kill()
                 scashd_proc.wait()
             log_fh.close()
+
+        # 4. Verify [LIVE-PASS 4/4]: Abruptly killing launcher parent process (like clicking X on terminal)
+        # automatically terminates child scashd and unlocks its folder immediately!
+        job_rpc_port = get_free_port()
+        job_p2p_port = get_free_port()
+        job_dd = os.path.join(ci_base, "job_kill_dd")
+        os.makedirs(job_dd, exist_ok=True)
+        scash_nodes.configure_scash_conf(custom_datadir=job_dd, rpc_port=job_rpc_port, p2p_port=job_p2p_port)
+
+        holder_script = os.path.join(ci_base, "_holder_test.py")
+        with open(holder_script, "w", encoding="utf-8") as hf:
+            hf.write(
+                "import sys, time\n"
+                f"sys.path.insert(0, {ROOT!r})\n"
+                "import start_scash_p2pool as sp\n"
+                "sp.setup_win32_kill_on_close_job()\n"
+                f"p = sp.start_bundled_scashd({SCASHD_BIN!r}, {job_dd!r}, rpc_port={job_rpc_port}, p2p_port={job_p2p_port})\n"
+                "print(\"CHILD_PID=\" + str(p.pid))\n"
+                "sys.stdout.flush()\n"
+                "while True:\n"
+                "    time.sleep(0.5)\n"
+            )
+        holder_proc = subprocess.Popen([sys.executable, holder_script], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        try:
+            ready_job = False
+            for _ in range(60):
+                if tcp_open(job_rpc_port, timeout=0.4):
+                    ready_job = True
+                    break
+                time.sleep(0.5)
+            assert ready_job, f"Holder scashd failed to open RPC port {job_rpc_port}"
+            # Simulate hard terminal close / kill of parent process!
+            holder_proc.kill()
+            holder_proc.wait(timeout=10)
+            closed_ok = False
+            for _ in range(25):
+                if not tcp_open(job_rpc_port, timeout=0.3):
+                    closed_ok = True
+                    break
+                time.sleep(0.3)
+            assert closed_ok, f"Orphan scashd STILL listening on :{job_rpc_port} after parent was killed!"
+            # Prove folder is 100% unlocked and deletable on Windows & Linux!
+            shutil.rmtree(job_dd)
+            print("[LIVE-PASS 4/4] Zero-orphan terminal-close lifecycle verified (child scashd exited & folder unlocked)!")
+        finally:
+            if holder_proc.poll() is None:
+                holder_proc.kill()
+                holder_proc.wait()
     finally:
         shutil.rmtree(ci_base, ignore_errors=True)
 
