@@ -1,5 +1,7 @@
 """
 Active Community Scash Nodes & Scash Core 30.4.0-Compliant scash.conf Manager.
+- Checks Windows Registry (HKCU\\Software\\Scash\\Scash-Qt strDataDir) when %APPDATA%\\Scash has no blocks yet,
+  so custom Scash-Qt data directories are detected automatically.
 - Repairs legacy beta config issues (removes unsupported adddnsseed=, Core-30-removed upnp=,
   foreground-breaking daemon=1, unindexed txindex=1, and scopes port/rpcport/rpcbind/addnode
   into both [scash] and [main] sections).
@@ -11,6 +13,7 @@ import os
 import platform
 
 DEFAULT_SCASH_ADDNODES = [
+    "seed.scash.one:8343",
     "scash.tv:8343",
     "scash.pool-pay.com:8343",
     "satoshicash.cedric-crispin.com:8343",
@@ -30,6 +33,7 @@ DEFAULT_SCASH_ADDNODES = [
 ]
 
 DEFAULT_DNS_SEEDS = [
+    "seed.scash.one",
     "scash.tv",
     "scash.pool-pay.com",
     "satoshicash.cedric-crispin.com",
@@ -38,10 +42,38 @@ DEFAULT_DNS_SEEDS = [
 NETWORK_SCOPED_KEYS = ("port", "rpcport", "rpcbind", "addnode", "connect", "seednode", "dnsseed")
 
 
+def _has_blocks_dir(datadir):
+    if not datadir or not os.path.isdir(datadir):
+        return False
+    for rel in (os.path.join("scash", "blocks"), "blocks"):
+        if os.path.isdir(os.path.join(datadir, rel)):
+            return True
+    return False
+
+
 def get_scash_datadir():
     sys_name = platform.system()
     if sys_name == "Windows":
-        return os.path.join(os.environ.get("APPDATA", ""), "Scash")
+        default_dd = os.path.join(os.environ.get("APPDATA", ""), "Scash")
+        if _has_blocks_dir(default_dd):
+            return default_dd
+        try:
+            try:
+                import winreg
+            except ImportError:
+                import _winreg as winreg
+            for subkey in (r"Software\Scash\Scash-Qt", r"Software\Scash\Scash"):
+                try:
+                    k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey)
+                    val, _ = winreg.QueryValueEx(k, "strDataDir")
+                    winreg.CloseKey(k)
+                    if val and os.path.isdir(val):
+                        return val
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return default_dd
     elif sys_name == "Darwin":
         return os.path.expanduser("~/Library/Application Support/Scash")
     return os.path.expanduser("~/.scash")
@@ -119,7 +151,6 @@ def configure_scash_conf(
         key = stripped.split("=", 1)[0].strip().lower() if "=" in stripped else ""
         val = stripped.split("=", 1)[1].strip() if "=" in stripped else ""
 
-        # Strip unsupported adddnsseed, Core-30-removed upnp, process-forking daemon/daemonwait, and unindexed txindex=1
         if key in ("adddnsseed", "daemon", "daemonwait", "upnp"):
             continue
         if key == "txindex" and val == "1" and not keep_txindex:

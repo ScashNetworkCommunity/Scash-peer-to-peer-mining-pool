@@ -2,11 +2,6 @@
 setlocal
 cd /d "%~dp0"
 title Scash P2Pool QtKawaii - magicalgirlsunite
-echo ====================================================================
-echo   Scash Peer-to-Peer Mining Pool (QtKawaii Edition v0.2.0-beta.3)
-echo   Publisher: magicalgirlsunite ^| Community: ScashNetworkCommunity
-echo ====================================================================
-echo.
 if exist "%~dp0runtime\pypy2\pypy.exe" (
     "%~dp0runtime\pypy2\pypy.exe" "%~dp0start_scash_p2pool.py" %*
 ) else (

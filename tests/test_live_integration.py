@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.3 + Scash Core 30.4.0.
+End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.4 + Real Scash Core 30.4.0 Daemon!
+Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
+so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
+is verified live on both Linux and Windows before packaging.
 """
 import base64
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 import platform
@@ -12,7 +14,6 @@ import shutil
 import socket
 import subprocess
 import sys
-import threading
 import time
 import urllib.error
 import urllib.request
@@ -30,7 +31,6 @@ _USED_PORTS = set()
 
 
 def get_free_port():
-    # Pick outside Linux ephemeral client range (32768-60999) and Windows WinNAT low range (14000-20000)
     for _ in range(200):
         cand = random.randint(24000, 29999)
         if cand in _USED_PORTS:
@@ -71,7 +71,7 @@ def rpc_post(port, user, pw, method, params=None):
         return json.loads(resp.read().decode("utf-8"))["result"]
 
 
-def read_tail(path, n=60):
+def read_tail(path, n=70):
     if os.path.isfile(path):
         try:
             lines = open(path, encoding="utf-8", errors="replace").read().splitlines()[-n:]
@@ -84,6 +84,25 @@ def read_tail(path, n=60):
 def run_all_live_tests():
     assert os.path.isfile(SCASHD_BIN), f"Missing bundled scashd at {SCASHD_BIN}"
     from p2pool import scash_nodes
+    import start_scash_p2pool
+
+    # Verify strict Mainnet sync gate never triggers prematurely at block 0 / 0 peers!
+    assert not start_scash_p2pool.is_mainnet_node_synced(
+        {"chain": "scash", "blocks": 0, "headers": 0, "initialblockdownload": True},
+        {"connections": 0},
+    ), "Sync gate wrongly marked 0/0 Genesis node as synced!"
+    assert not start_scash_p2pool.is_mainnet_node_synced(
+        {"chain": "scash", "blocks": 0, "headers": 0, "initialblockdownload": False},
+        {"connections": 0},
+    ), "Sync gate wrongly marked 0/0 node with 0 peers as synced!"
+    assert not start_scash_p2pool.is_mainnet_node_synced(
+        {"chain": "scash", "blocks": 2500, "headers": 152791, "initialblockdownload": True},
+        {"connections": 6},
+    ), "Sync gate wrongly marked syncing node as synced!"
+    assert start_scash_p2pool.is_mainnet_node_synced(
+        {"chain": "scash", "blocks": 152791, "headers": 152791, "initialblockdownload": False},
+        {"connections": 6},
+    ), "Sync gate failed to accept genuinely synced Mainnet node!"
 
     ci_base = os.path.join(ROOT, "_ci_live_tmp")
     shutil.rmtree(ci_base, ignore_errors=True)
@@ -91,7 +110,6 @@ def run_all_live_tests():
 
     scash_rpc_port = get_free_port()
     scash_p2p_port = get_free_port()
-    mock_rpc_port = get_free_port()
     p2pool_p2p_port = get_free_port()
     worker_port = get_free_port()
 
@@ -115,7 +133,7 @@ def run_all_live_tests():
         assert "txindex=1" not in repaired, "Failed to strip unindexed txindex=1"
         assert "daemon=" not in repaired, "Failed to strip daemon=1"
         assert "upnp=" not in repaired, "Failed to strip Core-30-removed upnp="
-        assert "addnode=scash.tv:8343" in repaired, "Missing injected community Scash nodes"
+        assert "addnode=seed.scash.one:8343" in repaired, "Missing seed.scash.one:8343"
         assert "[scash]" in repaired and "[main]" in repaired, "Missing [scash] or [main] sections"
         assert u == "testuser" and pw == "testpass123" and rport == scash_rpc_port
 
@@ -178,7 +196,9 @@ def run_all_live_tests():
             assert bc_info.get("chain") in ("scash", "main"), f"Unexpected chain: {bc_info}"
             g0 = rpc_post(scash_rpc_port, u, pw, "getblockhash", [0])
             assert g0 == GENESIS_HEX, f"Genesis mismatch: {g0}"
-            print("[LIVE-PASS 1/3] Bundled Scash Core 30.4.0 scashd started with repaired scash.conf and verified Mainnet RPC & P2P!")
+            real_gbt = rpc_post(scash_rpc_port, u, pw, "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}])
+            assert isinstance(real_gbt, dict) and real_gbt.get("previousblockhash") == GENESIS_HEX, real_gbt
+            print("[LIVE-PASS 1/3] Bundled Scash Core 30.4.0 scashd started and verified live Mainnet RPC, GBT & P2P!")
 
             # 2. Verify zero git warning and HTTPS redirect shim in portable PyPy 2.7
             non_git = os.path.join(ci_base, "nongit_check")
@@ -190,7 +210,7 @@ def run_all_live_tests():
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.2.0-beta.3' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.2.0-beta.4' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
                 "print('VERSION_OK:', p2pool.__version__)"
             )
@@ -203,116 +223,7 @@ def run_all_live_tests():
             assert "VERSION_OK:" in out_s
             print("[LIVE-PASS 2/3] Verified zero 'fatal: not a git repository' and HTTPS redirect shim in portable PyPy 2.7!")
 
-            # 3. Verify live P2Pool + real Scash Core 30.4.0 P2P + QtKawaii Web UI + rx/scash Stratum job
-            now_ts = int(time.time())
-
-            class MockSyncedScashCore30RPCHandler(BaseHTTPRequestHandler):
-                def log_message(self, fmt, *args):
-                    return
-
-                def do_POST(self):
-                    ln = int(self.headers.get("Content-Length", "0"))
-                    req = json.loads(self.rfile.read(ln).decode("utf-8"))
-                    m = req.get("method")
-                    res = None
-                    err_obj = None
-                    if m == "help":
-                        res = (
-                            "getblock\ngetblockchaininfo\ngetblockhash\ngetblockheader\n"
-                            "getblocktemplate\ngetmininginfo\ngetnetworkinfo\ngetpeerinfo\n"
-                            "submitblock\nvalidateaddress\n"
-                        )
-                    elif m == "getblockchaininfo":
-                        res = {
-                            "chain": "scash",
-                            "blocks": 0,
-                            "headers": 0,
-                            "bestblockhash": GENESIS_HEX,
-                            "difficulty": 1.0,
-                            "time": now_ts,
-                            "mediantime": 1708650456,
-                            "initialblockdownload": False,
-                            "softforks": {
-                                "taproot": {"type": "buried", "active": True, "height": 0},
-                            },
-                            "warnings": ["Pre-release Core 30.4 test warning"],
-                        }
-                    elif m == "getnetworkinfo":
-                        res = {
-                            "version": 300400,
-                            "subversion": "/Scash:2.3.0(Mid-World Core 30.4.0)/",
-                            "protocolversion": 70016,
-                            "connections": 8,
-                            "warnings": [],
-                        }
-                    elif m == "getblockhash":
-                        res = GENESIS_HEX
-                    elif m in ("getblock", "getblockheader"):
-                        res = {
-                            "hash": GENESIS_HEX,
-                            "confirmations": 1,
-                            "height": 0,
-                            "version": 1,
-                            "merkleroot": "2f7b90fafd8247ee73d213d49699fcfe12a37c608f1d9d1c06f10e43cb6426c6",
-                            "time": 1708650456,
-                            "nonce": 20076863,
-                            "bits": "1e0fffff",
-                            "difficulty": 1.0,
-                            "tx": ["2f7b90fafd8247ee73d213d49699fcfe12a37c608f1d9d1c06f10e43cb6426c6"],
-                        }
-                    elif m == "getmininginfo":
-                        res = {"blocks": 0, "difficulty": 1.0, "networkhashps": 1000, "warnings": []}
-                    elif m == "getpeerinfo":
-                        res = []
-                    elif m == "validateaddress":
-                        p0 = (req.get("params") or [""])[0]
-                        res = {
-                            "isvalid": True,
-                            "address": p0,
-                            "scriptPubKey": "0014978528e154cb77b965d8dcef480f51824c3ea9ac",
-                            "isscript": False,
-                            "iswitness": True,
-                        }
-                    elif m == "submitblock":
-                        res = None
-                    elif m == "getblocktemplate":
-                        res = {
-                            "capabilities": ["proposal"],
-                            "version": 0x20000000,
-                            "rules": ["csv", "!segwit"],
-                            "vbavailable": {},
-                            "vbrequired": 0,
-                            "previousblockhash": GENESIS_HEX,
-                            "transactions": [],
-                            "coinbaseaux": {"flags": ""},
-                            "coinbasevalue": 5000000000,
-                            "longpollid": GENESIS_HEX + "00",
-                            "target": "00000fffff000000000000000000000000000000000000000000000000000000",
-                            "mintime": 1708650457,
-                            "mutable": ["time", "transactions", "prevblock"],
-                            "noncerange": "00000000ffffffff",
-                            "sigoplimit": 80000,
-                            "sizelimit": 4000000,
-                            "weightlimit": 4000000,
-                            "curtime": now_ts,
-                            "bits": "1e0fffff",
-                            "height": 1,
-                            "default_witness_commitment": "6a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf9",
-                        }
-                    else:
-                        err_obj = {"code": -32601, "message": f"Method not found: {m}"}
-                    out = json.dumps({"result": res, "error": err_obj, "id": req.get("id")}).encode("utf-8")
-                    self.send_response(200)
-                    self.send_header("Content-Type", "application/json")
-                    self.send_header("Content-Length", str(len(out)))
-                    self.end_headers()
-                    self.wfile.write(out)
-
-            rpc_srv = HTTPServer(("127.0.0.1", mock_rpc_port), MockSyncedScashCore30RPCHandler)
-            t = threading.Thread(target=rpc_srv.serve_forever)
-            t.daemon = True
-            t.start()
-
+            # 3. Connect run_p2pool.py DIRECTLY to REAL Scash Core 30.4.0 scashd (zero RPC mocks!)
             tmp_data = os.path.join(ci_base, "p2pool_data")
             os.makedirs(tmp_data, exist_ok=True)
             p2p_log = os.path.join(ci_base, "p2pool_console.log")
@@ -333,7 +244,7 @@ def run_all_live_tests():
                     "--bitcoind-address",
                     "127.0.0.1",
                     "--bitcoind-rpc-port",
-                    str(mock_rpc_port),
+                    str(scash_rpc_port),
                     "--bitcoind-p2p-port",
                     str(scash_p2p_port),
                     "--p2pool-port",
@@ -346,8 +257,8 @@ def run_all_live_tests():
                     "4",
                     "-a",
                     "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2",
-                    "scashminer",
-                    "kawaiip2poolpass",
+                    u,
+                    pw,
                 ],
                 env=p2p_env,
                 stdout=p2p_fh,
@@ -359,6 +270,10 @@ def run_all_live_tests():
                     if p2p_proc.poll() is not None:
                         p2p_fh.flush()
                         raise RuntimeError(f"run_p2pool.py exited early ({p2p_proc.returncode}):\n{read_tail(p2p_log)}")
+                    p2p_fh.flush()
+                    cur_log = open(p2p_log, encoding="utf-8", errors="replace").read()
+                    if "Internal bug detected" in cur_log or "NarrowError" in cur_log:
+                        raise RuntimeError(f"Real scashd RPC error in P2Pool:\n{read_tail(p2p_log)}")
                     if not tcp_open(worker_port, timeout=0.4):
                         time.sleep(0.6)
                         continue
@@ -402,14 +317,16 @@ def run_all_live_tests():
                 if not (job.get("algo") == "rx/scash" and len(job.get("blob", "")) == 160):
                     p2p_fh.flush()
                     raise AssertionError(f"Invalid rx/scash Stratum job: {msg}\n{read_tail(p2p_log)}")
-                print("[LIVE-PASS 3/3] Live Scash Core 30.4.0 P2P + P2Pool + QtKawaii Web UI + rx/scash Stratum job verified end-to-end!")
+
+                p2p_fh.flush()
+                final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
+                assert "Internal bug detected" not in final_log and "NarrowError" not in final_log, final_log
+                print("[LIVE-PASS 3/3] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
             finally:
                 if p2p_proc.poll() is None:
                     p2p_proc.kill()
                     p2p_proc.wait()
                 p2p_fh.close()
-                rpc_srv.shutdown()
-                rpc_srv.server_close()
 
             rpc_post(scash_rpc_port, u, pw, "stop")
             scashd_proc.wait(timeout=20)

@@ -162,3 +162,82 @@ class LineBasedPeer(basic.LineOnlyReceiver):
     
     def lineReceived(self, line):
         _handle(line, self, response_handler=self._matcher.got_response).addCallback(lambda line2: self.sendLine(line2) if line2 is not None else None)
+
+
+# --- Scash Core 30.4.0 HTTPProxy & rpc_help shim ---
+from twisted.internet import defer as _jr_defer
+
+def _norm_core30_response(obj, method_attr=''):
+    if isinstance(obj, dict):
+        if isinstance(obj.get('warnings'), list):
+            obj = dict(obj)
+            obj['warnings'] = '; '.join(str(x) for x in obj['warnings'])
+        if method_attr == 'rpc_validateaddress' and 'ismine' not in obj:
+            obj = dict(obj)
+            obj.setdefault('ismine', False)
+            obj.setdefault('iswatchonly', False)
+        if method_attr == 'rpc_getblocktemplate':
+            obj = dict(obj)
+            cb_aux = dict(obj.get('coinbaseaux') or {})
+            cb_aux.setdefault('flags', '')
+            obj['coinbaseaux'] = cb_aux
+    return obj
+
+_orig_HTTPProxy = HTTPProxy
+
+class _ScashBitcoindProxy(object):
+    def __init__(self, inner):
+        self._inner = inner
+
+    def rpc_help(self, *args):
+        # Bypasses Scash Core 30.4.0's C++ RPCHelpMan::ToString() assertion bug (!m_description.starts_with('\n') in ./rpc/util.cpp:803)
+        return _jr_defer.succeed(
+            'getblock\ngetblockchaininfo\ngetblockhash\ngetblockheader\n'
+            'getblocktemplate\ngetinfo\ngetmininginfo\ngetnetworkinfo\n'
+            'getpeerinfo\nsubmitblock\nvalidateaddress\n'
+        )
+
+    @_jr_defer.inlineCallbacks
+    def rpc_getinfo(self):
+        bc = yield self.rpc_getblockchaininfo()
+        try:
+            net = yield self.rpc_getnetworkinfo()
+        except Exception:
+            net = {}
+        w_bc = bc.get('warnings', '')
+        w_net = net.get('warnings', '')
+        if isinstance(w_bc, list):
+            w_bc = '; '.join(str(x) for x in w_bc)
+        if isinstance(w_net, list):
+            w_net = '; '.join(str(x) for x in w_net)
+        _jr_defer.returnValue({
+            'version': net.get('version', 300400),
+            'protocolversion': net.get('protocolversion', 70016),
+            'blocks': bc.get('blocks', 0),
+            'connections': net.get('connections', 0),
+            'difficulty': bc.get('difficulty', 1.0),
+            'testnet': bc.get('chain', 'scash') not in ('scash', 'main'),
+            'relayfee': net.get('relayfee', 0.00001),
+            'errors': w_bc or w_net,
+            'warnings': w_bc or w_net,
+        })
+
+    def __getattr__(self, attr):
+        fn = getattr(self._inner, attr)
+        if attr.startswith('rpc_'):
+            def _wrapped(*a, **kw):
+                if attr == 'rpc_getblocktemplate':
+                    if not a:
+                        a = ({'mode': 'template', 'rules': ['segwit']},)
+                    elif isinstance(a[0], dict) and a[0].get('mode', 'template') == 'template' and 'rules' not in a[0]:
+                        d0 = dict(a[0])
+                        d0['rules'] = ['segwit']
+                        a = (d0,) + a[1:]
+                d = fn(*a, **kw)
+                d.addCallback(_norm_core30_response, attr)
+                return d
+            return _wrapped
+        return fn
+
+def HTTPProxy(*args, **kwargs):
+    return _ScashBitcoindProxy(_orig_HTTPProxy(*args, **kwargs))

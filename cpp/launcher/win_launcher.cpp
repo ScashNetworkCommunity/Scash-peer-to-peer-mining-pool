@@ -17,7 +17,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
     if (wargv) {
         for (int i = 1; i < wargc; ++i) {
             if (wcscmp(wargv[i], L"--self-test") == 0 || wcscmp(wargv[i], L"--version") == 0) {
-                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.3 (Publisher: magicalgirlsunite)\n");
+                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.4 (Publisher: magicalgirlsunite)\n");
                 LocalFree(wargv);
                 return 0;
             }
@@ -41,10 +41,13 @@ int main(int /*argc*/, char* /*argv*/[]) {
     }
     SetCurrentDirectoryW(base_dir.c_str());
 
-    wprintf(L"====================================================================\n");
-    wprintf(L"  Scash Peer-to-Peer Mining Pool (QtKawaii Edition v0.2.0-beta.3)\n");
-    wprintf(L"  Publisher: magicalgirlsunite | Community: ScashNetworkCommunity\n");
-    wprintf(L"====================================================================\n\n");
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut != INVALID_HANDLE_VALUE) {
+        DWORD dwMode = 0;
+        if (GetConsoleMode(hOut, &dwMode)) {
+            SetConsoleMode(hOut, dwMode | 0x0004);
+        }
+    }
 
     std::wstring bundled_pypy = base_dir + L"\\runtime\\pypy2\\pypy.exe";
     std::wstring script_path = base_dir + L"\\start_scash_p2pool.py";

@@ -1,6 +1,6 @@
 import sys
 
-__version__ = 'v0.2.0-beta.3-scash-kawaii'
+__version__ = 'v0.2.0-beta.4-scash-kawaii'
 DEBUG = False
 
 # --- Scash QtKawaii HTTPS Redirect Shim for PyPy 2.7 (prevents ImportError: No module named OpenSSL) ---
@@ -15,7 +15,7 @@ if sys.version_info[0] < 3:
 
         def _scash_fetch_bytes(url, method='GET', postdata=None, headers=None, timeout=10):
             u = url.decode('utf-8') if isinstance(url, bytes) else str(url)
-            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0-beta.3'}
+            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0-beta.4'}
             if headers:
                 for hk, hv in headers.items():
                     ks = hk.decode('utf-8') if isinstance(hk, bytes) else str(hk)

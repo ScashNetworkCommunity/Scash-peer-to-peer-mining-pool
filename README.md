@@ -4,15 +4,15 @@
 
 A decentralized, **0%-pool-fee** peer-to-peer CPU mining pool for the **Scash Network** (`SCASH`). Modeled on Monero's sovereign local P2Pool architecture, every miner runs their own local Scash Core node (`scashd` / `scash-qt`) connected to their own local Scash P2Pool node (`112-byte` RandomX v1.2.1 block headers with `RANDOMX_ARGON_SALT = "RandomX-Scash\x01"`), with automatic **`scash1...` Bech32** PPLNS payouts, a **QtKawaii Web Dashboard**, and built-in [`ScashNetworkCommunity/xmrigCC`](https://github.com/ScashNetworkCommunity/xmrigCC) (`rx/scash`) CPU mining.
 
-## Choose Your Release Package (`v0.2.0-beta.3` Pre-Release)
+## Choose Your Release Package (`v0.2.0-beta.4` Pre-Release)
 
 Download from [**GitHub Releases**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases):
 
 | Package | Includes Built-in `xmrigCC`? | Launchers Included | Best For |
 | :--- | :--- | :--- | :--- |
-| **`Scash-P2Pool-v0.2.0-beta.3-Windows-x64.zip`** | Yes (`xmrigMiner.exe` + `xmrigDaemon.exe`, `-DWITH_MSR=OFF`) | `Start-Scash-P2Pool.exe` **and** `Start-Scash-P2Pool-Windows.bat` | Full out-of-the-box Windows mining (requires a folder exclusion in Windows Security; see Step 1 below) |
-| **`Scash-P2Pool-v0.2.0-beta.3-NodeOnly-Windows-x64.zip`** | No (`miner/` contains no `.exe` files) | `Start-Scash-P2Pool.exe` **and** `Start-Scash-P2Pool-Windows.bat` | Running the P2Pool node + QtKawaii UI cleanly while pointing your own external miner at `127.0.0.1:8345` |
-| **`Scash-P2Pool-v0.2.0-beta.3-Linux-x64.tar.gz`** | Yes (`xmrigMiner` + `xmrigDaemon`, `-DWITH_MSR=OFF`) | `./start-scash-p2pool-linux.sh` | Full out-of-the-box Linux x64 mining |
+| **`Scash-P2Pool-v0.2.0-beta.4-Windows-x64.zip`** | Yes (`xmrigMiner.exe` + `xmrigDaemon.exe`, `-DWITH_MSR=OFF`) | `Start-Scash-P2Pool.exe` **and** `Start-Scash-P2Pool-Windows.bat` | Full out-of-the-box Windows mining (requires a folder exclusion in Windows Security; see Step 1 below) |
+| **`Scash-P2Pool-v0.2.0-beta.4-NodeOnly-Windows-x64.zip`** | No (`miner/` contains no `.exe` files) | `Start-Scash-P2Pool.exe` **and** `Start-Scash-P2Pool-Windows.bat` | Running the P2Pool node + QtKawaii UI cleanly while pointing your own external miner at `127.0.0.1:8345` |
+| **`Scash-P2Pool-v0.2.0-beta.4-Linux-x64.tar.gz`** | Yes (`xmrigMiner` + `xmrigDaemon`, `-DWITH_MSR=OFF`) | `./start-scash-p2pool-linux.sh` | Full out-of-the-box Linux x64 mining |
 
 All packages now bundle the **official [Scash 2.3.0 (Mid-World Core 30.4.0)](https://github.com/ScashNetworkCommunity/scash/releases/tag/scash_v2.3.0-mid-world-core-30.4.0) node daemon (`node/scashd.exe` / `node/scashd`)** so Scash P2Pool spins up your own local Scash Core 30.4.0 node automatically out of the box—plus **portable PyPy 2.7 + Twisted** (`runtime/pypy2/`), CMake-compiled **`randomx.dll`** (`CompanyName: magicalgirlsunite`), **17 active Scash community `addnode=` peers**, and **both** a native **`Start-Scash-P2Pool.exe`** launcher (`CompanyName: magicalgirlsunite`) and a plain **`Start-Scash-P2Pool-Windows.bat`** script in case you prefer running the batch file instead of the `.exe`.
 
@@ -25,10 +25,10 @@ Like official [Monero downloads](https://www.getmonero.org/get-started/faq/) and
 1. Create a dedicated folder on your PC, such as **`C:\Scash-P2Pool`**.
 2. Open **Windows Security** -> **Virus & threat protection** -> under *Virus & threat protection settings*, click **Manage settings**.
 3. Scroll down to **Exclusions** -> click **Add or remove exclusions** -> **Add an exclusion** -> **Folder**, and select **`C:\Scash-P2Pool`** ([Microsoft Q&A guide](https://learn.microsoft.com/en-us/answers/questions/3187645/how-to-add-an-exception-to-windows-defender)).
-4. On the [Releases page](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), right-click **`Scash-P2Pool-v0.2.0-beta.3-Windows-x64.zip`**, choose **Save link as...**, and save it directly inside **`C:\Scash-P2Pool`**.
+4. On the [Releases page](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), right-click **`Scash-P2Pool-v0.2.0-beta.4-Windows-x64.zip`**, choose **Save link as...**, and save it directly inside **`C:\Scash-P2Pool`**.
 5. Verify your download integrity in PowerShell against `SHA256SUMS.txt`:
    ```powershell
-   Get-FileHash C:\Scash-P2Pool\Scash-P2Pool-v0.2.0-beta.3-Windows-x64.zip -Algorithm SHA256
+   Get-FileHash C:\Scash-P2Pool\Scash-P2Pool-v0.2.0-beta.4-Windows-x64.zip -Algorithm SHA256
    ```
 6. Right-click the `.zip` -> **Properties** -> check **Unblock** (if shown) -> **OK**, then extract it inside `C:\Scash-P2Pool`.
 

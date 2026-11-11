@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """
-Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.2.0-beta.3).
+Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.2.0-beta.4).
 Publisher: magicalgirlsunite | Community: ScashNetworkCommunity
+Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 """
 from __future__ import print_function
 import argparse
 import atexit
 import base64
+import ctypes
 import json
 import os
 import platform
@@ -34,6 +36,64 @@ from p2pool import scash_nodes
 from p2pool import xmrig_manager
 
 _NO_PROXY_OPENER = urllib_req.build_opener(urllib_req.ProxyHandler({}))
+
+
+def _enable_ansi_colors():
+    if os.environ.get("NO_COLOR"):
+        return False
+    if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
+        return False
+    if platform.system() == "Windows":
+        try:
+            k32 = ctypes.windll.kernel32
+            h_out = k32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+            mode = ctypes.c_uint32()
+            if k32.GetConsoleMode(h_out, ctypes.byref(mode)):
+                # ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+                if k32.SetConsoleMode(h_out, mode.value | 0x0004):
+                    return True
+        except Exception:
+            pass
+        return bool(os.environ.get("WT_SESSION") or os.environ.get("ANSICON"))
+    return os.environ.get("TERM", "") != "dumb"
+
+
+def render_kawaii_ascii_banner(use_color=False):
+    """
+    Renders the Scash QtKawaii Anime Catgirl Mascot holding her glowing `[ S c a s h ]`
+    pixel sign in 100% 7-bit ASCII (<= 75 cols wide so it never wraps on 80-col cmd.exe),
+    compatible with both PyPy 2.7 and Python 3.x!
+    """
+    c = {
+        "r": "\033[0m" if use_color else "",
+        "c": "\033[96m" if use_color else "",   # Cosmic cyan stars & frame
+        "p": "\033[95m" if use_color else "",   # Neon magenta/lavender ($ flower & Scash sign)
+        "y": "\033[93m" if use_color else "",   # Twinkling gold stars & dress trim
+        "g": "\033[92m" if use_color else "",   # Mascot's emerald green anime eyes
+        "b": "\033[91m" if use_color else "",   # Rosy cheek blush & ribbon bow
+        "h": "\033[94m" if use_color else "",   # Deep cosmic indigo hair & cat ears
+        "w": "\033[97m" if use_color else "",   # Bright white pixel lettering
+    }
+    templates = [
+        "   {y}*{r}  {c}.{r}     {h}/\\{r}   {p}*{r}   {h}/\\{r}     {c}.{r}  {y}*{r}       {p}+{r}   {c}*{r}   {y}.{r}   {p}+{r}   {c}*{r}   {y}.{r}   {p}+{r}   {c}*{r}",
+        "     {p}+{r}    {h}//^{r} {h}\\_____/{r} {h}^\\\\{r}        {c}+{r}  {c}.----------------------------------.{r}",
+        "   {c}.{r}     {h}//{r} {p}($){r}{h}/   \\{r} {p}*{r}  {h}\\\\{r}    {y}*{r}     {c}|{r}  {y}*{r}   {w}S C A S H   P 2 P O O L{r}  {y}*{r}  {c}|{r}",
+        "      {y}*{r} {h}||   /|{r}{g}o   o{r}{h}|\\   ||{r}  {c}.{r}   {p}+{r}  {c}|{r}   {p}QtKawaii Edition v0.2.0-beta.4{r} {c}|{r}",
+        "    {p}+{r}   {h}||   |{r}({b}\"{r} v {b}\"{r}){h}|   ||{r}    {y}*{r}    {c}'----------------------------------'{r}",
+        "   {c}.{r}    {h}||   \\{r} `---' {h}/   ||{r}  {p}+{r}    {c}*{r}    {p}+==================+{r}   {y}*{r}  {c}.{r}",
+        "      {y}*{r}  {h}\\\\  /{r}`-{b}><{r}--'{h}\\  //{r} {c}.{r}    {c}+{r}      {p}| {c}*{r} {w}[ S c a s h ]{r}  {p}|{r}  {p}+{r}     {y}*{r}",
+        "    {p}+{r}    {h}/ \\/{r}  {y}/   \\{r}  {h}\\/ \\{r}    {y}*{r}   ___  {p}+==================+{r}    {c}.{r}",
+        "   {c}.{r}    {h}/  /{r}  {y}/     \\{r}  {h}\\  \\{r}______/ _/   {c}Publisher{r} : {w}magicalgirlsunite{r}",
+        "      {y}*{r} {h}`--'{r} {y}/~{p}*{y}~{c}*{y}~{p}*{y}~\\{r}  {h}`---------'{r}     {c}Community{r} : {w}ScashNetworkCommunity{r}",
+        "   {c}.{r}   {p}+{r}    {y}`---------'{r}   {y}*{r}   {c}.{r}         {c}Node Core{r} : {w}Scash 2.3.0 (Core 30.4){r}",
+        "  {c}========================================================================={r}",
+    ]
+    return "\n".join([t.format(**c) for t in templates])
+
+
+def print_kawaii_ascii_banner():
+    print(render_kawaii_ascii_banner(use_color=_enable_ansi_colors()))
+    print("")
 
 
 def is_port_open(host, port, timeout=1.2):
@@ -64,6 +124,8 @@ def jsonrpc_call(host, port, user, password, method, params=None, timeout=5.0):
     try:
         resp = _NO_PROXY_OPENER.open(req, timeout=timeout)
         body = json.loads(resp.read().decode("utf-8", "replace"))
+        if body.get("error") is not None:
+            return False, None, body.get("error")
         return True, body.get("result"), None
     except urllib_err.HTTPError as e:
         try:
@@ -74,6 +136,31 @@ def jsonrpc_call(host, port, user, password, method, params=None, timeout=5.0):
             return False, None, {"code": e.code, "message": str(e)}
     except Exception as e:
         return False, None, {"code": -999, "message": str(e)}
+
+
+def is_mainnet_node_synced(bc_info, net_info=None, allow_unsynced=False):
+    if not isinstance(bc_info, dict):
+        return False
+    if allow_unsynced:
+        return True
+    chain = bc_info.get("chain", "scash")
+    blks = int(bc_info.get("blocks", 0))
+    hdrs = int(bc_info.get("headers", 0))
+    ibd = bool(bc_info.get("initialblockdownload", True))
+    peers = int((net_info or {}).get("connections", 0)) if isinstance(net_info, dict) else 0
+
+    if chain in ("scash", "main"):
+        if hdrs <= 0 or blks <= 0:
+            return False
+        if ibd:
+            return False
+        if blks < hdrs - 1:
+            return False
+        if peers <= 0 and blks < 100000:
+            return False
+        return True
+
+    return (not ibd) and blks >= hdrs
 
 
 def probe_working_credentials(host, port, datadirs, conf_user, conf_pass):
@@ -129,10 +216,14 @@ def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342):
         "-datadir=%s" % datadir,
         "-chain=scash",
         "-server=1",
+        "-listen=1",
+        "-dnsseed=1",
         "-rpcport=%d" % int(rpc_port),
         "-rpcbind=127.0.0.1",
         "-rpcallowip=127.0.0.1",
     ]
+    for peer in scash_nodes.DEFAULT_SCASH_ADDNODES[:8]:
+        cmd.append("-addnode=%s" % peer)
     if platform.system() != "Windows":
         cmd.append("-daemon=0")
     kwargs = {}
@@ -143,6 +234,12 @@ def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342):
     kwargs["stdout"] = devnull
     kwargs["stderr"] = devnull
     return subprocess.Popen(cmd, **kwargs)
+
+
+def kick_peer_connections(host, port, user, pw):
+    for peer in scash_nodes.DEFAULT_SCASH_ADDNODES:
+        jsonrpc_call(host, port, user, pw, "addnode", [peer, "add"], timeout=1.5)
+        jsonrpc_call(host, port, user, pw, "addnode", [peer, "onetry"], timeout=1.5)
 
 
 class _ReusableHTTPServer(HTTPServer):
@@ -245,7 +342,10 @@ def main():
     parser.add_argument("--scashd-bin", default=None, help="Custom path to scashd binary")
     parser.add_argument("--datadir", default=None, help="Custom Scash Core data directory")
     parser.add_argument("--no-browser", action="store_true", help="Do not auto-open browser")
+    parser.add_argument("--allow-unsynced", action="store_true", help="Start P2Pool without waiting for Mainnet block sync")
     args, unknown = parser.parse_known_args()
+
+    print_kawaii_ascii_banner()
 
     ctrl = xmrig_manager.GLOBAL_XMRIG
     if args.wallet:
@@ -319,19 +419,24 @@ def main():
     ui_url = "http://127.0.0.1:8345/static/"
     browser_opened = [False]
 
-    gbt_ok, _, _ = jsonrpc_call(
-        "127.0.0.1", active_creds[2], active_creds[0], active_creds[1],
-        "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}], timeout=5.0
-    )
+    _, init_bc, _ = jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "getblockchaininfo", timeout=4.0)
+    _, init_net, _ = jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "getnetworkinfo", timeout=4.0)
+    already_synced = is_mainnet_node_synced(init_bc, init_net, allow_unsynced=args.allow_unsynced)
+    if already_synced:
+        gbt_ok, gbt_res, _ = jsonrpc_call(
+            "127.0.0.1", active_creds[2], active_creds[0], active_creds[1],
+            "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}], timeout=5.0
+        )
+        already_synced = bool(gbt_ok and isinstance(gbt_res, dict))
 
-    if not gbt_ok:
+    if not already_synced:
         sync_state = {
             "syncing": True,
             "blocks": 0,
             "headers": 0,
             "progress_pct": 0.0,
             "connections": 0,
-            "status_text": "Warming up local Scash Core 30.4 node...",
+            "status_text": "Connecting to Scash Mainnet peers on :8343...",
         }
         sync_srv = None
         try:
@@ -347,6 +452,8 @@ def main():
             print("[2/3] Note: Port 8345 busy during sync check:", e)
 
         print("      Waiting for local Scash node to finish syncing before starting P2Pool sharechain...")
+        last_kick = 0.0
+        synced_height = 0
         while True:
             u, pw, bc_ok, bc_info, bc_err = probe_working_credentials(
                 "127.0.0.1", active_creds[2], [active_datadir, primary_datadir], active_creds[0], active_creds[1]
@@ -357,12 +464,22 @@ def main():
             )
             peers = (net_info or {}).get("connections", 0) if isinstance(net_info, dict) else 0
 
+            if peers == 0 and (time.time() - last_kick) >= 15.0:
+                last_kick = time.time()
+                t_kick = threading.Thread(target=kick_peer_connections, args=("127.0.0.1", active_creds[2], u, pw))
+                t_kick.daemon = True
+                t_kick.start()
+
             if bc_ok and isinstance(bc_info, dict):
                 blks = int(bc_info.get("blocks", 0))
                 hdrs = int(bc_info.get("headers", 0))
-                ibd = bool(bc_info.get("initialblockdownload", False))
                 pct = round((100.0 * blks / hdrs), 1) if hdrs > 0 else 0.0
-                msg = "Syncing Scash blockchain: %d / %d blocks (%.1f%%) | Peers: %d" % (blks, hdrs, pct, peers)
+                if hdrs == 0 and peers == 0:
+                    msg = "Connecting to Scash Mainnet peers on :8343... (Peers: 0 — discovering network headers)"
+                elif hdrs == 0:
+                    msg = "Connected to %d Scash peer(s) — downloading block headers..." % peers
+                else:
+                    msg = "Syncing Scash blockchain: %d / %d blocks (%.1f%%) | Peers: %d" % (blks, hdrs, pct, peers)
                 sync_state.update({
                     "syncing": True,
                     "blocks": blks,
@@ -372,31 +489,28 @@ def main():
                     "status_text": msg,
                 })
                 print("      [Scash Node]", msg)
-                if not ibd and blks >= hdrs and hdrs > 0:
-                    gbt_ok2, _, _ = jsonrpc_call(
+                if is_mainnet_node_synced(bc_info, net_info, allow_unsynced=args.allow_unsynced):
+                    gbt_ok2, gbt_res2, _ = jsonrpc_call(
                         "127.0.0.1", active_creds[2], u, pw,
                         "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}], timeout=5.0
                     )
-                    if gbt_ok2:
+                    if gbt_ok2 and isinstance(gbt_res2, dict):
+                        synced_height = blks
                         break
             else:
                 warm_msg = (bc_err or {}).get("message", "Starting Scash node...")
                 sync_state["status_text"] = "Scash node warming up: %s" % warm_msg
                 print("      [Scash Node] Warming up:", warm_msg)
 
-            gbt_ok3, _, _ = jsonrpc_call(
-                "127.0.0.1", active_creds[2], active_creds[0], active_creds[1],
-                "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}], timeout=3.0
-            )
-            if gbt_ok3:
-                break
             time.sleep(5)
 
         if sync_srv is not None:
             sync_srv.shutdown()
             sync_srv.server_close()
             time.sleep(0.4)
-        print("[2/3] Local Scash node is synced and serving SegWit block templates!")
+        print("[2/3] Local Scash node is synced at block #%d and serving SegWit block templates!" % synced_height)
+    else:
+        print("[2/3] Local Scash node is already synced at block #%d!" % int((init_bc or {}).get("blocks", 0)))
 
     ctrl._load_saved_wallet()
     active_wallet = ctrl.wallet or "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2"
