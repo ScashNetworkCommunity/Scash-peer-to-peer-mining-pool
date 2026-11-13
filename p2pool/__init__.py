@@ -1,7 +1,7 @@
 import codecs
 import sys
 
-__version__ = 'v0.2.0-beta.8-scash-kawaii'
+__version__ = 'v0.2.0-scash-kawaii'
 DEBUG = False
 
 try:
@@ -59,7 +59,7 @@ if sys.version_info[0] < 3:
 
         def _scash_fetch_bytes(url, method='GET', postdata=None, headers=None, timeout=10):
             u = url.decode('utf-8') if isinstance(url, bytes) else str(url)
-            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0-beta.8'}
+            hdrs = {'User-Agent': 'Scash-P2Pool/0.2.0'}
             if headers:
                 for hk, hv in headers.items():
                     ks = hk.decode('utf-8') if isinstance(hk, bytes) else str(hk)

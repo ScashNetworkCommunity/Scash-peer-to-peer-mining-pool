@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0-beta.8 + Real Scash Core 30.4.0 Daemon!
+End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0 + Real Scash Core 30.4.0 Daemon!
 Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
 so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
 is verified live on both Linux and Windows before packaging.
@@ -214,7 +214,7 @@ def run_all_live_tests():
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.2.0-beta.8' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.2.0' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
                 "import start_scash_p2pool as sp; print('WARM_OK:', sp.ascii_safe(u'Loading block index\\u2026')); print(u'Loading block index\\u2026'); print('VERSION_OK:', p2pool.__version__)"
             )
@@ -236,7 +236,7 @@ def run_all_live_tests():
                 "gh = struct.pack('<I32s32sIII', 1, b'\\x00'*32, ml, 1708650456, 0x1e0fffff, 20076863); "
                 "rxh, _ = scash_randomx.calculate_scash_hash_and_cm_bytes(gh); "
                 "assert binascii.hexlify(rxh[::-1]).decode('ascii') == '33c450e0152826e3a8948b01464cf9182344a1544b3ddcf6153dd04b62938d01'; "
-                "assert 'v0.2.0-beta.8' in main.p2pool.__version__, main.p2pool.__version__; "
+                "assert 'v0.2.0' in main.p2pool.__version__, main.p2pool.__version__; "
                 "addr = bdata.script2_to_address(pdata.DONATION_SCRIPT, networks.nets['scash']); "
                 "assert addr == 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc', addr; "
                 "print('ROOT_DONATION_OK:', addr, main.p2pool.__version__)"
@@ -256,6 +256,7 @@ def run_all_live_tests():
             p2p_env["SCASH_RPC_USER"] = str(u)
             p2p_env["SCASH_RPC_PASS"] = str(pw)
             p2p_env["SCASH_ACTIVE_DATADIR"] = str(tmp_dd)
+            p2p_env["SCASH_CI_FAST_DIFF"] = "1"
             if not IS_WIN:
                 p2p_env["LD_LIBRARY_PATH"] = ROOT + (":" + p2p_env["LD_LIBRARY_PATH"] if p2p_env.get("LD_LIBRARY_PATH") else "")
 
@@ -419,7 +420,7 @@ def run_all_live_tests():
                 p2p_fh.flush()
                 final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
                 assert "Internal bug detected" not in final_log and "NarrowError" not in final_log and "Unhandled Error" not in final_log, final_log
-                assert "v0.2.0-beta.8-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
+                assert "v0.2.0-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
                 print("[LIVE-PASS 3/3] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
             finally:
                 if p2p_proc.poll() is None:

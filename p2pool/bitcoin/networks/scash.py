@@ -30,7 +30,7 @@ CONF_FILE_FUNC = lambda: os.path.join(scash_nodes.get_scash_datadir(), 'scash.co
 BLOCK_EXPLORER_URL_PREFIX = 'https://scash.tv/block/'
 ADDRESS_EXPLORER_URL_PREFIX = 'https://scash.tv/address/'
 TX_EXPLORER_URL_PREFIX = 'https://scash.tv/tx/'
-SANE_TARGET_RANGE = (2**256 // 2**40 - 1, 2**256 // 2**10 - 1)
+SANE_TARGET_RANGE = (2**256 // 2**40 - 1, (2**256 // 2**10 - 1) if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else (2**256 // 2**12 - 1))
 DUMB_SCRYPT_DIFF = 2**16
 DUST_THRESHOLD = 0.001e8
 

@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import struct
 import sys
@@ -60,7 +61,7 @@ class StratumRPCMiningProvider(object):
         x, got_response = self.wb.get_work(*self.wb.preprocess_request('' if self.username is None else self.username))
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
         eff_target = x.get('target', x['share_target'])
-        min_hashes = 1024
+        min_hashes = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 4096
         max_eff_target = (2**256) // min_hashes - 1
         if eff_target > max_eff_target:
             eff_target = max_eff_target
@@ -132,7 +133,7 @@ class StratumRPCMiningProvider(object):
 
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
         eff_target = x.get('target', x['share_target'])
-        expected_hashes = max(1024.0, float(2**256) / max(1.0, float(eff_target)))
+        expected_hashes = max((1024.0 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 4096.0), float(2**256) / max(1.0, float(eff_target)))
         scash_diff = expected_hashes / 65536.0
 
         notify_sig = (
@@ -198,7 +199,8 @@ class StratumRPCMiningProvider(object):
         new_packed_gentx = x['coinb1'] + coinb_nonce + x['coinb2']
         merkle_root = bitcoin_data.check_merkle_link(bitcoin_data.hash256(new_packed_gentx), x['merkle_link'])
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
-        eff_target = min((2**256) // 1024 - 1, x.get('target', x['share_target']))
+        _mh = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 4096
+        eff_target = min((2**256) // _mh - 1, x.get('target', x['share_target']))
 
         ntime_padded = ntime.strip()
         if len(ntime_padded) % 2 != 0:

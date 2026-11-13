@@ -487,62 +487,75 @@ try:
     from p2pool import xmrig_manager as _xmrig_mgr
     from p2pool import scash_nodes as _scash_nodes
 
+    import threading as _w_threading
     _w_noproxy = _w_ureq.build_opener(_w_ureq.ProxyHandler({}))
-    _node_status_cache = {'ts': 0.0, 'data': None}
+    _node_status_cache = {'ts': 0.0, 'data': None, 'refreshing': False}
+
+    def _do_refresh_scashd_node():
+        try:
+            dd = os.environ.get('SCASH_ACTIVE_DATADIR') or _scash_nodes.get_scash_datadir()
+            port = int(os.environ.get('SCASH_RPC_PORT') or 8342)
+            u = os.environ.get('SCASH_RPC_USER') or ''
+            pw = os.environ.get('SCASH_RPC_PASS') or ''
+            if not u or not pw:
+                cu, cp = _scash_nodes.read_cookie_credentials(dd)
+                if cu and cp:
+                    u, pw = cu, cp
+                else:
+                    fu, fp = _scash_nodes.read_conf_credentials(dd)
+                    u, pw = fu or 'scashminer', fp or 'kawaiip2poolpass'
+
+            def _rpc(method):
+                url = 'http://127.0.0.1:%d/' % port
+                body = _w_json.dumps({'jsonrpc': '1.0', 'id': 'web', 'method': method, 'params': []}).encode('utf-8')
+                auth = _w_b64.b64encode(('%s:%s' % (u, pw)).encode('utf-8')).decode('ascii')
+                req = _w_ureq.Request(url, body, {'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth})
+                raw = _w_noproxy.open(req, timeout=1.8).read().decode('utf-8', 'replace')
+                return (_w_json.loads(raw) or {}).get('result') or {}
+
+            out = dict(_node_status_cache['data'] or {})
+            out.update({
+                'syncing': False,
+                'p2pool_ready': True,
+                'datadir': dd,
+                'status_text': 'Local Scash Core 30.4 Node + P2Pool Active',
+            })
+            try:
+                bc = _rpc('getblockchaininfo')
+                net = _rpc('getnetworkinfo')
+                mp = _rpc('getmempoolinfo')
+                blks = int(bc.get('blocks', 0))
+                hdrs = int(bc.get('headers', blks))
+                out.update({
+                    'blocks': blks,
+                    'headers': hdrs,
+                    'progress_pct': round((100.0 * blks / hdrs), 2) if hdrs > 0 else 100.0,
+                    'chain': bc.get('chain', 'scash'),
+                    'bestblockhash': bc.get('bestblockhash', ''),
+                    'difficulty': bc.get('difficulty', 0.0),
+                    'connections': int(net.get('connections', 0)),
+                    'subversion': net.get('subversion', '/Scash:30.4.0/'),
+                    'mempool_txs': int(mp.get('size', 0)),
+                    'mempool_bytes': int(mp.get('bytes', 0)),
+                })
+            except Exception:
+                pass
+            _node_status_cache['ts'] = _w_time.time()
+            _node_status_cache['data'] = out
+        finally:
+            _node_status_cache['refreshing'] = False
+        return _node_status_cache['data']
 
     def _query_live_scashd_node():
+        if _node_status_cache['data'] is None:
+            return _do_refresh_scashd_node()
         now = _w_time.time()
-        if _node_status_cache['data'] is not None and (now - _node_status_cache['ts']) < 2.5:
-            return _node_status_cache['data']
-        dd = os.environ.get('SCASH_ACTIVE_DATADIR') or _scash_nodes.get_scash_datadir()
-        port = int(os.environ.get('SCASH_RPC_PORT') or 8342)
-        u = os.environ.get('SCASH_RPC_USER') or ''
-        pw = os.environ.get('SCASH_RPC_PASS') or ''
-        if not u or not pw:
-            cu, cp = _scash_nodes.read_cookie_credentials(dd)
-            if cu and cp:
-                u, pw = cu, cp
-            else:
-                fu, fp = _scash_nodes.read_conf_credentials(dd)
-                u, pw = fu or 'scashminer', fp or 'kawaiip2poolpass'
-
-        def _rpc(method):
-            url = 'http://127.0.0.1:%d/' % port
-            body = _w_json.dumps({'jsonrpc': '1.0', 'id': 'web', 'method': method, 'params': []}).encode('utf-8')
-            auth = _w_b64.b64encode(('%s:%s' % (u, pw)).encode('utf-8')).decode('ascii')
-            req = _w_ureq.Request(url, body, {'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth})
-            raw = _w_noproxy.open(req, timeout=1.8).read().decode('utf-8', 'replace')
-            return (_w_json.loads(raw) or {}).get('result') or {}
-
-        out = {
-            'syncing': False,
-            'p2pool_ready': True,
-            'datadir': dd,
-            'status_text': 'Local Scash Core 30.4 Node + P2Pool Active',
-        }
-        try:
-            bc = _rpc('getblockchaininfo')
-            net = _rpc('getnetworkinfo')
-            mp = _rpc('getmempoolinfo')
-            blks = int(bc.get('blocks', 0))
-            hdrs = int(bc.get('headers', blks))
-            out.update({
-                'blocks': blks,
-                'headers': hdrs,
-                'progress_pct': round((100.0 * blks / hdrs), 2) if hdrs > 0 else 100.0,
-                'chain': bc.get('chain', 'scash'),
-                'bestblockhash': bc.get('bestblockhash', ''),
-                'difficulty': bc.get('difficulty', 0.0),
-                'connections': int(net.get('connections', 0)),
-                'subversion': net.get('subversion', '/Scash:30.4.0/'),
-                'mempool_txs': int(mp.get('size', 0)),
-                'mempool_bytes': int(mp.get('bytes', 0)),
-            })
-        except Exception:
-            pass
-        _node_status_cache['ts'] = now
-        _node_status_cache['data'] = out
-        return out
+        if (now - _node_status_cache['ts']) >= 2.5 and not _node_status_cache['refreshing']:
+            _node_status_cache['refreshing'] = True
+            _t = _w_threading.Thread(target=_do_refresh_scashd_node)
+            _t.daemon = True
+            _t.start()
+        return _node_status_cache['data']
 
     class _ScashMinerControlResource(_tw_resource.Resource):
         isLeaf = True
