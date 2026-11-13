@@ -1,15 +1,10 @@
 """
 Consensus-Exact Scash 112-Byte Block Header & RandomX v1.2.1 Commitment Bridge.
-Verified against ScashNetworkCommunity/scash (src/kernel/chainparams.cpp & block.h),
-ScashNetworkCommunity/RandomX (branch scash: RANDOMX_ARGON_SALT = "RandomX-Scash\x01"),
-and ScashNetworkCommunity/sips (scash-protocol-spec.md):
-  - Epoch E = floor(nTime / 604800)  [604800s = 7 days on mainnet/testnet; 86400s regtest]
-  - Seed String S = "Scash/RandomX/Epoch/%d" % E
-  - RandomX Key K = SHA256(SHA256(S))  [32 raw bytes]
-  - Serialized Scash CBlockHeader is 112 bytes:
-      Bytes 0..79  : 80-byte Bitcoin header (version, prev_block, merkle_root, nTime, nBits, nNonce)
-      Bytes 80..111: 32-byte hashRandomX (zeroed during randomx_calculate_hash & randomx_calculate_commitment)
+Uses ctypes.c_void_p + pinned ctypes.create_string_buffer(data, n) (NEVER c_char_p!)
+so embedded/leading NUL bytes (e.g. nVersion=0x20000000 -> '\x00\x00\x00\x20')
+and binary 32-byte hashes are never truncated under PyPy 2.7 _ctypes or CPython 3.
 """
+
 from __future__ import print_function
 import binascii
 import ctypes
@@ -47,7 +42,6 @@ def _load_librandomx():
     global _rx_lib
     if _rx_lib is not None:
         return _rx_lib
-
     here = os.path.abspath(os.path.dirname(__file__))
     root = os.path.abspath(os.path.join(here, '..', '..'))
     search_paths = [
@@ -68,15 +62,15 @@ def _load_librandomx():
             lib.randomx_get_flags.restype = ctypes.c_uint
             lib.randomx_alloc_cache.argtypes = [ctypes.c_uint]
             lib.randomx_alloc_cache.restype = ctypes.c_void_p
-            lib.randomx_init_cache.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+            lib.randomx_init_cache.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t]
             lib.randomx_init_cache.restype = None
             lib.randomx_create_vm.argtypes = [ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]
             lib.randomx_create_vm.restype = ctypes.c_void_p
             lib.randomx_destroy_vm.argtypes = [ctypes.c_void_p]
             lib.randomx_destroy_vm.restype = None
-            lib.randomx_calculate_hash.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t, ctypes.c_char_p]
+            lib.randomx_calculate_hash.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p]
             lib.randomx_calculate_hash.restype = None
-            lib.randomx_calculate_commitment.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_char_p, ctypes.c_char_p]
+            lib.randomx_calculate_commitment.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p]
             lib.randomx_calculate_commitment.restype = None
             _rx_lib = lib
             return _rx_lib
@@ -95,13 +89,14 @@ def _get_vm_for_timestamp(timestamp):
         return lib, _rx_vm
 
     seed_key = get_scash_epoch_seed_bytes(timestamp)
+    seed_buf = ctypes.create_string_buffer(seed_key, 32)
     flags = lib.randomx_get_flags()
     if _rx_cache is None:
         _rx_cache = lib.randomx_alloc_cache(flags)
     if _rx_vm is not None:
         lib.randomx_destroy_vm(_rx_vm)
         _rx_vm = None
-    lib.randomx_init_cache(_rx_cache, seed_key, len(seed_key))
+    lib.randomx_init_cache(_rx_cache, seed_buf, 32)
     _rx_vm = lib.randomx_create_vm(flags, _rx_cache, None)
     _rx_current_epoch = epoch
     return lib, _rx_vm
@@ -129,23 +124,18 @@ def _unpack_uint256_le(raw_32):
 
 
 def calculate_scash_hash_and_cm_bytes(header_bytes):
-    """
-    Takes an 80-byte or 112-byte serialized Scash header, zeroes bytes 80..111,
-    extracts nTime from bytes 68..72 to select the Scash RandomX epoch key,
-    and returns (rx_hash_32_bytes, rx_cm_32_bytes).
-    """
     header_112 = pack_header_for_randomx(header_bytes)
     ntime = struct.unpack('<I', header_112[68:72])[0]
     with _rx_lock:
         lib, vm = _get_vm_for_timestamp(ntime)
         if lib is not None and vm is not None:
+            hdr_buf = ctypes.create_string_buffer(header_112, 112)
             rx_hash = ctypes.create_string_buffer(32)
             rx_cm = ctypes.create_string_buffer(32)
-            lib.randomx_calculate_hash(vm, header_112, 112, rx_hash)
-            lib.randomx_calculate_commitment(header_112, 112, rx_hash.raw, rx_cm)
+            lib.randomx_calculate_hash(vm, hdr_buf, 112, rx_hash)
+            lib.randomx_calculate_commitment(hdr_buf, 112, rx_hash, rx_cm)
             return rx_hash.raw, rx_cm.raw
 
-    # Fallback only when running unit syntax checks without compiled librandomx
     rx_hash_fb = hashlib.sha256(header_112).digest()
     rx_cm_fb = hashlib.sha256(header_112 + rx_hash_fb).digest()
     return rx_hash_fb, rx_cm_fb

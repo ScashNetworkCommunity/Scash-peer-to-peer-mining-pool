@@ -1,8 +1,8 @@
 #include <winver.h>
 
 1 VERSIONINFO
- FILEVERSION 0,2,0,7
- PRODUCTVERSION 0,2,0,7
+ FILEVERSION 0,2,0,8
+ PRODUCTVERSION 0,2,0,8
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS 0x40004L
@@ -15,12 +15,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "magicalgirlsunite\0"
             VALUE "FileDescription", "Scash RandomX Consensus & Hashing Library\0"
-            VALUE "FileVersion", "0.2.0.7\0"
+            VALUE "FileVersion", "0.2.0.8\0"
             VALUE "InternalName", "randomx\0"
             VALUE "LegalCopyright", "Copyright (c) magicalgirlsunite & ScashNetworkCommunity\0"
             VALUE "OriginalFilename", "randomx.dll\0"
             VALUE "ProductName", "Scash P2Pool QtKawaii\0"
-            VALUE "ProductVersion", "v0.2.0-beta.7\0"
+            VALUE "ProductVersion", "v0.2.0-beta.8\0"
         END
     END
     BLOCK "VarFileInfo"

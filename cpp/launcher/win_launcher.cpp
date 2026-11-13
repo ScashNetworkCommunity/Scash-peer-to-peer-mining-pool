@@ -63,7 +63,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
         for (int i = 1; i < wargc; ++i) {
             std::wstring a(wargv[i]);
             if (a == L"--self-test" || a == L"--version") {
-                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.7 (Publisher: magicalgirlsunite, MSR+WinRing0)\n");
+                wprintf(L"Scash P2Pool QtKawaii Launcher v0.2.0-beta.8 (Publisher: magicalgirlsunite, MSR+WinRing0)\n");
                 LocalFree(wargv);
                 return 0;
             }
@@ -127,7 +127,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
         wprintf(L"[Tip] Running without Administrator permission (mining still works, just at standard speed without MSR/HugePages boost).\n");
     }
 
-    SetConsoleTitleW(L"Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.7)");
+    SetConsoleTitleW(L"Scash P2Pool - peer2peer-pool (QtKawaii Edition v0.2.0-beta.8)");
 
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != NULL && hOut != INVALID_HANDLE_VALUE) {

@@ -23,7 +23,7 @@ def parse_bip0034(coinbase):
 
 hash_link_type = pack.ComposedType([
     ('state', pack.FixedStrType(32)),
-    ('extra_data', pack.FixedStrType(0)), # bit of a hack, but since the donation script is at the end, const_ending is long enough to always make this empty
+    ('extra_data', pack.VarStrType()), # bit of a hack, but since the donation script is at the end, const_ending is long enough to always make this empty
     ('length', pack.VarIntType()),
 ])
 
@@ -297,7 +297,7 @@ class BaseShare(object):
         if len(self.merkle_link['branch']) > 16 or (segwit_activated and len(self.share_info['segwit_data']['txid_merkle_link']['branch']) > 16):
             raise ValueError('merkle branch too long!')
         
-        assert not self.hash_link['extra_data'], repr(self.hash_link['extra_data'])
+        assert len(self.hash_link['extra_data']) <= 64, repr(self.hash_link['extra_data'])
         
         self.share_data = self.share_info['share_data']
         self.max_target = self.share_info['max_bits'].target

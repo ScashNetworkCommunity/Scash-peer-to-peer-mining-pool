@@ -1,5 +1,5 @@
 """
-Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.2.0-beta.7).
+Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.2.0-beta.8).
 Manages local xmrigDaemon + xmrigMiner (rx/scash, built with -DWITH_MSR=ON,
 -DWITH_ASM=ON, WinRing0x64.sys, HugePages, and hwloc physical-core affinity)
 connecting strictly to 127.0.0.1:8345 and reports 100% real live process status,
@@ -30,6 +30,7 @@ _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 _SPEED_RE = re.compile(r"speed\s+\S+\s+([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE)
 _ACCEPT_RE = re.compile(r"accepted\s*\((\d+)/(\d+)\)", re.IGNORECASE)
 _TOTAL_ACC_RE = re.compile(r"Total accepted:\s*(\d+)", re.IGNORECASE)
+_HTTP_API_RE = re.compile(r"HTTP API\s+127\.0\.0\.1:(\d+)", re.IGNORECASE)
 
 
 class LocalMinerController(object):
@@ -45,6 +46,7 @@ class LocalMinerController(object):
         self.large_pages = True
         self.msr_active = None
         self.hugepages_active = None
+        self.http_port = 8346
         self.hashrate_hs = 0.0
         self.accepted_shares = 0
         self.rejected_shares = 0
@@ -102,10 +104,8 @@ class LocalMinerController(object):
     def build_xmrig_config(self):
         if not os.path.exists(MINER_DIR):
             os.makedirs(MINER_DIR)
-        est_hs = self.threads * (950 if self.large_pages else 450)
-        pseudo_diff = max(0.0005, (est_hs * 10.0) / 10000000.0)
-        share_diff = max(0.01, (est_hs * 15.0) / 550000.0)
-        stratum_user = "%s.%s+%.4f/%.2f" % (self.wallet, self.worker, pseudo_diff, share_diff)
+        # Do NOT append SHA-256 ASIC +diff/share_diff suffixes! Let P2Pool's native RandomX MAX_TARGET & vardiff tune share rate automatically.
+        stratum_user = "%s.%s" % (self.wallet, self.worker)
 
         is_win = platform.system() == "Windows"
         # IMPORTANT: Do NOT set "rx": [0, 1, 2, ...] in "cpu"!
@@ -119,7 +119,7 @@ class LocalMinerController(object):
                 "enabled": False,
             },
             "randomx": {
-                "init": -1,
+                "init": int(self.threads) if self.custom_threads else -1,
                 "init-avx2": -1,
                 "mode": "auto",
                 "1gb-pages": bool(self.large_pages and not is_win),
@@ -154,6 +154,7 @@ class LocalMinerController(object):
                     "user": stratum_user,
                     "pass": "x",
                     "rig-id": self.worker,
+                    "nicehash": False,
                     "keepalive": True,
                     "enabled": True,
                     "tls": False,
@@ -168,10 +169,12 @@ class LocalMinerController(object):
         is_win = platform.system() == "Windows"
         # Prioritize xmrigDaemon FIRST: per XMRigCC architecture, xmrigDaemon enables
         # Windows SeLockMemoryPrivilege (HugePages) and spawns/supervises xmrigMiner!
+        # Launch xmrigMiner directly with --daemonized --cc-disabled (bypasses XMRigd.cpp Windows cmd.exe /c quote stripping
+        # while still activating WinRing0x64.sys MSR tuning, SeLockMemoryPrivilege HugePages, and libhwloc physical-core binding)!
         candidates = (
-            ["xmrigDaemon.exe", "xmrigMiner.exe", "xmrig.exe", "minerd.exe", "cpuminer-scash.exe"]
+            ["xmrigMiner.exe", "xmrig.exe", "xmrigDaemon.exe", "minerd.exe", "cpuminer-scash.exe"]
             if is_win
-            else ["xmrigDaemon", "xmrigMiner", "xmrig", "minerd", "cpuminer-scash"]
+            else ["xmrigMiner", "xmrig", "xmrigDaemon", "minerd", "cpuminer-scash"]
         )
         search_dirs = [
             MINER_DIR,
@@ -196,7 +199,13 @@ class LocalMinerController(object):
         m_spd = _SPEED_RE.search(clean)
         m_acc = _ACCEPT_RE.search(clean)
         m_tot = _TOTAL_ACC_RE.search(clean)
+        m_http = _HTTP_API_RE.search(clean)
         with self.lock:
+            if m_http:
+                try:
+                    self.http_port = int(m_http.group(1))
+                except Exception:
+                    pass
             if m_spd:
                 try:
                     self.hashrate_hs = float(m_spd.group(1))
@@ -241,6 +250,11 @@ class LocalMinerController(object):
                 if self.process is proc:
                     self.hashrate_hs = 0.0
 
+    def _summary_poller_thread(self, proc):
+        while proc.poll() is None and self.process is proc:
+            self._poll_xmrig_http_summary()
+            time.sleep(1.5)
+
     def is_running(self):
         return self.process is not None and self.process.poll() is None
 
@@ -248,7 +262,7 @@ class LocalMinerController(object):
         if not self.is_running():
             return
         try:
-            raw = _NO_PROXY_OPENER.open("http://127.0.0.1:8346/2/summary", timeout=0.6).read()
+            raw = _NO_PROXY_OPENER.open("http://127.0.0.1:%d/2/summary" % int(self.http_port or 8346), timeout=0.6).read()
             data = json.loads(raw.decode("utf-8", "replace"))
             hr_obj = data.get("hashrate") or {}
             totals = hr_obj.get("total") or []
@@ -304,9 +318,12 @@ class LocalMinerController(object):
                 cmd.append("--largepages")
         else:
             cmd = [binary]
-            if "daemon" in bname:
+            if "xmrigminer" in bname:
+                cmd.extend(["--daemonized", "--cc-disabled"])
+            elif "daemon" in bname:
                 cmd.append("--cc-disabled")
             cmd.extend([
+                "--config=%s" % cfg_path,
                 "-a", "rx/scash",
                 "-o", "%s:%d" % (self.stratum_host, self.stratum_port),
                 "-u", stratum_user, "-p", "x",
@@ -315,7 +332,6 @@ class LocalMinerController(object):
                 "--http-enabled",
                 "--http-host=127.0.0.1",
                 "--http-port=8346",
-                "--config=%s" % cfg_path,
             ])
             if self.custom_threads:
                 cmd.extend(["-t", str(self.threads)])
@@ -333,6 +349,9 @@ class LocalMinerController(object):
             t = threading.Thread(target=self._reader_thread, args=(self.process,))
             t.daemon = True
             t.start()
+            tp = threading.Thread(target=self._summary_poller_thread, args=(self.process,))
+            tp.daemon = True
+            tp.start()
             return self.get_status()
         except Exception as e:
             self.process = None
@@ -375,7 +394,6 @@ class LocalMinerController(object):
         return self.get_status()
 
     def get_status(self):
-        self._poll_xmrig_http_summary()
         alive = self.is_running()
         if not alive:
             self.hashrate_hs = 0.0

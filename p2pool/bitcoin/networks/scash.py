@@ -30,6 +30,17 @@ CONF_FILE_FUNC = lambda: os.path.join(scash_nodes.get_scash_datadir(), 'scash.co
 BLOCK_EXPLORER_URL_PREFIX = 'https://scash.tv/block/'
 ADDRESS_EXPLORER_URL_PREFIX = 'https://scash.tv/address/'
 TX_EXPLORER_URL_PREFIX = 'https://scash.tv/tx/'
-SANE_TARGET_RANGE = (2**256 // 2**32 - 1, 2**256 // 2**4 - 1)
+SANE_TARGET_RANGE = (2**256 // 2**40 - 1, 2**256 // 2**10 - 1)
 DUMB_SCRYPT_DIFF = 2**16
 DUST_THRESHOLD = 0.001e8
+
+def _warm_scash_rx_async():
+    try:
+        import struct as _st, threading as _th, time as _tm
+        _hdr = bytes(bytearray(68) + bytearray(_st.pack('<I', int(_tm.time()))) + bytearray(40))
+        _t = _th.Thread(target=scash_randomx.get_pow_commitment_int256, args=(_hdr,))
+        _t.daemon = True
+        _t.start()
+    except Exception:
+        pass
+_warm_scash_rx_async()

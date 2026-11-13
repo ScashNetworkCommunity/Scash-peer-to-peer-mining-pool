@@ -178,7 +178,8 @@ def _norm_core30_response(obj, method_attr=''):
         if method_attr == 'rpc_getblocktemplate':
             obj = dict(obj)
             cb_aux = dict(obj.get('coinbaseaux') or {})
-            cb_aux.setdefault('flags', '')
+            if not cb_aux.get('flags'):
+                cb_aux['flags'] = '2f5032506f6f6c2f'
             obj['coinbaseaux'] = cb_aux
     return obj
 
