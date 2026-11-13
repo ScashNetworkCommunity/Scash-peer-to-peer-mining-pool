@@ -630,6 +630,7 @@ def _ensure_wide_console_and_get_cols(target_cols=128, target_rows=42):
             cols = int(rc[1]) or 80
             if cols < 124 and "xterm" in os.environ.get("TERM", "").lower():
                 os.write(1, b"\x1b[8;42;128t")
+                time.sleep(0.08)
                 rc2 = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, b"1234"))
                 if int(rc2[1]) >= 124:
                     cols = int(rc2[1])
@@ -757,7 +758,29 @@ def is_mainnet_node_synced(bc_info, net_info=None, allow_unsynced=False):
     return (not ibd) and blks >= hdrs
 
 
-def probe_working_credentials(host, port, datadirs, conf_user, conf_pass):
+def open_dashboard_browser(url):
+    if platform.system().startswith("Linux"):
+        disp = os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+        if not disp:
+            return False
+        devnull = open(os.devnull, "wb")
+        sudo_user = os.environ.get("SUDO_USER", "").strip()
+        try:
+            if hasattr(os, "geteuid") and os.geteuid() == 0 and sudo_user and sudo_user != "root":
+                subprocess.Popen(["sudo", "-u", sudo_user, "xdg-open", url], stdout=devnull, stderr=devnull)
+                return True
+            subprocess.Popen(["xdg-open", url], stdout=devnull, stderr=devnull)
+            return True
+        except Exception:
+            pass
+    try:
+        webbrowser.open(url)
+        return True
+    except Exception:
+        return False
+
+
+def probe_working_credentials(host, port, datadirs, conf_user, conf_pass, rpc_timeout=12.0):
     candidates = [(conf_user, conf_pass)]
     for dd in datadirs:
         cu, cp = scash_nodes.read_cookie_credentials(dd)
@@ -766,15 +789,88 @@ def probe_working_credentials(host, port, datadirs, conf_user, conf_pass):
         fu, fp = scash_nodes.read_conf_credentials(dd)
         if fu and fp and (fu, fp) not in candidates:
             candidates.append((fu, fp))
+    last_err = {"code": -999, "message": "RPC unreachable"}
     for u, pw in candidates:
-        ok, res, err = jsonrpc_call(host, port, u, pw, "getblockchaininfo", timeout=3.0)
+        ok, res, err = jsonrpc_call(host, port, u, pw, "getblockchaininfo", timeout=rpc_timeout)
         if ok or (err and err.get("code") not in (401, 403, -999)):
             return u, pw, ok, res, err
-    return conf_user, conf_pass, False, None, {"code": -999, "message": "RPC unreachable"}
+        if err:
+            last_err = err
+    return conf_user, conf_pass, False, None, last_err
+
+
+def _cleanup_stale_linux_processes(rpc_port, all_datadirs, conf_user, conf_pass):
+    my_pid = os.getpid()
+    my_ppid = os.getppid() if hasattr(os, "getppid") else -1
+    stale_launcher_pids = []
+    stale_miner_pids = []
+    stale_scashd_pids = []
+    try:
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit():
+                continue
+            pid = int(entry)
+            if pid in (my_pid, my_ppid, 1):
+                continue
+            try:
+                raw_cmd = open("/proc/%d/cmdline" % pid, "rb").read()
+                parts = [p.decode("utf-8", "replace") for p in raw_cmd.split(b"\x00") if p]
+                if not parts:
+                    continue
+                joined = " ".join(parts)
+                low = joined.lower()
+                bn0 = os.path.basename(parts[0]).lower()
+                if ("start_scash_p2pool.py" in low or "run_p2pool.py" in low) and "grep" not in bn0:
+                    stale_launcher_pids.append(pid)
+                elif bn0 in ("xmrigminer", "xmrigdaemon") and ("p2pool" in low or "127.0.0.1:8345" in low or "--daemonized" in low):
+                    stale_miner_pids.append(pid)
+                elif bn0 == "scashd" and ("scash-p2pool" in low or "/node/scashd" in low or "node_data" in low):
+                    stale_scashd_pids.append(pid)
+            except Exception:
+                continue
+    except Exception:
+        return
+
+    if not (stale_launcher_pids or stale_miner_pids or stale_scashd_pids):
+        return
+
+    print("[1/3] Stopping leftover background P2Pool process from previous Linux session...")
+    for pid in stale_launcher_pids + stale_miner_pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except Exception:
+            pass
+
+    if stale_scashd_pids:
+        u, pw, ok, _, err = probe_working_credentials("127.0.0.1", rpc_port, all_datadirs, conf_user, conf_pass, rpc_timeout=3.0)
+        if ok or (err and err.get("code") != -999):
+            jsonrpc_call("127.0.0.1", rpc_port, u, pw, "stop", timeout=2.5)
+        for pid in stale_scashd_pids:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except Exception:
+                pass
+        for _ in range(15):
+            if not any(os.path.exists("/proc/%d" % p) for p in stale_scashd_pids):
+                break
+            time.sleep(0.4)
+
+    for pid in stale_launcher_pids + stale_miner_pids:
+        if os.path.exists("/proc/%d" % pid):
+            try:
+                os.kill(pid, getattr(signal, "SIGKILL", 9))
+            except Exception:
+                pass
+
+    for _ in range(12):
+        if not is_port_open("127.0.0.1", 8345, timeout=0.25):
+            break
+        time.sleep(0.3)
 
 
 def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass, primary_datadir):
     if platform.system() != "Windows":
+        _cleanup_stale_linux_processes(rpc_port, all_datadirs, conf_user, conf_pass)
         return
     try:
         ps_cmd = (
@@ -1121,8 +1217,13 @@ def main():
     cleanup_stale_p2pool_processes(rpc_port, all_datadirs, rpc_user, rpc_pass, primary_datadir)
 
     u, pw, ok, info, err = probe_working_credentials(
-        "127.0.0.1", rpc_port, all_datadirs, rpc_user, rpc_pass
+        "127.0.0.1", rpc_port, all_datadirs, rpc_user, rpc_pass, rpc_timeout=12.0
     )
+    if (not ok) and (not err or err.get("code") == -999) and is_port_open("127.0.0.1", rpc_port, timeout=1.0):
+        print("[1/3] Local Scash node on 127.0.0.1:%d is busy verifying headers -- waiting for RPC..." % rpc_port)
+        u, pw, ok, info, err = probe_working_credentials(
+            "127.0.0.1", rpc_port, all_datadirs, rpc_user, rpc_pass, rpc_timeout=20.0
+        )
     if ok or (err and err.get("code") != -999):
         active_creds[0], active_creds[1] = u, pw
         print("[1/3] Connected to running local Scash node on 127.0.0.1:%d." % rpc_port)
@@ -1199,22 +1300,22 @@ def main():
             srv_thread.daemon = True
             srv_thread.start()
             print("[2/3] QtKawaii Sync Dashboard live at:", ui_url)
-            if not args.no_browser:
-                webbrowser.open(ui_url)
-                browser_opened[0] = True
         except Exception as e:
-            print("[2/3] Note: Port 8345 busy during sync check:", ascii_safe(e))
+            print("[2/3] Note: Port 8345 already active:", ascii_safe(e))
+        if (not args.no_browser) and (not browser_opened[0]) and is_port_open("127.0.0.1", 8345, timeout=1.0):
+            if open_dashboard_browser(ui_url):
+                browser_opened[0] = True
 
         print("      Waiting for local Scash node to finish syncing before starting P2Pool sharechain...")
         last_kick = 0.0
         synced_height = 0
         while not shutting_down[0]:
             u, pw, bc_ok, bc_info, bc_err = probe_working_credentials(
-                "127.0.0.1", active_creds[2], [active_datadir] + all_datadirs, active_creds[0], active_creds[1]
+                "127.0.0.1", active_creds[2], [active_datadir] + all_datadirs, active_creds[0], active_creds[1], rpc_timeout=15.0
             )
             active_creds[0], active_creds[1] = u, pw
             _, net_info, _ = jsonrpc_call(
-                "127.0.0.1", active_creds[2], u, pw, "getnetworkinfo", timeout=3.0
+                "127.0.0.1", active_creds[2], u, pw, "getnetworkinfo", timeout=8.0
             )
             peers = int((net_info or {}).get("connections", 0)) if isinstance(net_info, dict) else 0
             subver = ascii_safe((net_info or {}).get("subversion", "/Scash:30.4.0/")) if isinstance(net_info, dict) else "/Scash:30.4.0/"
@@ -1257,15 +1358,22 @@ def main():
                         synced_height = blks
                         break
             else:
-                raw_warm = (bc_err or {}).get("message", "Starting Scash node...")
-                warm_msg = ascii_safe(raw_warm)
-                sync_state.update({
-                    "syncing": True,
-                    "p2pool_ready": False,
-                    "datadir": active_datadir,
-                    "status_text": "Scash node warming up: %s" % warm_msg,
-                })
-                print("      [Scash Node] Warming up:", warm_msg)
+                prev_hdrs = int(sync_state.get("headers", 0))
+                prev_blks = int(sync_state.get("blocks", 0))
+                if prev_hdrs > 0 and is_port_open("127.0.0.1", active_creds[2], timeout=0.8):
+                    busy_msg = "Verifying RandomX block headers... (%d / %d blocks, headers: %d)" % (prev_blks, prev_hdrs, prev_hdrs)
+                    sync_state["status_text"] = busy_msg
+                    print("      [Scash Node]", busy_msg)
+                else:
+                    raw_warm = (bc_err or {}).get("message", "Starting Scash node...")
+                    warm_msg = ascii_safe(raw_warm)
+                    sync_state.update({
+                        "syncing": True,
+                        "p2pool_ready": False,
+                        "datadir": active_datadir,
+                        "status_text": "Scash node warming up: %s" % warm_msg,
+                    })
+                    print("      [Scash Node] Warming up:", warm_msg)
 
             for _ in range(10):
                 if shutting_down[0]:
@@ -1295,7 +1403,7 @@ def main():
                 return
             if is_port_open("127.0.0.1", 8345):
                 if (not args.no_browser) and (not browser_opened[0]):
-                    webbrowser.open(ui_url)
+                    open_dashboard_browser(ui_url)
                     browser_opened[0] = True
                 if ctrl.wallet and ctrl.wallet.lower().startswith(("scash1", "tcash1")) and len(ctrl.wallet) >= 26:
                     try:

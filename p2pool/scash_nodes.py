@@ -114,6 +114,15 @@ def get_scash_datadir():
         return orig_local_dd or local_dd or roaming_dd
     elif sys_name == "Darwin":
         return os.path.expanduser("~/Library/Application Support/Scash")
+    sudo_user = os.environ.get("SUDO_USER", "").strip()
+    if sudo_user and sudo_user != "root":
+        try:
+            import pwd
+            u_home = pwd.getpwnam(sudo_user).pw_dir
+            if u_home and os.path.isdir(u_home):
+                return os.path.join(u_home, ".scash")
+        except Exception:
+            pass
     return os.path.expanduser("~/.scash")
 
 
