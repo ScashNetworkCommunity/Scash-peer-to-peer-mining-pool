@@ -1,3 +1,5 @@
+## 🇨🇳 [**中文使用指南（简体中文 · 中国大陆/北京）**](README_ZH_CN.md) &nbsp;|&nbsp; 🇭🇰 [**中文使用指南（繁體中文 · 香港/港澳台）**](README_ZH_HK.md)
+
 # Scash P2Pool — Easy All-in-One CPU Mining Pool (QtKawaii Edition `v0.2.0`)
 
 **Publisher:** `magicalgirlsunite` | **Community:** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **Pool Fee:** **1%** to Pool Author (`scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc`), **99%** straight to Miners
