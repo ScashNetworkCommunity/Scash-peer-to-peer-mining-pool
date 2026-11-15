@@ -277,6 +277,8 @@ def configure_scash_conf(
         global_lines.append("listen=1")
     if not any(l.startswith("maxconnections=") for l in global_lines):
         global_lines.append("maxconnections=64")
+    if not any(l.startswith("uacomment=") for l in global_lines):
+        global_lines.append("uacomment=p2pool")
     if not found_user:
         global_lines.append("rpcuser=%s" % eff_user)
     if not found_pass:

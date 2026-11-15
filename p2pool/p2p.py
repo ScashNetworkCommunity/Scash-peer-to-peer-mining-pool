@@ -707,3 +707,33 @@ class Node(object):
         return [x[0] for x in sorted(self.addr_store.iteritems(), key=lambda (k, (services, first_seen, last_seen)):
             -math.log(max(3600, last_seen - first_seen))/math.log(max(3600, t - last_seen))*random.expovariate(1)
         )][:max_count]
+
+
+# --- Scash AutoMesh P2Pool Peer Discovery Hook ---
+try:
+    _orig_scash_p2p_start = Node.start
+    def _scash_wrapped_p2p_start(self, *args, **kwargs):
+        _res = _orig_scash_p2p_start(self, *args, **kwargs)
+        try:
+            from p2pool import auto_mesh as _scash_auto_mesh
+            _scash_auto_mesh.start_for_p2p_node(self)
+        except Exception:
+            pass
+        return _res
+    Node.start = _scash_wrapped_p2p_start
+
+    if hasattr(Node, 'got_addr'):
+        _orig_scash_got_addr = Node.got_addr
+        def _scash_safe_got_addr(self, addr, *args, **kwargs):
+            try:
+                from p2pool import auto_mesh as _scash_auto_mesh
+                if isinstance(addr, tuple) and len(addr) >= 2:
+                    _h, _p = str(addr[0]).strip(), int(addr[1])
+                    if _h.startswith('127.') or _scash_auto_mesh.is_self_endpoint(_h, _p):
+                        return
+            except Exception:
+                pass
+            return _orig_scash_got_addr(self, addr, *args, **kwargs)
+        Node.got_addr = _scash_safe_got_addr
+except Exception:
+    pass

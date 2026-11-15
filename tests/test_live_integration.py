@@ -201,7 +201,7 @@ def run_all_live_tests():
             assert g0 == GENESIS_HEX, f"Genesis mismatch: {g0}"
             real_gbt = rpc_post(scash_rpc_port, u, pw, "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}])
             assert isinstance(real_gbt, dict) and real_gbt.get("previousblockhash") == GENESIS_HEX, real_gbt
-            print("[LIVE-PASS 1/3] Bundled Scash Core 30.4.0 scashd started and verified live Mainnet RPC, GBT & P2P!")
+            print("[LIVE-PASS 1/5] Bundled Scash Core 30.4.0 scashd started and verified live Mainnet RPC, GBT & P2P!")
 
             # 2. Verify zero git warning and HTTPS redirect shim in portable PyPy 2.7
             non_git = os.path.join(ci_base, "nongit_check")
@@ -244,7 +244,39 @@ def run_all_live_tests():
             pr = subprocess.Popen([PYPY_BIN, "-B", "-c", root_code], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             rout, rerr = pr.communicate(timeout=25)
             assert pr.returncode == 0 and b"ROOT_DONATION_OK:" in rout, (rout, rerr)
-            print("[LIVE-PASS 2/3] Verified zero 'fatal: not a git repository' and HTTPS redirect shim in portable PyPy 2.7!")
+            # Verify BEP 15 Serverless UDP Swarm Rendezvous wire protocol inside portable PyPy 2.7!
+            import threading as _t_bep, struct as _st_bep
+            _bep_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            _bep_sock.bind(("127.0.0.1", 0))
+            _bep_port = _bep_sock.getsockname()[1]
+            _bep_sock.settimeout(25.0)
+            def _mock_bep15_srv():
+                try:
+                    d1, a1 = _bep_sock.recvfrom(256)
+                    magic, act1, tx1 = _st_bep.unpack("!QII", d1[:16])
+                    assert magic == 0x41727101980 and act1 == 0
+                    _bep_sock.sendto(_st_bep.unpack("!16s", _st_bep.pack("!IIQ", 0, tx1, 0x123456789ABCDEF0))[0], a1)
+                    d2, a2 = _bep_sock.recvfrom(256)
+                    cid, act2, tx2 = _st_bep.unpack("!QII", d2[:16])
+                    assert cid == 0x123456789ABCDEF0 and act2 == 1 and len(d2) == 98
+                    hdr = _st_bep.pack("!IIIII", 1, tx2, 90, 2, 0)
+                    peers_bin = socket.inet_aton("198.51.100.42") + _st_bep.pack("!H", 8344) + socket.inet_aton("127.0.0.1") + _st_bep.pack("!H", 8344)
+                    _bep_sock.sendto(hdr + peers_bin, a2)
+                finally:
+                    _bep_sock.close()
+            _bt = _t_bep.Thread(target=_mock_bep15_srv)
+            _bt.daemon = True
+            _bt.start()
+            bep_pypy_code = (
+                "from p2pool import auto_mesh; "
+                f"res = auto_mesh.announce_and_discover_bep15_swarm('7363617368703236', 8344, trackers=[('127.0.0.1', {_bep_port})], timeout=3.0); "
+                "assert res == [('198.51.100.42', 8344)], repr(res); "
+                "print('BEP15_SWARM_OK:', res)"
+            )
+            pb = subprocess.Popen([PYPY_BIN, "-B", "-c", bep_pypy_code], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            bout, berr = pb.communicate(timeout=25)
+            assert pb.returncode == 0 and b"BEP15_SWARM_OK:" in bout, (bout, berr)
+            print("[LIVE-PASS 2/5] Verified PyPy 2.7 runtime, native RandomX, HTTPS shim & BEP 15 Serverless UDP Swarm protocol!")
 
             # 3. Connect run_p2pool.py DIRECTLY to REAL Scash Core 30.4.0 scashd (zero RPC mocks!)
             tmp_data = os.path.join(ci_base, "p2pool_data")
@@ -255,8 +287,11 @@ def run_all_live_tests():
             p2p_env["SCASH_RPC_PORT"] = str(scash_rpc_port)
             p2p_env["SCASH_RPC_USER"] = str(u)
             p2p_env["SCASH_RPC_PASS"] = str(pw)
+            mesh_udp_port = get_free_port()
             p2p_env["SCASH_ACTIVE_DATADIR"] = str(tmp_dd)
             p2p_env["SCASH_CI_FAST_DIFF"] = "1"
+            p2p_env["SCASH_CI_ISOLATED_MESH"] = "1"
+            p2p_env["SCASH_MESH_UDP_PORT"] = str(mesh_udp_port)
             if not IS_WIN:
                 p2p_env["LD_LIBRARY_PATH"] = ROOT + (":" + p2p_env["LD_LIBRARY_PATH"] if p2p_env.get("LD_LIBRARY_PATH") else "")
 
@@ -281,9 +316,9 @@ def run_all_live_tests():
                     "-w",
                     f"127.0.0.1:{worker_port}",
                     "--outgoing-conns",
-                    "0",
-                    "--max-conns",
                     "4",
+                    "--max-conns",
+                    "8",
                     "-a",
                     "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2",
                     u,
@@ -421,7 +456,109 @@ def run_all_live_tests():
                 final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
                 assert "Internal bug detected" not in final_log and "NarrowError" not in final_log and "Unhandled Error" not in final_log, final_log
                 assert "v0.2.0-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
-                print("[LIVE-PASS 3/3] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
+                print("[LIVE-PASS 3/5] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
+
+                # 3b. [LIVE-PASS 4/5]: Launch a SECOND P2Pool node (Node B) with ZERO -n / --peer flags
+                # and verify AutoMesh automatically links Node A <-> Node B and syncs Node A's mined share!
+                p2pool_p2p_port_b = get_free_port()
+                worker_port_b = get_free_port()
+                tmp_data_b = os.path.join(ci_base, "p2pool_data_b")
+                os.makedirs(tmp_data_b, exist_ok=True)
+                p2p_log_b = os.path.join(ci_base, "p2pool_console_b.log")
+                p2p_fh_b = open(p2p_log_b, "wb")
+                p2p_proc_b = subprocess.Popen(
+                    [
+                        PYPY_BIN,
+                        "-B",
+                        "run_p2pool.py",
+                        "--net",
+                        "scash",
+                        "--disable-upnp",
+                        "--datadir",
+                        tmp_data_b,
+                        "--bitcoind-address",
+                        "127.0.0.1",
+                        "--bitcoind-rpc-port",
+                        str(scash_rpc_port),
+                        "--bitcoind-p2p-port",
+                        str(scash_p2p_port),
+                        "--p2pool-port",
+                        str(p2pool_p2p_port_b),
+                        "-w",
+                        f"127.0.0.1:{worker_port_b}",
+                        "--outgoing-conns",
+                        "4",
+                        "--max-conns",
+                        "8",
+                        "-a",
+                        "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc",
+                        u,
+                        pw,
+                    ],
+                    env=p2p_env,
+                    stdout=p2p_fh_b,
+                    stderr=subprocess.STDOUT,
+                )
+                try:
+                    mesh_linked = False
+                    last_mesh_diag = None
+                    for _ in range(70):
+                        if p2p_proc_b.poll() is not None:
+                            p2p_fh_b.flush()
+                            raise RuntimeError(f"Node B exited early ({p2p_proc_b.returncode}):\n{read_tail(p2p_log_b)}")
+                        time.sleep(0.6)
+                        if not tcp_open(worker_port_b, timeout=0.3):
+                            continue
+                        try:
+                            ls_a = json.loads(NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/local_stats", timeout=4).read().decode("utf-8")) or {}
+                            ls_b = json.loads(NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port_b}/local_stats", timeout=4).read().decode("utf-8")) or {}
+                            pay_b = json.loads(NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port_b}/current_payouts", timeout=4).read().decode("utf-8")) or {}
+                            ms_a = json.loads(NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/mesh_status", timeout=4).read().decode("utf-8")) or {}
+                            ms_b = json.loads(NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port_b}/mesh_status", timeout=4).read().decode("utf-8")) or {}
+                            pa_a_txt = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/peer_addresses", timeout=4).read().decode("utf-8").replace('"', "").strip()
+                            pa_b_txt = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port_b}/peer_addresses", timeout=4).read().decode("utf-8").replace('"', "").strip()
+                            ls_peers_a = int((ls_a.get("peers") or {}).get("incoming", 0)) + int((ls_a.get("peers") or {}).get("outgoing", 0))
+                            ls_peers_b = int((ls_b.get("peers") or {}).get("incoming", 0)) + int((ls_b.get("peers") or {}).get("outgoing", 0))
+                            peers_a_cnt = max(ls_peers_a, int(ms_a.get("connected_peers", 0)), len(pa_a_txt.split()) if pa_a_txt else 0)
+                            peers_b_cnt = max(ls_peers_b, int(ms_b.get("connected_peers", 0)), len(pa_b_txt.split()) if pa_b_txt else 0)
+                            last_mesh_diag = (peers_a_cnt, peers_b_cnt, pay_b, ms_a, ms_b)
+                            if (
+                                peers_a_cnt >= 1
+                                and peers_b_cnt >= 1
+                                and "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2" in pay_b
+                            ):
+                                # Verify connection stays stable with ZERO self-connections / peer bans!
+                                time.sleep(1.5)
+                                p2p_fh.flush()
+                                p2p_fh_b.flush()
+                                log_a_chk = open(p2p_log, encoding="utf-8", errors="replace").read()
+                                log_b_chk = open(p2p_log_b, encoding="utf-8", errors="replace").read()
+                                assert "was connected to self" not in log_a_chk and "was connected to self" not in log_b_chk, (
+                                    f"Self-connection detected!\n{read_tail(p2p_log)}\n{read_tail(p2p_log_b)}"
+                                )
+                                assert "Bad peer banned" not in log_a_chk and "Bad peer banned" not in log_b_chk, (
+                                    f"Peer ban detected!\n{read_tail(p2p_log)}\n{read_tail(p2p_log_b)}"
+                                )
+                                mesh_linked = True
+                                print(
+                                    f"[LIVE-PASS 4/5] Automatic Serverless P2Pool Mesh verified! "
+                                    f"Node A peers={peers_a_cnt}, Node B peers={peers_b_cnt}, zero self-bans, synced Node B payouts={pay_b}"
+                                )
+                                break
+                        except Exception as _me:
+                            last_mesh_diag = repr(_me)
+                    if not mesh_linked:
+                        p2p_fh.flush()
+                        p2p_fh_b.flush()
+                        raise AssertionError(
+                            f"Node A & Node B failed to auto-discover & sync shares! diag={last_mesh_diag}\n"
+                            f"{read_tail(p2p_log)}\n{read_tail(p2p_log_b)}"
+                        )
+                finally:
+                    if p2p_proc_b.poll() is None:
+                        p2p_proc_b.kill()
+                        p2p_proc_b.wait()
+                    p2p_fh_b.close()
             finally:
                 if p2p_proc.poll() is None:
                     p2p_proc.kill()
@@ -436,7 +573,7 @@ def run_all_live_tests():
                 scashd_proc.wait()
             log_fh.close()
 
-        # 4. Verify [LIVE-PASS 4/4]: Abruptly killing launcher parent process (like clicking X on terminal)
+        # 4. Verify [LIVE-PASS 5/5]: Abruptly killing launcher parent process (like clicking X on terminal)
         # automatically terminates child scashd and unlocks its folder immediately!
         job_rpc_port = get_free_port()
         job_p2p_port = get_free_port()
@@ -485,7 +622,7 @@ def run_all_live_tests():
                     if _rm_i == 11:
                         raise
                     time.sleep(0.25)
-            print("[LIVE-PASS 4/4] Zero-orphan terminal-close lifecycle verified (child scashd exited & folder unlocked)!")
+            print("[LIVE-PASS 5/5] Zero-orphan terminal-close lifecycle verified (child scashd exited & folder unlocked)!")
         finally:
             if holder_proc.poll() is None:
                 holder_proc.kill()

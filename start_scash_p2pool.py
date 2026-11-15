@@ -970,6 +970,41 @@ def find_scashd_binary(custom_bin=None):
     return None
 
 
+def ensure_windows_p2p_firewall_rule(p2p_port=8344):
+    """When elevated on Windows, allow inbound TCP/UDP :8344 so P2Pool LAN & mesh peers connect cleanly."""
+    if platform.system() != "Windows":
+        return
+    try:
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            return
+        CREATE_NO_WINDOW = 0x08000000
+        devnull = open(os.devnull, "wb")
+        for proto in ("TCP", "UDP"):
+            rule_name = "Scash P2Pool P2P %s %d" % (proto, int(p2p_port))
+            chk = subprocess.call(
+                ["netsh", "advfirewall", "firewall", "show", "rule", "name=%s" % rule_name],
+                stdout=devnull,
+                stderr=devnull,
+                creationflags=CREATE_NO_WINDOW,
+            )
+            if chk != 0:
+                subprocess.call(
+                    [
+                        "netsh", "advfirewall", "firewall", "add", "rule",
+                        "name=%s" % rule_name,
+                        "dir=in", "action=allow",
+                        "protocol=%s" % proto,
+                        "localport=%d" % int(p2p_port),
+                        "profile=any",
+                    ],
+                    stdout=devnull,
+                    stderr=devnull,
+                    creationflags=CREATE_NO_WINDOW,
+                )
+    except Exception:
+        pass
+
+
 def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342, p2p_port=None):
     cmd = [
         scashd_bin,
@@ -978,6 +1013,7 @@ def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342, p2p_port=None):
         "-server=1",
         "-listen=1",
         "-dnsseed=1",
+        "-uacomment=p2pool",
         "-rpcport=%d" % int(rpc_port),
         "-rpcbind=127.0.0.1",
         "-rpcallowip=127.0.0.1",
@@ -1421,6 +1457,7 @@ def main():
     t_ready.daemon = True
     t_ready.start()
 
+    ensure_windows_p2p_firewall_rule(8344)
     print("[3/3] Launching Scash P2Pool Sharechain Node on :8344 (P2P) & :8345 (Stratum + QtKawaii UI)...")
     p2pool_env = dict(os.environ)
     p2pool_env["SCASH_ACTIVE_DATADIR"] = str(active_datadir)

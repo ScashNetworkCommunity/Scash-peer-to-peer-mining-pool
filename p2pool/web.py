@@ -596,16 +596,28 @@ try:
                     'addnodes': _scash_nodes.DEFAULT_SCASH_ADDNODES,
                     'dns_seeds': _scash_nodes.DEFAULT_DNS_SEEDS,
                 })
+            elif self.action == 'mesh':
+                from p2pool import auto_mesh as _scash_auto_mesh
+                return _jb(_scash_auto_mesh.get_mesh_status())
             return _jb({'ok': False})
 
     _orig_scash_get_web_root = get_web_root
     def get_web_root(*args, **kwargs):
         _wr = _orig_scash_get_web_root(*args, **kwargs)
+        try:
+            from p2pool import auto_mesh as _scash_auto_mesh
+            _wb_obj = args[0] if args else kwargs.get('wb')
+            _p2p_n = getattr(getattr(_wb_obj, 'node', None), 'p2p_node', None)
+            if _p2p_n is not None:
+                _scash_auto_mesh.start_for_p2p_node(_p2p_n)
+        except Exception:
+            pass
         _wr.putChild(b'miner_status', _ScashMinerControlResource('status'))
         _wr.putChild(b'miner_start', _ScashMinerControlResource('start'))
         _wr.putChild(b'miner_stop', _ScashMinerControlResource('stop'))
         _wr.putChild(b'nodes_list', _ScashMinerControlResource('nodes'))
         _wr.putChild(b'node_sync_status', _ScashMinerControlResource('sync'))
+        _wr.putChild(b'mesh_status', _ScashMinerControlResource('mesh'))
         return _wr
 except Exception:
     pass

@@ -14,7 +14,12 @@ MIN_TARGET = 0
 MAX_TARGET = 2**256 // 2**8 - 1
 PERSIST = False
 WORKER_PORT = 8345
-BOOTSTRAP_ADDRS = 'magicalgirlsunite.moe scash.tv scash.pool-pay.com satoshicash.cedric-crispin.com 5.59.96.54 144.76.17.34'.split(' ')
+import os as _os
+BOOTSTRAP_ADDRS = [] if _os.environ.get('SCASH_CI_ISOLATED_MESH') == '1' else (
+    'p2pool.magicalgirlsunite.moe magicalgirlsunite.moe seed.scash.one scash.tv '
+    'scash.pool-pay.com satoshicash.cedric-crispin.com pool.rplant.xyz '
+    '5.59.96.54 5.128.87.126 5.186.40.82 144.76.17.34 198.199.73.40 88.190.223.96 209.141.46.154'
+).split()
 ANNOUNCE_CHANNEL = '#scash-p2pool'
 VERSION_CHECK = lambda v: True
 VERSION_WARNING = lambda v: None
