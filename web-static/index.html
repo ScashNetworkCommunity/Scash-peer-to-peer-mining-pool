@@ -874,9 +874,9 @@
 
       document.getElementById('poolUptimeBadge').textContent = ls && ls.uptime ? `Uptime: ${fmtUptime(ls.uptime)}` : 'Uptime: —';
 
-      renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries);
+      renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries, p2pPeers);
       renderRealPayoutsTable(payoutEntries, ls, userWallet, isSyncing);
-      renderNodeWindow(ns, ls);
+      renderNodeWindow(ns, ls, p2pPeers);
       renderExternalMinerCmd();
 
       // Update live chart
@@ -897,7 +897,7 @@
       }
     }
 
-    function renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries) {
+    function renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries, p2pPeers = 0) {
       const box = document.getElementById('liveActivityContainer');
       if (!box) return;
       const items = [];
@@ -1010,12 +1010,11 @@
       `).join('');
     }
 
-    function renderNodeWindow(ns, ls) {
+    function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
       document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
-      const p2pPeers = ls && ls.peers ? (Number(ls.peers.incoming || 0) + Number(ls.peers.outgoing || 0)) : 0;
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
       document.getElementById('nodeWinBlockHeight').textContent = ns.blocks !== undefined ? String(ns.blocks) : '—';
       document.getElementById('nodeWinMempool').textContent =

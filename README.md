@@ -40,7 +40,7 @@ Just like [official Monero mining apps](https://www.getmonero.org/get-started/fa
 ### Step 2: Save & Unzip Inside `C:\Scash-P2Pool`
 1. On the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), **right-click** **`scash-p2pool-0.2.0-win64.zip`** and click **Save link as...**.
 2. Choose **`C:\Scash-P2Pool`** and click **Save** *(saving straight into `C:\Scash-P2Pool` keeps Windows from deleting it in your `Downloads` folder)*.
-3. Open **`C:\Scash-P2Pool`**, **right-click** the `.zip` file, click **Extract All...**, and click **Extract**.
+3. Open **`C:\Scash-P2Pool`**, **right-click** the `.zip` file, click **Extract All...**, and click **Extract** *(Tip: for instant 2-second extraction on Windows 11, you can also use **7-Zip** or run `tar -xf C:\Scash-P2Pool\scash-p2pool-0.2.0-win64.zip -C C:\Scash-P2Pool` in PowerShell)*.
 
 ### Step 3: Double-Click `Start-Scash-P2Pool.exe`
 Open your extracted folder and double-click **`Start-Scash-P2Pool.exe`** (or **`Start-Scash-P2Pool-Windows.bat`**). On your very first launch, Windows may show up to three normal prompts:

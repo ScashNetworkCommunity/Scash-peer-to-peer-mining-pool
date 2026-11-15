@@ -855,6 +855,11 @@ def _cleanup_stale_linux_processes(rpc_port, all_datadirs, conf_user, conf_pass)
                 break
             time.sleep(0.4)
 
+    for _ in range(8):
+        if not any(os.path.exists("/proc/%d" % p) for p in (stale_launcher_pids + stale_miner_pids)):
+            break
+        time.sleep(0.25)
+
     for pid in stale_launcher_pids + stale_miner_pids:
         if os.path.exists("/proc/%d" % pid):
             try:
@@ -862,10 +867,13 @@ def _cleanup_stale_linux_processes(rpc_port, all_datadirs, conf_user, conf_pass)
             except Exception:
                 pass
 
-    for _ in range(12):
-        if not is_port_open("127.0.0.1", 8345, timeout=0.25):
+    for _ in range(16):
+        if (not is_port_open("127.0.0.1", 8345, timeout=0.25)) and (not is_port_open("127.0.0.1", 8344, timeout=0.25)):
             break
         time.sleep(0.3)
+
+    if is_port_open("127.0.0.1", 8344, timeout=0.25):
+        print("[Notice] Port 8344 is still held by another user/root process! Run: sudo ./stop-scash-p2pool-linux.sh")
 
 
 def cleanup_stale_p2pool_processes(rpc_port, all_datadirs, conf_user, conf_pass, primary_datadir):
@@ -1459,7 +1467,35 @@ def main():
 
     ensure_windows_p2p_firewall_rule(8344)
     print("[3/3] Launching Scash P2Pool Sharechain Node on :8344 (P2P) & :8345 (Stratum + QtKawaii UI)...")
+    # Verify native RandomX PoW engine against Scash Genesis Block #0 before starting P2Pool!
+    os.environ["SCASH_REQUIRE_NATIVE_RANDOMX"] = "1"
+    from p2pool.bitcoin import scash_randomx as _srx_chk
+    import binascii as _b_chk, struct as _st_chk
+    _ml0 = _b_chk.unhexlify("2f7b90fafd8247ee73d213d49699fcfe12a37c608f1d9d1c06f10e43cb6426c6")[::-1]
+    _gh0 = _st_chk.pack("<I32s32sIII", 1, b"\x00" * 32, _ml0, 1708650456, 0x1e0fffff, 20076863)
+    _rxh0, _ = _srx_chk.calculate_scash_hash_and_cm_bytes(_gh0)
+    assert _b_chk.hexlify(_rxh0[::-1]).decode("ascii") == "33c450e0152826e3a8948b01464cf9182344a1544b3ddcf6153dd04b62938d01", "RandomX Genesis self-test mismatch!"
+    print("[2/3] Verified native RandomX v1.2.1 PoW engine (Genesis hash match OK)!")
+
+    # One-time cleanup on Linux to purge any stale corrupt shares.0 created by older non-static librandomx builds
+    if platform.system() != "Windows":
+        _scash_share_dir = os.path.join(ROOT_DIR, "data", "scash")
+        _rx_ok_flag = os.path.join(_scash_share_dir, "LINUX_RX_VERIFIED_V2.flag")
+        if os.path.isdir(_scash_share_dir) and not os.path.isfile(_rx_ok_flag):
+            for _sfn in os.listdir(_scash_share_dir):
+                if _sfn.startswith("shares.") or _sfn == "addrs":
+                    try:
+                        os.remove(os.path.join(_scash_share_dir, _sfn))
+                    except Exception:
+                        pass
+        try:
+            if not os.path.isdir(_scash_share_dir): os.makedirs(_scash_share_dir)
+            open(_rx_ok_flag, "w").write("1\n")
+        except Exception:
+            pass
+
     p2pool_env = dict(os.environ)
+    p2pool_env["SCASH_REQUIRE_NATIVE_RANDOMX"] = "1"
     p2pool_env["SCASH_ACTIVE_DATADIR"] = str(active_datadir)
     p2pool_env["SCASH_RPC_PORT"] = str(active_creds[2])
     p2pool_env["SCASH_RPC_USER"] = str(active_creds[0])

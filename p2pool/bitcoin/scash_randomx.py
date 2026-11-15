@@ -1,8 +1,9 @@
 """
 Consensus-Exact Scash 112-Byte Block Header & RandomX v1.2.1 Commitment Bridge.
 Uses ctypes.c_void_p + pinned ctypes.create_string_buffer(data, n) (NEVER c_char_p!)
-so embedded/leading NUL bytes (e.g. nVersion=0x20000000 -> '\x00\x00\x00\x20')
-and binary 32-byte hashes are never truncated under PyPy 2.7 _ctypes or CPython 3.
+so embedded/leading NUL bytes and binary 32-byte hashes are never truncated under
+PyPy 2.7 _ctypes or CPython 3. Includes automatic non-JIT VM fallback on hardened
+Linux kernels and loud load-error reporting (never silent SHA-256 poisoning).
 """
 
 from __future__ import print_function
@@ -11,15 +12,20 @@ import ctypes
 import hashlib
 import os
 import struct
+import sys
 import threading
 
 MAINNET_EPOCH_DURATION = 7 * 24 * 60 * 60  # 604,800 seconds
+RANDOMX_FLAG_JIT = 8
 
 _rx_lock = threading.Lock()
 _rx_lib = None
 _rx_cache = None
 _rx_vm = None
+_rx_active_flags = 0
 _rx_current_epoch = None
+_rx_load_errors = []
+_rx_found_file_on_disk = False
 
 
 def get_scash_epoch(timestamp, epoch_duration=MAINNET_EPOCH_DURATION):
@@ -39,23 +45,35 @@ def get_scash_epoch_seed_hex(timestamp, epoch_duration=MAINNET_EPOCH_DURATION):
 
 
 def _load_librandomx():
-    global _rx_lib
+    global _rx_lib, _rx_found_file_on_disk
     if _rx_lib is not None:
         return _rx_lib
+    del _rx_load_errors[:]
+    _rx_found_file_on_disk = False
     here = os.path.abspath(os.path.dirname(__file__))
     root = os.path.abspath(os.path.join(here, '..', '..'))
+    cwd = os.path.abspath('.')
     search_paths = [
         os.path.join(root, 'randomx.dll'),
         os.path.join(root, 'librandomx.dll'),
         os.path.join(root, 'librandomx.so'),
         os.path.join(root, 'librandomx.dylib'),
+        os.path.join(cwd, 'randomx.dll'),
+        os.path.join(cwd, 'librandomx.so'),
         os.path.join(here, 'randomx.dll'),
         os.path.join(here, 'librandomx.so'),
         'randomx.dll',
         'librandomx.so',
         'librandomx.dylib',
     ]
+    seen = set()
     for candidate in search_paths:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        exists_on_disk = os.path.isabs(candidate) and os.path.isfile(candidate)
+        if exists_on_disk:
+            _rx_found_file_on_disk = True
         try:
             lib = ctypes.cdll.LoadLibrary(candidate)
             lib.randomx_get_flags.argtypes = []
@@ -64,6 +82,8 @@ def _load_librandomx():
             lib.randomx_alloc_cache.restype = ctypes.c_void_p
             lib.randomx_init_cache.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t]
             lib.randomx_init_cache.restype = None
+            lib.randomx_release_cache.argtypes = [ctypes.c_void_p]
+            lib.randomx_release_cache.restype = None
             lib.randomx_create_vm.argtypes = [ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]
             lib.randomx_create_vm.restype = ctypes.c_void_p
             lib.randomx_destroy_vm.argtypes = [ctypes.c_void_p]
@@ -74,13 +94,15 @@ def _load_librandomx():
             lib.randomx_calculate_commitment.restype = None
             _rx_lib = lib
             return _rx_lib
-        except Exception:
+        except Exception as e:
+            if exists_on_disk:
+                _rx_load_errors.append("%s: %s" % (candidate, e))
             continue
     return None
 
 
 def _get_vm_for_timestamp(timestamp):
-    global _rx_cache, _rx_vm, _rx_current_epoch
+    global _rx_cache, _rx_vm, _rx_active_flags, _rx_current_epoch
     lib = _load_librandomx()
     if lib is None:
         return None, None
@@ -90,20 +112,46 @@ def _get_vm_for_timestamp(timestamp):
 
     seed_key = get_scash_epoch_seed_bytes(timestamp)
     seed_buf = ctypes.create_string_buffer(seed_key, 32)
-    flags = lib.randomx_get_flags()
-    if _rx_cache is None:
-        _rx_cache = lib.randomx_alloc_cache(flags)
+
     if _rx_vm is not None:
         lib.randomx_destroy_vm(_rx_vm)
         _rx_vm = None
-    lib.randomx_init_cache(_rx_cache, seed_buf, 32)
-    _rx_vm = lib.randomx_create_vm(flags, _rx_cache, None)
-    _rx_current_epoch = epoch
-    return lib, _rx_vm
+
+    hw_flags = int(lib.randomx_get_flags())
+    flag_candidates = []
+    for fc in (hw_flags, hw_flags & ~RANDOMX_FLAG_JIT, 0):
+        if fc not in flag_candidates:
+            flag_candidates.append(fc)
+
+    for cand_flags in flag_candidates:
+        if _rx_cache is None or _rx_active_flags != cand_flags:
+            if _rx_cache is not None:
+                try:
+                    lib.randomx_release_cache(_rx_cache)
+                except Exception:
+                    pass
+                _rx_cache = None
+            _rx_cache = lib.randomx_alloc_cache(cand_flags)
+            if not _rx_cache:
+                _rx_cache = None
+                continue
+            _rx_active_flags = cand_flags
+        lib.randomx_init_cache(_rx_cache, seed_buf, 32)
+        vm = lib.randomx_create_vm(cand_flags, _rx_cache, None)
+        if vm:
+            _rx_vm = vm
+            _rx_current_epoch = epoch
+            return lib, _rx_vm
+
+    return lib, None
 
 
 def is_native_randomx_loaded():
     return _load_librandomx() is not None
+
+
+def get_load_diagnostics():
+    return list(_rx_load_errors)
 
 
 def _to_bytes(data):
@@ -135,6 +183,13 @@ def calculate_scash_hash_and_cm_bytes(header_bytes):
             lib.randomx_calculate_hash(vm, hdr_buf, 112, rx_hash)
             lib.randomx_calculate_commitment(hdr_buf, 112, rx_hash, rx_cm)
             return rx_hash.raw, rx_cm.raw
+
+    if _rx_found_file_on_disk or os.environ.get('SCASH_REQUIRE_NATIVE_RANDOMX') == '1':
+        detail = '; '.join(_rx_load_errors) if _rx_load_errors else 'librandomx.so / randomx.dll missing or VM init failed'
+        msg = '[CRITICAL] Native Scash RandomX library failed to initialize (%s)!' % detail
+        print(msg, file=sys.stderr)
+        sys.stderr.flush()
+        raise RuntimeError(msg)
 
     rx_hash_fb = hashlib.sha256(header_112).digest()
     rx_cm_fb = hashlib.sha256(header_112 + rx_hash_fb).digest()
