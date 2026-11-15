@@ -1,24 +1,25 @@
 """
-Automatic Serverless Peer-to-Peer Mesh Discovery for Scash P2Pool (v0.2.0).
+Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.2.0).
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 
 Every miner running Start-Scash-P2Pool automatically runs a full Scash Core 30.4.0 node
 (:8343) + P2Pool sharechain node (:8344) and connects directly to other miners with
-ZERO central seed server required from the pool author:
+ZERO central seed server and ZERO mandatory port forwarding:
 
 1. Live Home LAN Auto-Mesh: UDP Broadcast + Subnet Broadcast + Multicast (239.83.44.1)
    beacons on :8344 (+1 fallback) with strict instance_id deduplication & self-dial
    protection, plus /24 LAN TCP :8344 fallback sweep for broadcast-filtering routers.
-2. Automatic Router Port Opening on Every Miner's Router: Non-blocking pure-Python
-   UPnP IGD (WANIPConnection v1/v2, WANPPPConnection v1) + PCP (RFC 6887) + NAT-PMP
-   (RFC 6886) mapping for P2Pool (:8344) and Scash Core (:8343), plus RFC 5389 STUN
-   external IPv4 detection so any UPnP/PCP/NAT-PMP miner automatically acts as an open
-   peer for NAT-firewalled miners.
+2. Automatic Router Port Opening: Non-blocking pure-Python UPnP IGD (v1/v2) + PCP
+   (RFC 6887) + NAT-PMP (RFC 6886) mapping for P2Pool (:8344) and Scash Core (:8343).
 3. Serverless Global Swarm Rendezvous (BEP 15 Open UDP Swarm + Scash Blockchain Gossip):
-   Announces & fetches live Scash P2Pool miner IPs across independent public UDP swarm
-   trackers (swarm key SHA1('scash-p2pool-swarm-' + net_id_hex)) AND queries local
-   `scashd` (`-uacomment=p2pool`, `getpeerinfo` + `getnodeaddresses(256)`), plus caches
-   verified live peers in `<datadir>/verified_peers.json` across restarts.
+   Announces & fetches live Scash P2Pool miner endpoints across independent public UDP
+   swarm trackers AND queries local `scashd` (`-uacomment=p2pool`, `getpeerinfo` +
+   `getnodeaddresses(256)`), plus caches verified peers in `p2pool_verified_peers.json`.
+4. Decentralized STUN + Reliable UDP Hole-Punching (`SHP1`, RFC 5128 / RFC 5389):
+   Shares a single UDP socket for STUN external `(ip, udp_port)` discovery and reliable
+   windowed stream-over-UDP hole-punching into `127.0.0.1:<p2p_port>`, allowing even two
+   miners who are BOTH behind closed UPnP-disabled routers (e.g. AT&T BGW gateways or
+   Endpoint-Independent CGNAT) to link up directly and safely without port forwarding.
 """
 from __future__ import print_function
 import base64
@@ -36,6 +37,7 @@ import subprocess
 import sys
 import threading
 import time
+import zlib
 
 try:
     import urllib.request as _ureq
@@ -46,6 +48,18 @@ _NO_PROXY_OPENER = _ureq.build_opener(_ureq.ProxyHandler({}))
 
 BEACON_MAGIC = "SCASH_P2P_V1"
 MULTICAST_GRP = "239.83.44.1"
+
+SHP_MAGIC = b"SHP1"
+SHP_HELLO = 1
+SHP_HELLO_ACK = 2
+SHP_OPEN = 3
+SHP_OPEN_ACK = 4
+SHP_DATA = 5
+SHP_ACK = 6
+SHP_CLOSE = 7
+SHP_MSS = 1100
+SHP_WINDOW = 12
+SHP_MAX_TUNNELS = 4
 
 DEFAULT_SWARM_TRACKERS = (
     ("tracker.opentrackr.org", 1337),
@@ -71,21 +85,41 @@ MESH_STATE = {
     "natpmp_mapped": False,
     "pcp_mapped": False,
     "external_ip": None,
+    "external_udp_port": 0,
+    "nat_mapping": "unknown",
     "lan_ips": [],
     "discovered_lan_peers": [],
     "discovered_wan_peers": [],
     "swarm_peers_found": 0,
+    "holepunch_tunnels": 0,
     "connected_peers": 0,
     "incoming_peers": 0,
     "outgoing_peers": 0,
 }
 
 _ACTIVE_P2P_NODE = None
+_SHARED_UDP_SOCK = None
 _VERIFIED_OPEN_PEERS = set()
 _RECENT_UNICAST_REPLY = {}
 _DIALED_INSTANCES = {}
 _PROBED_WAN_TS = {}
+_PENDING_STUN_TX = {}
+_STUN_OBSERVATIONS = []
+_UDP_TUNNELS = {}
+_UDP_TUNNELS_LOCK = threading.Lock()
+_HELLO_RATE_LIMIT = {}
+_PUNCH_TARGETS = {}
 _STOP_EVENT = threading.Event()
+
+
+def _disable_win_udp_connreset(sock):
+    """Prevents Windows WinSock WSAECONNRESET (10054) on UDP sockets during hole-punch bursts."""
+    if platform.system() == "Windows":
+        try:
+            ioctl_code = getattr(socket, "SIO_UDP_CONNRESET", 0x9800000C)
+            sock.ioctl(ioctl_code, struct.pack("I", 0))
+        except Exception:
+            pass
 
 
 def _refresh_live_peer_counts():
@@ -105,6 +139,8 @@ def _refresh_live_peer_counts():
         MESH_STATE["connected_peers"] = len(vals)
         MESH_STATE["incoming_peers"] = inc
         MESH_STATE["outgoing_peers"] = out
+        with _UDP_TUNNELS_LOCK:
+            MESH_STATE["holepunch_tunnels"] = len(_UDP_TUNNELS)
     except Exception:
         pass
 
@@ -119,10 +155,13 @@ def get_mesh_status():
         "natpmp_mapped": bool(MESH_STATE["natpmp_mapped"]),
         "pcp_mapped": bool(MESH_STATE["pcp_mapped"]),
         "external_ip": MESH_STATE["external_ip"],
+        "external_udp_port": int(MESH_STATE["external_udp_port"]),
+        "nat_mapping": str(MESH_STATE["nat_mapping"]),
         "lan_ips": list(MESH_STATE["lan_ips"]),
         "discovered_lan_peers": list(MESH_STATE["discovered_lan_peers"])[-20:],
         "discovered_wan_peers": list(MESH_STATE["discovered_wan_peers"])[-20:],
         "swarm_peers_found": int(MESH_STATE["swarm_peers_found"]),
+        "holepunch_tunnels": int(MESH_STATE["holepunch_tunnels"]),
         "connected_peers": int(MESH_STATE["connected_peers"]),
         "incoming_peers": int(MESH_STATE["incoming_peers"]),
         "outgoing_peers": int(MESH_STATE["outgoing_peers"]),
@@ -141,10 +180,6 @@ def _is_valid_ipv4(ip):
         return all(0 <= n <= 255 for n in nums)
     except Exception:
         return False
-
-
-def _is_loopback_ipv4(ip):
-    return _is_valid_ipv4(ip) and str(ip).strip().startswith("127.")
 
 
 def _is_private_rfc1918(ip):
@@ -217,21 +252,550 @@ def get_local_lan_ipv4s():
 
 
 def is_self_endpoint(ip, port):
-    """Returns True if (ip, port) points to THIS local P2Pool node's own listening port."""
+    """Returns True if (ip, port) points to THIS local P2Pool node's own listening TCP/UDP port."""
     try:
         p = int(port)
     except Exception:
         return True
-    if p != int(MESH_STATE["p2p_port"]):
+    my_ports = set([int(MESH_STATE["p2p_port"])])
+    if MESH_STATE.get("udp_port"):
+        my_ports.add(int(MESH_STATE["udp_port"]))
+    if MESH_STATE.get("external_udp_port"):
+        my_ports.add(int(MESH_STATE["external_udp_port"]))
+    if p not in my_ports:
         return False
     s_ip = str(ip).strip()
     if s_ip in ("0.0.0.0", "") or s_ip.startswith("127."):
         return True
     if MESH_STATE.get("external_ip") and s_ip == str(MESH_STATE["external_ip"]):
         return True
-    if s_ip in (MESH_STATE.get("lan_ips") or []) or s_ip in get_local_lan_ipv4s():
-        return True
+    if p == int(MESH_STATE["p2p_port"]):
+        if s_ip in (MESH_STATE.get("lan_ips") or []) or s_ip in get_local_lan_ipv4s():
+            return True
     return False
+
+
+# ==============================================================================
+# Reliable Windowed Stream-over-UDP Hole-Punching Engine (`SHP1`)
+# ==============================================================================
+
+def pack_shp_packet(ptype, conn_id, seq, ack, payload=b""):
+    if not isinstance(payload, bytes):
+        payload = payload.encode("latin1")
+    crc = zlib.crc32(payload) & 0xFFFF
+    return (
+        struct.pack(
+            "!4sBIIIH",
+            SHP_MAGIC,
+            int(ptype) & 0xFF,
+            int(conn_id) & 0xFFFFFFFF,
+            int(seq) & 0xFFFFFFFF,
+            int(ack) & 0xFFFFFFFF,
+            crc,
+        )
+        + payload
+    )
+
+
+def unpack_shp_packet(pkt):
+    if not pkt or len(pkt) < 19 or pkt[:4] != SHP_MAGIC:
+        return None
+    _m, ptype, cid, seq, ack, crc = struct.unpack("!4sBIIIH", pkt[:19])
+    payload = pkt[19:]
+    if (zlib.crc32(payload) & 0xFFFF) != crc:
+        return None
+    return ptype, cid, seq, ack, payload
+
+
+class _UdpTunnelSession(object):
+    """Bridges a punched UDP peer link <-> local 127.0.0.1 P2Pool TCP socket reliably."""
+
+    def __init__(self, conn_id, remote_addr, remote_inst, initiator, udp_sock, p2p_node=None, target_local_port=None):
+        self.conn_id = int(conn_id) & 0xFFFFFFFF
+        self.remote_addr = (str(remote_addr[0]), int(remote_addr[1]))
+        self.remote_inst = str(remote_inst)
+        self.initiator = bool(initiator)
+        self.udp_sock = udp_sock
+        self.p2p_node = p2p_node
+        self.target_local_port = int(target_local_port or MESH_STATE["p2p_port"])
+        self.listen_sock = None
+        self.local_bridge_port = 0
+        self.tcp_sock = None
+        self.established = False
+        self.closed = False
+        self.dial_triggered = False
+
+        self.next_seq = 0
+        self.send_base = 0
+        self.unacked = {}  # seq -> [payload_bytes, last_sent_ts, retries]
+        self.recv_next = 0
+        self.rx_oob = {}   # seq -> payload_bytes
+        self.rx_to_tcp_buf = bytearray()
+
+        now = time.time()
+        self.created_ts = now
+        self.last_rx_ts = now
+        self.last_open_sent_ts = 0.0
+        self.last_keepalive_ts = now
+        self.open_retries = 0
+        self.on_initiator_ready = None  # optional test callback(local_bridge_port)
+
+    def start_initiator_listener(self, on_ready_cb=None):
+        self.on_initiator_ready = on_ready_cb
+        ls = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ls.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        ls.bind(("127.0.0.1", 0))
+        ls.listen(1)
+        ls.setblocking(False)
+        self.listen_sock = ls
+        self.local_bridge_port = ls.getsockname()[1]
+        self._send_open()
+        return self.local_bridge_port
+
+    def start_responder_socket(self):
+        cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        cs.settimeout(2.5)
+        cs.connect(("127.0.0.1", self.target_local_port))
+        cs.setblocking(False)
+        self.tcp_sock = cs
+        self.established = True
+        self._send_udp(SHP_OPEN_ACK, 0, 0, b"")
+
+    def _send_udp(self, ptype, seq, ack, payload=b""):
+        try:
+            pkt = pack_shp_packet(ptype, self.conn_id, seq, ack, payload)
+            self.udp_sock.sendto(pkt, self.remote_addr)
+        except Exception:
+            pass
+
+    def _send_open(self):
+        meta = ("%s|%s" % (MESH_STATE["net_id_hex"], MESH_STATE["instance_id"])).encode("ascii")
+        self._send_udp(SHP_OPEN, 0, 0, meta)
+        self.last_open_sent_ts = time.time()
+        self.open_retries += 1
+
+    def on_udp_packet(self, ptype, seq, ack, payload):
+        if self.closed:
+            return
+        self.last_rx_ts = time.time()
+
+        if ptype == SHP_OPEN:
+            self._send_udp(SHP_OPEN_ACK, 0, self.recv_next, b"")
+            return
+
+        if ptype == SHP_OPEN_ACK:
+            if not self.established:
+                self.established = True
+                if self.initiator and not self.dial_triggered:
+                    self.dial_triggered = True
+                    if self.on_initiator_ready is not None:
+                        try:
+                            self.on_initiator_ready(self.local_bridge_port)
+                        except Exception:
+                            pass
+                    elif self.p2p_node is not None:
+                        print(
+                            "[AutoMesh] Punched direct UDP NAT tunnel to peer %s:%d -> local bridge 127.0.0.1:%d"
+                            % (self.remote_addr[0], self.remote_addr[1], self.local_bridge_port)
+                        )
+                        _schedule_connect(
+                            self.p2p_node,
+                            "127.0.0.1",
+                            self.local_bridge_port,
+                            immediate=True,
+                            source="udp_holepunch",
+                            allow_loopback_bridge=True,
+                        )
+            return
+
+        if ptype == SHP_CLOSE:
+            self.close(notify_remote=False)
+            return
+
+        # Process cumulative ACK on both SHP_DATA and SHP_ACK
+        if ack > self.send_base:
+            for k in list(self.unacked.keys()):
+                if k < ack:
+                    self.unacked.pop(k, None)
+            self.send_base = ack
+
+        if ptype == SHP_DATA and payload:
+            if seq == self.recv_next:
+                self.rx_to_tcp_buf.extend(payload)
+                self.recv_next += 1
+                while self.recv_next in self.rx_oob:
+                    nxt = self.rx_oob.pop(self.recv_next)
+                    self.rx_to_tcp_buf.extend(nxt)
+                    self.recv_next += 1
+                self._send_udp(SHP_ACK, 0, self.recv_next, b"")
+            elif self.recv_next < seq < (self.recv_next + 32):
+                if len(self.rx_oob) < 32 and seq not in self.rx_oob:
+                    self.rx_oob[seq] = payload
+                self._send_udp(SHP_ACK, 0, self.recv_next, b"")
+            elif seq < self.recv_next:
+                self._send_udp(SHP_ACK, 0, self.recv_next, b"")
+
+    def tick(self, now):
+        if self.closed:
+            return
+        if (now - self.last_rx_ts) > 45.0:
+            self.close(notify_remote=True)
+            return
+
+        if not self.established:
+            if self.initiator:
+                if self.open_retries > 16:
+                    self.close(notify_remote=False)
+                    return
+                if (now - self.last_open_sent_ts) >= 0.35:
+                    self._send_open()
+            elif (now - self.created_ts) > 10.0:
+                self.close(notify_remote=False)
+            return
+
+        if self.listen_sock is not None and self.tcp_sock is None:
+            try:
+                cs, _ = self.listen_sock.accept()
+                cs.setblocking(False)
+                self.tcp_sock = cs
+                try:
+                    self.listen_sock.close()
+                except Exception:
+                    pass
+                self.listen_sock = None
+            except Exception:
+                if (now - self.created_ts) > 12.0:
+                    self.close(notify_remote=True)
+                    return
+
+        # Retransmit unacknowledged segments
+        if self.unacked:
+            sent_n = 0
+            for seq in sorted(self.unacked.keys()):
+                item = self.unacked.get(seq)
+                if not item:
+                    continue
+                chunk, last_ts, retries = item
+                if retries > 28:
+                    self.close(notify_remote=True)
+                    return
+                rto = min(1.2, 0.20 * (1.35 ** min(retries, 6)))
+                if (now - last_ts) >= rto:
+                    self._send_udp(SHP_DATA, seq, self.recv_next, chunk)
+                    item[1] = now
+                    item[2] = retries + 1
+                    sent_n += 1
+                    if sent_n >= 3:
+                        break
+        elif (now - self.last_keepalive_ts) >= 12.0:
+            self.last_keepalive_ts = now
+            self._send_udp(SHP_ACK, 0, self.recv_next, b"")
+
+    def close(self, notify_remote=False):
+        if self.closed:
+            return
+        self.closed = True
+        if notify_remote:
+            self._send_udp(SHP_CLOSE, 0, self.recv_next, b"")
+        for s in (self.tcp_sock, self.listen_sock):
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+        self.tcp_sock = None
+        self.listen_sock = None
+
+
+def _has_tunnel_with_peer(remote_addr, remote_inst):
+    with _UDP_TUNNELS_LOCK:
+        for t in _UDP_TUNNELS.values():
+            if not t.closed and (t.remote_addr == remote_addr or (remote_inst and t.remote_inst == remote_inst)):
+                return True
+    return False
+
+
+def _handle_shp_datagram(p2p_node, udp_sock, data, addr, target_local_port=None, on_initiator_ready=None):
+    parsed = unpack_shp_packet(data)
+    if parsed is None:
+        return
+    ptype, cid, seq, ack, payload = parsed
+    remote_addr = (str(addr[0]), int(addr[1]))
+    my_inst = MESH_STATE["instance_id"]
+    net_hex = MESH_STATE["net_id_hex"]
+
+    if ptype in (SHP_HELLO, SHP_HELLO_ACK):
+        try:
+            parts = payload.decode("ascii", "ignore").strip().split("|")
+        except Exception:
+            return
+        if len(parts) < 2 or parts[0] != net_hex or parts[1] == my_inst:
+            return
+        r_inst = parts[1]
+
+        if ptype == SHP_HELLO:
+            now = time.time()
+            if (now - _HELLO_RATE_LIMIT.get(remote_addr, 0.0)) >= 0.8:
+                _HELLO_RATE_LIMIT[remote_addr] = now
+                ack_meta = ("%s|%s" % (net_hex, my_inst)).encode("ascii")
+                try:
+                    udp_sock.sendto(pack_shp_packet(SHP_HELLO_ACK, 0, 0, 0, ack_meta), remote_addr)
+                except Exception:
+                    pass
+
+        if _has_tunnel_with_peer(remote_addr, r_inst):
+            return
+        with _UDP_TUNNELS_LOCK:
+            if len(_UDP_TUNNELS) >= SHP_MAX_TUNNELS:
+                return
+
+        # Deterministic tie-breaker: lower instance_id initiates SHP_OPEN!
+        if my_inst < r_inst:
+            new_cid = random.randrange(1, 2**32)
+            tun = _UdpTunnelSession(
+                new_cid,
+                remote_addr,
+                r_inst,
+                initiator=True,
+                udp_sock=udp_sock,
+                p2p_node=p2p_node,
+                target_local_port=target_local_port,
+            )
+            with _UDP_TUNNELS_LOCK:
+                _UDP_TUNNELS[new_cid] = tun
+            tun.start_initiator_listener(on_ready_cb=on_initiator_ready)
+        return
+
+    if ptype == SHP_OPEN:
+        try:
+            parts = payload.decode("ascii", "ignore").strip().split("|")
+        except Exception:
+            return
+        if len(parts) < 2 or parts[0] != net_hex or parts[1] == my_inst:
+            return
+        r_inst = parts[1]
+        with _UDP_TUNNELS_LOCK:
+            existing = _UDP_TUNNELS.get(cid)
+            if existing is not None and existing.remote_addr == remote_addr and not existing.closed:
+                existing.on_udp_packet(ptype, seq, ack, payload)
+                return
+            if len(_UDP_TUNNELS) >= SHP_MAX_TUNNELS:
+                return
+        tun = _UdpTunnelSession(
+            cid,
+            remote_addr,
+            r_inst,
+            initiator=False,
+            udp_sock=udp_sock,
+            p2p_node=p2p_node,
+            target_local_port=target_local_port,
+        )
+        try:
+            tun.start_responder_socket()
+            with _UDP_TUNNELS_LOCK:
+                _UDP_TUNNELS[cid] = tun
+            print("[AutoMesh] Accepted incoming UDP hole-punched peer tunnel from %s:%d" % (remote_addr[0], remote_addr[1]))
+        except Exception:
+            tun.close(notify_remote=False)
+        return
+
+    with _UDP_TUNNELS_LOCK:
+        tun = _UDP_TUNNELS.get(cid)
+    if tun is not None and tun.remote_addr == remote_addr and not tun.closed:
+        tun.on_udp_packet(ptype, seq, ack, payload)
+
+
+def _udp_tunnel_pump_worker():
+    """Single lightweight event loop pumping TCP <-> Reliable UDP across active hole-punch tunnels."""
+    while not _STOP_EVENT.is_set():
+        with _UDP_TUNNELS_LOCK:
+            tunnels = list(_UDP_TUNNELS.values())
+
+        if not tunnels:
+            _STOP_EVENT.wait(0.15)
+            continue
+
+        rlist = []
+        wlist = []
+        sock_to_tun = {}
+        now = time.time()
+
+        for tun in tunnels:
+            tun.tick(now)
+            if tun.closed:
+                with _UDP_TUNNELS_LOCK:
+                    _UDP_TUNNELS.pop(tun.conn_id, None)
+                continue
+            if tun.listen_sock is not None and tun.tcp_sock is None:
+                rlist.append(tun.listen_sock)
+                sock_to_tun[tun.listen_sock] = tun
+            elif tun.tcp_sock is not None:
+                # Only read from TCP when UDP sliding window has open slots (lossless backpressure!)
+                if len(tun.unacked) < SHP_WINDOW:
+                    rlist.append(tun.tcp_sock)
+                if tun.rx_to_tcp_buf:
+                    wlist.append(tun.tcp_sock)
+                sock_to_tun[tun.tcp_sock] = tun
+
+        if not rlist and not wlist:
+            _STOP_EVENT.wait(0.025)
+            continue
+
+        try:
+            rd, wr, er = select.select(rlist, wlist, list(sock_to_tun.keys()), 0.025)
+        except Exception:
+            _STOP_EVENT.wait(0.02)
+            continue
+
+        for s in er:
+            tun = sock_to_tun.get(s)
+            if tun and s is tun.tcp_sock:
+                tun.close(notify_remote=True)
+
+        for s in wr:
+            tun = sock_to_tun.get(s)
+            if tun and not tun.closed and s is tun.tcp_sock and tun.rx_to_tcp_buf:
+                try:
+                    sent = s.send(memoryview(tun.rx_to_tcp_buf)[:16384].tobytes())
+                    if sent > 0:
+                        del tun.rx_to_tcp_buf[:sent]
+                except Exception:
+                    pass
+
+        for s in rd:
+            tun = sock_to_tun.get(s)
+            if not tun or tun.closed:
+                continue
+            if s is tun.listen_sock:
+                tun.tick(time.time())
+                continue
+            if s is tun.tcp_sock and len(tun.unacked) < SHP_WINDOW:
+                try:
+                    chunk = s.recv(SHP_MSS)
+                except Exception:
+                    continue
+                if not chunk:
+                    tun.close(notify_remote=True)
+                else:
+                    seq = tun.next_seq
+                    tun.next_seq += 1
+                    tun.unacked[seq] = [chunk, time.time(), 0]
+                    tun._send_udp(SHP_DATA, seq, tun.recv_next, chunk)
+
+
+def send_udp_holepunch_burst(candidates):
+    """Queues simultaneous UDP SHP_HELLO hole-punch bursts from the shared UDP socket."""
+    sock = _SHARED_UDP_SOCK
+    if sock is None or not candidates:
+        return
+    hello_meta = ("%s|%s" % (MESH_STATE["net_id_hex"], MESH_STATE["instance_id"])).encode("ascii")
+    pkt = pack_shp_packet(SHP_HELLO, 0, 0, 0, hello_meta)
+    now = time.time()
+    for ip, uport in candidates[:24]:
+        if is_self_endpoint(ip, uport) or _has_tunnel_with_peer((str(ip), int(uport)), None):
+            continue
+        _PUNCH_TARGETS[(str(ip), int(uport))] = [now, 4]
+        try:
+            sock.sendto(pkt, (str(ip), int(uport)))
+        except Exception:
+            pass
+
+
+# ==============================================================================
+# STUN (RFC 5389) on Shared Socket + BEP 15 Serverless Swarm + Peer Cache
+# ==============================================================================
+
+def _parse_stun_response(resp, expected_txid=None):
+    if not resp or len(resp) < 20:
+        return None, None
+    mtype, mlen, cookie = struct.unpack("!HHI", resp[:8])
+    if mtype != 0x0101 or cookie != 0x2112A442:
+        return None, None
+    txid = resp[8:20]
+    if expected_txid is not None and txid != expected_txid:
+        return None, None
+    pos = 20
+    end = min(len(resp), 20 + mlen)
+    while pos + 4 <= end:
+        atype, alen = struct.unpack("!HH", resp[pos:pos + 4])
+        aval = resp[pos + 4:pos + 4 + alen]
+        if atype == 0x0020 and len(aval) >= 8:
+            fam = struct.unpack("!B", aval[1:2])[0]
+            if fam == 0x01:
+                xport, xip = struct.unpack("!HI", aval[2:8])
+                ip = socket.inet_ntoa(struct.pack("!I", xip ^ 0x2112A442))
+                port = int(xport ^ 0x2112)
+                if _is_routable_public_ipv4(ip) and 0 < port <= 65535:
+                    return ip, port
+        elif atype == 0x0001 and len(aval) >= 8:
+            fam = struct.unpack("!B", aval[1:2])[0]
+            if fam == 0x01:
+                port = struct.unpack("!H", aval[2:4])[0]
+                ip = socket.inet_ntoa(aval[4:8])
+                if _is_routable_public_ipv4(ip) and 0 < port <= 65535:
+                    return ip, int(port)
+        pos += 4 + ((alen + 3) & ~3)
+    return None, None
+
+
+def refresh_stun_on_shared_socket(wait_s=1.2):
+    """Sends STUN Binding Requests directly from _SHARED_UDP_SOCK to learn exact NAT UDP port!"""
+    sock = _SHARED_UDP_SOCK
+    if sock is None:
+        ip = query_stun_external_ipv4(timeout=wait_s)
+        return ip, 0
+
+    _STUN_OBSERVATIONS[:] = []
+    for host, port in DEFAULT_STUN_SERVERS[:2]:
+        if _STOP_EVENT.is_set():
+            break
+        try:
+            infos = socket.getaddrinfo(host, int(port), socket.AF_INET, socket.SOCK_DGRAM)
+            if not infos:
+                continue
+            txid = struct.pack("!III", random.randrange(1, 2**32), random.randrange(1, 2**32), random.randrange(1, 2**32))
+            _PENDING_STUN_TX[txid] = time.time()
+            pkt = struct.pack("!HHI12s", 0x0001, 0, 0x2112A442, txid)
+            sock.sendto(pkt, infos[0][4])
+        except Exception:
+            pass
+
+    deadline = time.time() + float(wait_s)
+    while time.time() < deadline and len(_STUN_OBSERVATIONS) < 2 and not _STOP_EVENT.is_set():
+        time.sleep(0.06)
+
+    if len(_STUN_OBSERVATIONS) >= 2:
+        p0, p1 = _STUN_OBSERVATIONS[0][1], _STUN_OBSERVATIONS[1][1]
+        MESH_STATE["nat_mapping"] = "endpoint_independent" if (p0 == p1) else "symmetric"
+    elif len(_STUN_OBSERVATIONS) == 1 and MESH_STATE["nat_mapping"] == "unknown":
+        MESH_STATE["nat_mapping"] = "cone_or_unknown"
+
+    return MESH_STATE.get("external_ip"), int(MESH_STATE.get("external_udp_port") or 0)
+
+
+def query_stun_external_ipv4(timeout=1.5):
+    txid = struct.pack("!III", random.randrange(1, 2**32), random.randrange(1, 2**32), random.randrange(1, 2**32))
+    pkt = struct.pack("!HHI12s", 0x0001, 0, 0x2112A442, txid)
+    for host, port in DEFAULT_STUN_SERVERS:
+        if _STOP_EVENT.is_set():
+            break
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _disable_win_udp_connreset(s)
+        s.settimeout(float(timeout))
+        try:
+            s.sendto(pkt, (host, int(port)))
+            resp, _ = s.recvfrom(512)
+            ip, _ = _parse_stun_response(resp, expected_txid=txid)
+            if ip:
+                return ip
+        except Exception:
+            pass
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+    return None
 
 
 def _get_cache_file_path():
@@ -292,56 +856,11 @@ def _save_cached_peers(peers_list):
         pass
 
 
-def query_stun_external_ipv4(timeout=1.5):
-    """RFC 5389 STUN Binding Request to detect external public IPv4 in <50ms."""
-    txid = struct.pack("!III", random.randrange(1, 2**32), random.randrange(1, 2**32), random.randrange(1, 2**32))
-    pkt = struct.pack("!HHI12s", 0x0001, 0, 0x2112A442, txid)
-    for host, port in DEFAULT_STUN_SERVERS:
-        if _STOP_EVENT.is_set():
-            break
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(float(timeout))
-        try:
-            s.sendto(pkt, (host, int(port)))
-            resp, _ = s.recvfrom(512)
-            if len(resp) >= 20:
-                mtype, mlen, cookie = struct.unpack("!HHI", resp[:8])
-                if mtype == 0x0101 and resp[8:20] == txid:
-                    pos = 20
-                    end = min(len(resp), 20 + mlen)
-                    while pos + 4 <= end:
-                        atype, alen = struct.unpack("!HH", resp[pos:pos + 4])
-                        aval = resp[pos + 4:pos + 4 + alen]
-                        if atype == 0x0020 and len(aval) >= 8:
-                            fam = struct.unpack("!B", aval[1:2])[0]
-                            if fam == 0x01:
-                                _, xip = struct.unpack("!HI", aval[2:8])
-                                ip = socket.inet_ntoa(struct.pack("!I", xip ^ 0x2112A442))
-                                if _is_routable_public_ipv4(ip):
-                                    return ip
-                        elif atype == 0x0001 and len(aval) >= 8:
-                            fam = struct.unpack("!B", aval[1:2])[0]
-                            if fam == 0x01:
-                                ip = socket.inet_ntoa(aval[4:8])
-                                if _is_routable_public_ipv4(ip):
-                                    return ip
-                        pos += 4 + ((alen + 3) & ~3)
-        except Exception:
-            pass
-        finally:
-            try:
-                s.close()
-            except Exception:
-                pass
-    return None
-
-
-def announce_and_discover_bep15_swarm(net_id_hex, announce_port, trackers=None, timeout=1.8):
+def announce_and_discover_bep15_swarm(net_id_hex, announce_port, trackers=None, timeout=1.8, swarm_prefix="scash-p2pool-swarm-"):
     """
     Serverless Global Swarm Rendezvous via BEP 15 Open UDP Trackers.
-    Announces this miner's P2Pool port under SHA1('scash-p2pool-swarm-' + net_id_hex)
-    with left=50000 (so trackers return 100% of active peers) and returns discovered
-    (ip, port) tuples of other Scash P2Pool miners worldwide.
+    Used for BOTH direct TCP (:8344) peer discovery (`scash-p2pool-swarm-`) and STUN-mapped
+    UDP hole-punch (`scash-p2pool-udphp-`) rendezvous!
     """
     if trackers is None:
         env_tr = os.environ.get("SCASH_SWARM_TRACKERS", "").strip()
@@ -359,7 +878,7 @@ def announce_and_discover_bep15_swarm(net_id_hex, announce_port, trackers=None, 
         else:
             trackers = list(DEFAULT_SWARM_TRACKERS)
 
-    info_hash = hashlib.sha1(("scash-p2pool-swarm-" + str(net_id_hex)).encode("ascii")).digest()
+    info_hash = hashlib.sha1((str(swarm_prefix) + str(net_id_hex)).encode("ascii")).digest()
     inst_str = str(MESH_STATE.get("instance_id", "000000000000"))[:12].ljust(12, "0")
     peer_id = ("-SC0200-" + inst_str).encode("ascii")[:20]
     peer_key = random.randrange(1, 2**31)
@@ -371,6 +890,7 @@ def announce_and_discover_bep15_swarm(net_id_hex, announce_port, trackers=None, 
         if _STOP_EVENT.is_set():
             break
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _disable_win_udp_connreset(s)
         s.settimeout(float(timeout))
         try:
             infos = socket.getaddrinfo(host, int(tport), socket.AF_INET, socket.SOCK_DGRAM)
@@ -388,7 +908,6 @@ def announce_and_discover_bep15_swarm(net_id_hex, announce_port, trackers=None, 
                 continue
 
             tx2 = random.randrange(1, 2**31)
-            # left=50000 ensures open trackers never treat nodes as completed seed-only peers
             ann_req = struct.pack(
                 "!QII20s20sQQQIIIiH",
                 conn_id,
@@ -434,7 +953,6 @@ def announce_and_discover_bep15_swarm(net_id_hex, announce_port, trackers=None, 
 
 
 def _probe_tcp_batch(candidates, timeout=1.2):
-    """Non-blocking parallel TCP port check in small Windows-safe select() chunks."""
     open_list = []
     seen = set()
     dedup = []
@@ -508,7 +1026,6 @@ def _is_peer_connected(p2p_node, ip, port=None):
                 p_ip, p_port = str(paddr[0]), int(paddr[1])
                 if p_ip == str(ip) and (port is None or p_port == int(port)):
                     return True
-                # If already connected to same machine's P2Pool port via LAN IP, don't duplicate on 127.0.0.1!
                 if port is not None and p_port == int(port) and ip_is_local and p_ip in local_equiv:
                     return True
     except Exception:
@@ -516,10 +1033,12 @@ def _is_peer_connected(p2p_node, ip, port=None):
     return False
 
 
-def _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source="mesh"):
+def _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source="mesh", allow_loopback_bridge=False):
     ip = str(ip).strip()
     port = int(port)
-    if not _is_valid_ipv4(ip) or port <= 0 or port > 65535 or is_self_endpoint(ip, port):
+    if not _is_valid_ipv4(ip) or port <= 0 or port > 65535:
+        return
+    if not allow_loopback_bridge and is_self_endpoint(ip, port):
         return
 
     is_public_wan = _is_routable_public_ipv4(ip)
@@ -539,9 +1058,7 @@ def _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source="mesh"
     except Exception:
         pass
 
-    # CRITICAL: NEVER insert 127.x.x.x or RFC1918 LAN IPs into p2p_node.addr_store!
-    # P2Pool gossips addr_store entries to peers, which caused peers on the same host/LAN
-    # to dial their own listening port ('Reason: was connected to self') and self-ban!
+    # Only add routable public WAN IPs to addr_store (never 127.0.0.1 or RFC1918 LAN IPs!)
     if is_public_wan:
         now = time.time()
         try:
@@ -575,7 +1092,7 @@ def _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source="mesh"
             p2p_node._scash_dialed_mesh = dialed
         now_t = time.time()
         prev_dial = dialed.get((ip, port), 0.0)
-        if (now_t - prev_dial) >= 25.0 and len(getattr(p2p_node, "peers", {}) or {}) < 12:
+        if (allow_loopback_bridge or (now_t - prev_dial) >= 25.0) and len(getattr(p2p_node, "peers", {}) or {}) < 12:
             scf = getattr(_p2p_mod, "SingleClientFactory", None)
             if scf is not None:
                 try:
@@ -599,8 +1116,8 @@ def _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source="mesh"
         pass
 
 
-def _schedule_connect(p2p_node, ip, port, immediate=True, delay=0.0, source="mesh"):
-    if is_self_endpoint(ip, port):
+def _schedule_connect(p2p_node, ip, port, immediate=True, delay=0.0, source="mesh", allow_loopback_bridge=False):
+    if not allow_loopback_bridge and is_self_endpoint(ip, port):
         return
     try:
         from twisted.internet import reactor as _tw_reactor
@@ -609,10 +1126,14 @@ def _schedule_connect(p2p_node, ip, port, immediate=True, delay=0.0, source="mes
             if delay > 0.0:
                 _tw_reactor.callLater(
                     float(delay),
-                    lambda: _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source=source),
+                    lambda: _twisted_register_and_dial(
+                        p2p_node, ip, port, immediate=True, source=source, allow_loopback_bridge=allow_loopback_bridge
+                    ),
                 )
             else:
-                _twisted_register_and_dial(p2p_node, ip, port, immediate=immediate, source=source)
+                _twisted_register_and_dial(
+                    p2p_node, ip, port, immediate=immediate, source=source, allow_loopback_bridge=allow_loopback_bridge
+                )
 
         _tw_reactor.callFromThread(_do)
     except Exception:
@@ -620,11 +1141,13 @@ def _schedule_connect(p2p_node, ip, port, immediate=True, delay=0.0, source="mes
 
 
 def _udp_beacon_worker(p2p_node, base_udp_port):
+    global _SHARED_UDP_SOCK
     sock = None
     bound_port = 0
     for offset in range(4):
         cand_port = int(base_udp_port) + offset
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        _disable_win_udp_connreset(s)
         try:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         except Exception:
@@ -643,6 +1166,7 @@ def _udp_beacon_worker(p2p_node, base_udp_port):
     if sock is None:
         return
 
+    _SHARED_UDP_SOCK = sock
     MESH_STATE["udp_port"] = bound_port
     try:
         mreq = struct.pack("4sl", socket.inet_aton(MULTICAST_GRP), socket.INADDR_ANY)
@@ -654,6 +1178,7 @@ def _udp_beacon_worker(p2p_node, base_udp_port):
     net_hex = MESH_STATE["net_id_hex"]
     my_tcp_port = int(MESH_STATE["p2p_port"])
     payload = ("%s|%s|%d|%s" % (BEACON_MAGIC, net_hex, my_tcp_port, my_inst)).encode("ascii")
+    hello_pkt = pack_shp_packet(SHP_HELLO, 0, 0, 0, ("%s|%s" % (net_hex, my_inst)).encode("ascii"))
 
     target_ports = [int(base_udp_port), int(base_udp_port) + 1]
     next_bcast = 0.0
@@ -682,57 +1207,97 @@ def _udp_beacon_worker(p2p_node, base_udp_port):
                 bcast_count += 1
                 next_bcast = now + (2.0 if bcast_count <= 6 else 8.0)
 
+            # Re-send scheduled UDP hole-punch HELLO bursts (~1.6s spacing)
+            for t_addr in list(_PUNCH_TARGETS.keys()):
+                last_t, rem = _PUNCH_TARGETS.get(t_addr, [0.0, 0])
+                if rem <= 0 or _has_tunnel_with_peer(t_addr, None) or int(MESH_STATE["connected_peers"]) >= 2:
+                    _PUNCH_TARGETS.pop(t_addr, None)
+                    continue
+                if (now - last_t) >= 1.6:
+                    _PUNCH_TARGETS[t_addr] = [now, rem - 1]
+                    try:
+                        sock.sendto(hello_pkt, t_addr)
+                    except Exception:
+                        pass
+
             try:
-                readable, _, _ = select.select([sock], [], [], 0.8)
+                readable, _, _ = select.select([sock], [], [], 0.25)
             except Exception:
                 readable = []
 
             for r in readable:
-                try:
-                    data, addr = r.recvfrom(512)
-                except Exception:
-                    continue
-                sender_ip, sender_uport = str(addr[0]), int(addr[1])
-                try:
-                    txt = data.decode("ascii", "ignore").strip()
-                except Exception:
-                    continue
-                parts = txt.split("|")
-                if len(parts) != 4 or parts[0] != BEACON_MAGIC:
-                    continue
-                r_net, r_port_s, r_inst = parts[1], parts[2], parts[3]
-                if r_net != net_hex or r_inst == my_inst:
-                    continue
-                try:
-                    r_tcp_port = int(r_port_s)
-                except Exception:
-                    continue
-                if r_tcp_port <= 0 or r_tcp_port > 65535 or is_self_endpoint(sender_ip, r_tcp_port):
-                    continue
-
-                tag = "%s:%d" % (sender_ip, r_tcp_port)
-                if tag not in MESH_STATE["discovered_lan_peers"]:
-                    MESH_STATE["discovered_lan_peers"].append(tag)
-
-                last_rep = _RECENT_UNICAST_REPLY.get(r_inst, 0.0)
-                if (time.time() - last_rep) >= 4.0:
-                    _RECENT_UNICAST_REPLY[r_inst] = time.time()
+                for _drain in range(24):
                     try:
-                        sock.sendto(payload, (sender_ip, sender_uport))
+                        sock.setblocking(False)
+                        data, addr = r.recvfrom(2048)
                     except Exception:
-                        pass
+                        break
+                    finally:
+                        try:
+                            sock.setblocking(True)
+                        except Exception:
+                            pass
 
-                # Deduplicate by peer instance_id so multi-NIC + 127.0.0.1 beacons never dial the same peer twice!
-                prev_inst_dial = _DIALED_INSTANCES.get(r_inst, 0.0)
-                if (time.time() - prev_inst_dial) < 12.0:
-                    continue
-                _DIALED_INSTANCES[r_inst] = time.time()
+                    # 1. Demultiplex STUN Binding Response (0x0101 + magic cookie 0x2112A442)
+                    if len(data) >= 20 and data[:2] == b"\x01\x01" and data[4:8] == b"\x21\x12\xa4\x42":
+                        txid = data[8:20]
+                        if txid in _PENDING_STUN_TX:
+                            _PENDING_STUN_TX.pop(txid, None)
+                            sip, suport = _parse_stun_response(data, expected_txid=txid)
+                            if sip and suport:
+                                MESH_STATE["external_ip"] = sip
+                                MESH_STATE["external_udp_port"] = int(suport)
+                                _STUN_OBSERVATIONS.append((sip, int(suport)))
+                        continue
 
-                if my_inst < r_inst:
-                    _schedule_connect(p2p_node, sender_ip, r_tcp_port, immediate=True, delay=0.0, source="lan_udp")
-                else:
-                    _schedule_connect(p2p_node, sender_ip, r_tcp_port, immediate=True, delay=1.8, source="lan_udp_fallback")
+                    # 2. Demultiplex Reliable UDP Hole-Punch Frame (`SHP1`)
+                    if len(data) >= 19 and data[:4] == SHP_MAGIC:
+                        _handle_shp_datagram(p2p_node, sock, data, addr)
+                        continue
+
+                    # 3. Demultiplex Home LAN UDP Beacon (`SCASH_P2P_V1|...`)
+                    sender_ip, sender_uport = str(addr[0]), int(addr[1])
+                    try:
+                        txt = data.decode("ascii", "ignore").strip()
+                    except Exception:
+                        continue
+                    parts = txt.split("|")
+                    if len(parts) != 4 or parts[0] != BEACON_MAGIC:
+                        continue
+                    r_net, r_port_s, r_inst = parts[1], parts[2], parts[3]
+                    if r_net != net_hex or r_inst == my_inst:
+                        continue
+                    try:
+                        r_tcp_port = int(r_port_s)
+                    except Exception:
+                        continue
+                    if r_tcp_port <= 0 or r_tcp_port > 65535 or is_self_endpoint(sender_ip, r_tcp_port):
+                        continue
+
+                    tag = "%s:%d" % (sender_ip, r_tcp_port)
+                    if tag not in MESH_STATE["discovered_lan_peers"]:
+                        MESH_STATE["discovered_lan_peers"].append(tag)
+
+                    last_rep = _RECENT_UNICAST_REPLY.get(r_inst, 0.0)
+                    if (time.time() - last_rep) >= 4.0:
+                        _RECENT_UNICAST_REPLY[r_inst] = time.time()
+                        try:
+                            sock.sendto(payload, (sender_ip, sender_uport))
+                        except Exception:
+                            pass
+
+                    prev_inst_dial = _DIALED_INSTANCES.get(r_inst, 0.0)
+                    if (time.time() - prev_inst_dial) < 12.0:
+                        continue
+                    _DIALED_INSTANCES[r_inst] = time.time()
+
+                    if my_inst < r_inst:
+                        _schedule_connect(p2p_node, sender_ip, r_tcp_port, immediate=True, delay=0.0, source="lan_udp")
+                    else:
+                        _schedule_connect(p2p_node, sender_ip, r_tcp_port, immediate=True, delay=1.8, source="lan_udp_fallback")
     finally:
+        if _SHARED_UDP_SOCK is sock:
+            _SHARED_UDP_SOCK = None
         try:
             sock.close()
         except Exception:
@@ -783,7 +1348,6 @@ def _mesh_scanner_worker(p2p_node):
     last_wan_scan = 0.0
     last_swarm_announce = 0.0
 
-    # 0. Immediately try cached verified peers from previous sessions!
     cached = _load_cached_peers()
     if cached:
         open_cached = _probe_tcp_batch(cached[:20], timeout=1.2)
@@ -802,17 +1366,27 @@ def _mesh_scanner_worker(p2p_node):
         if MESH_STATE["external_ip"]:
             local_ips.add(str(MESH_STATE["external_ip"]))
 
-        # 1. Serverless Global BEP 15 UDP Swarm Rendezvous (finds active miners worldwide with zero central server!)
-        swarm_interval = 25.0 if n_peers == 0 else 120.0
+        # 1. Serverless Global BEP 15 Swarm Rendezvous + STUN + Decentralized UDP Hole Punching!
+        swarm_interval = 22.0 if n_peers == 0 else 120.0
         if (now - last_swarm_announce) >= swarm_interval:
             last_swarm_announce = now
-            if not MESH_STATE["external_ip"]:
-                stun_ip = query_stun_external_ipv4(timeout=1.2)
-                if stun_ip:
-                    MESH_STATE["external_ip"] = stun_ip
-                    local_ips.add(stun_ip)
-            swarm_cands = announce_and_discover_bep15_swarm(net_hex, my_port, timeout=1.6)
-            MESH_STATE["swarm_peers_found"] = len(swarm_cands)
+            ext_ip, ext_uport = refresh_stun_on_shared_socket(wait_s=1.1)
+            if ext_ip:
+                local_ips.add(ext_ip)
+
+            # 1a. Direct TCP (:8344) global swarm discovery
+            swarm_cands = announce_and_discover_bep15_swarm(
+                net_hex, my_port, timeout=1.6, swarm_prefix="scash-p2pool-swarm-"
+            )
+            # 1b. STUN-mapped UDP hole-punch (`udphp`) swarm discovery
+            hp_port = int(ext_uport or MESH_STATE.get("udp_port") or my_port)
+            hp_cands = []
+            if hp_port > 0:
+                hp_cands = announce_and_discover_bep15_swarm(
+                    net_hex, hp_port, timeout=1.6, swarm_prefix="scash-p2pool-udphp-"
+                )
+
+            MESH_STATE["swarm_peers_found"] = max(len(swarm_cands), len(hp_cands))
             if swarm_cands:
                 open_swarm = _probe_tcp_batch(swarm_cands[:40], timeout=1.4)
                 if open_swarm:
@@ -822,6 +1396,11 @@ def _mesh_scanner_worker(p2p_node):
                     if tag not in MESH_STATE["discovered_wan_peers"]:
                         MESH_STATE["discovered_wan_peers"].append(tag)
                     _schedule_connect(p2p_node, ip, port, immediate=True, source="global_swarm")
+
+            # If STILL 0 direct TCP peers, fire simultaneous UDP hole-punch bursts to punch closed NATs!
+            _refresh_live_peer_counts()
+            if int(MESH_STATE["connected_peers"]) == 0 and hp_cands:
+                send_udp_holepunch_burst(hp_cands)
 
         # 2. Re-resolve BOOTSTRAP_ADDRS & probe Scash Core (`scashd` -uacomment=p2pool) blockchain peers on :8344
         wan_interval = 20.0 if n_peers == 0 else (90.0 if n_peers < 4 else 300.0)
@@ -856,7 +1435,6 @@ def _mesh_scanner_worker(p2p_node):
                     MESH_STATE["discovered_wan_peers"].append(tag)
                 _schedule_connect(p2p_node, ip, port, immediate=True, source="bootstrap_seed")
 
-            # Query local scashd getpeerinfo + getnodeaddresses(256) to discover P2Pool miners directly across Scash P2P!
             prio_cands = []
             other_cands = []
             peer_info = _rpc_call_scashd("getpeerinfo")
@@ -915,6 +1493,11 @@ def _mesh_scanner_worker(p2p_node):
                         MESH_STATE["discovered_wan_peers"].append(tag)
                     _schedule_connect(p2p_node, ip, port, immediate=True, source="scashd_mesh")
 
+            # Also attempt UDP :8344 hole-punching toward prioritized `/Scash:...(p2pool)/` blockchain peers if still 0 peers!
+            _refresh_live_peer_counts()
+            if int(MESH_STATE["connected_peers"]) == 0 and prio_cands:
+                send_udp_holepunch_burst(prio_cands[:12])
+
         # 3. Local /24 LAN TCP :8344 sweep fallback ONLY while connected_peers == 0
         _refresh_live_peer_counts()
         if int(MESH_STATE["connected_peers"]) == 0 and (now - last_lan_sweep) >= 40.0:
@@ -938,8 +1521,11 @@ def _mesh_scanner_worker(p2p_node):
         _STOP_EVENT.wait(3.0)
 
 
+# ==============================================================================
+# UPnP IGD + PCP (RFC 6887) + NAT-PMP (RFC 6886) Automatic Router Port Mapping
+# ==============================================================================
+
 def _try_upnp_igd_map(local_ip, p2p_port, scash_port=8343):
-    """Pure-Python non-blocking UPnP IGD AddPortMapping for P2Pool (:8344) & Scash Core (:8343)."""
     services = (
         "urn:schemas-upnp-org:service:WANIPConnection:1",
         "urn:schemas-upnp-org:service:WANIPConnection:2",
@@ -947,6 +1533,7 @@ def _try_upnp_igd_map(local_ip, p2p_port, scash_port=8343):
     )
     crlf = "\r\n"
     ssdp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    _disable_win_udp_connreset(ssdp)
     ssdp.settimeout(1.8)
     locations = []
     try:
@@ -1079,31 +1666,35 @@ def _try_upnp_igd_map(local_ip, p2p_port, scash_port=8343):
 
 
 def _try_pcp_map(local_ip, p2p_port):
-    """RFC 6887 Port Control Protocol (PCP) MAP request on UDP 5351."""
     if not _is_private_rfc1918(local_ip):
         return False, None
     gw_ip = ".".join(local_ip.split(".")[:3] + ["1"])
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    _disable_win_udp_connreset(s)
     s.settimeout(1.2)
     try:
         v4_mapped_prefix = b"\x00" * 10 + b"\xff\xff"
         cli_ip16 = v4_mapped_prefix + socket.inet_aton(local_ip)
         nonce = struct.pack("!III", random.randrange(1, 2**32), random.randrange(1, 2**32), random.randrange(1, 2**32))
         sug_ext16 = v4_mapped_prefix + b"\x00\x00\x00\x00"
-        hdr = struct.pack("!BBHI16s", 2, 1, 0, 3600, cli_ip16)
-        body = struct.pack("!12sB3sHH16s", nonce, 6, b"\x00\x00\x00", int(p2p_port), int(p2p_port), sug_ext16)
-        s.sendto(hdr + body, (gw_ip, 5351))
-        resp, raddr = s.recvfrom(128)
-        if raddr[0] == gw_ip and len(resp) >= 60:
-            ver, op, _r1, res_code = struct.unpack("!BBBB", resp[:4])
-            ext_port = struct.unpack("!H", resp[42:44])[0]
-            ext_ip = None
-            if resp[44:56] == v4_mapped_prefix:
-                cand_ip = socket.inet_ntoa(resp[56:60])
-                if _is_routable_public_ipv4(cand_ip):
-                    ext_ip = cand_ip
-            if ver == 2 and op == 129 and res_code == 0 and ext_port == int(p2p_port):
-                return True, ext_ip
+        mapped_tcp = False
+        ext_ip = None
+        for proto_num in (6, 17):
+            hdr = struct.pack("!BBHI16s", 2, 1, 0, 3600, cli_ip16)
+            body = struct.pack("!12sB3sHH16s", nonce, proto_num, b"\x00\x00\x00", int(p2p_port), int(p2p_port), sug_ext16)
+            s.sendto(hdr + body, (gw_ip, 5351))
+            resp, raddr = s.recvfrom(128)
+            if raddr[0] == gw_ip and len(resp) >= 60:
+                ver, op, _r1, res_code = struct.unpack("!BBBB", resp[:4])
+                ext_port = struct.unpack("!H", resp[42:44])[0]
+                if resp[44:56] == v4_mapped_prefix:
+                    cand_ip = socket.inet_ntoa(resp[56:60])
+                    if _is_routable_public_ipv4(cand_ip):
+                        ext_ip = cand_ip
+                if ver == 2 and op == 129 and res_code == 0 and ext_port == int(p2p_port) and proto_num == 6:
+                    mapped_tcp = True
+        if mapped_tcp:
+            return True, ext_ip
     except Exception:
         pass
     finally:
@@ -1119,15 +1710,19 @@ def _try_natpmp_clean(local_ip, p2p_port):
         return False
     gw_ip = ".".join(local_ip.split(".")[:3] + ["1"])
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    _disable_win_udp_connreset(s)
     s.settimeout(1.2)
     try:
-        pkt = struct.pack("!BBHHHI", 0, 2, 0, int(p2p_port), int(p2p_port), 3600)
-        s.sendto(pkt, (gw_ip, 5351))
-        resp, raddr = s.recvfrom(64)
-        if raddr[0] == gw_ip and len(resp) >= 16:
-            ver, op, res_code, _ep, _ip, mapped_ext, life = struct.unpack("!BBHIHHI", resp[:16])
-            if ver == 0 and op == 130 and res_code == 0 and mapped_ext == int(p2p_port) and life > 0:
-                return True
+        mapped_tcp = False
+        for op_req, op_exp in ((2, 130), (1, 129)):
+            pkt = struct.pack("!BBHHHI", 0, op_req, 0, int(p2p_port), int(p2p_port), 3600)
+            s.sendto(pkt, (gw_ip, 5351))
+            resp, raddr = s.recvfrom(64)
+            if raddr[0] == gw_ip and len(resp) >= 16:
+                ver, op, res_code, _ep, _ip, mapped_ext, life = struct.unpack("!BBHIHHI", resp[:16])
+                if ver == 0 and op == op_exp and res_code == 0 and mapped_ext == int(p2p_port) and life > 0 and op_req == 2:
+                    mapped_tcp = True
+        return mapped_tcp
     except Exception:
         pass
     finally:
@@ -1145,11 +1740,6 @@ def _upnp_worker(p2p_node):
     my_port = int(MESH_STATE["p2p_port"])
     logged_once = False
     while not _STOP_EVENT.is_set():
-        if not MESH_STATE["external_ip"]:
-            stun_ip = query_stun_external_ipv4(timeout=1.2)
-            if stun_ip:
-                MESH_STATE["external_ip"] = stun_ip
-
         lan_ips = [ip for ip in get_local_lan_ipv4s() if _is_private_rfc1918(ip)]
         if lan_ips:
             primary_lan = lan_ips[0]
@@ -1168,14 +1758,14 @@ def _upnp_worker(p2p_node):
                     if pcp_ip:
                         MESH_STATE["external_ip"] = pcp_ip
                     if not logged_once:
-                        print("[AutoMesh] PCP router port TCP %d mapped automatically!" % my_port)
+                        print("[AutoMesh] PCP router port TCP/UDP %d mapped automatically!" % my_port)
                         logged_once = True
                 else:
                     ok_pmp = _try_natpmp_clean(primary_lan, my_port)
                     if ok_pmp:
                         MESH_STATE["natpmp_mapped"] = True
                         if not logged_once:
-                            print("[AutoMesh] NAT-PMP router port TCP %d mapped automatically!" % my_port)
+                            print("[AutoMesh] NAT-PMP router port TCP/UDP %d mapped automatically!" % my_port)
                             logged_once = True
         _STOP_EVENT.wait(1200.0)
 
@@ -1220,6 +1810,7 @@ def start_for_p2p_node(p2p_node):
 
     for target_fn, args in (
         (_udp_beacon_worker, (p2p_node, base_udp)),
+        (_udp_tunnel_pump_worker, ()),
         (_mesh_scanner_worker, (p2p_node,)),
         (_upnp_worker, (p2p_node,)),
     ):
@@ -1227,4 +1818,8 @@ def start_for_p2p_node(p2p_node):
         t.daemon = True
         t.start()
 
-    print("[AutoMesh] Serverless P2Pool Mesh active on :%d (Global Swarm + UPnP/PCP/NAT-PMP + Scash Node Gossip + LAN)" % port)
+    print(
+        "[AutoMesh] Serverless P2Pool Mesh active on :%d "
+        "(Global Swarm + STUN UDP Hole-Punching + UPnP/PCP/NAT-PMP + Scash Node Gossip + LAN)"
+        % port
+    )

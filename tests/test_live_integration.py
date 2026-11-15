@@ -276,7 +276,66 @@ def run_all_live_tests():
             pb = subprocess.Popen([PYPY_BIN, "-B", "-c", bep_pypy_code], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             bout, berr = pb.communicate(timeout=25)
             assert pb.returncode == 0 and b"BEP15_SWARM_OK:" in bout, (bout, berr)
-            print("[LIVE-PASS 2/5] Verified PyPy 2.7 runtime, native RandomX, HTTPS shim & BEP 15 Serverless UDP Swarm protocol!")
+            # Also live-verify SHP1 Decentralized UDP Hole-Punch stream bridge (64 KB random binary payload) in PyPy 2.7!
+            hp_pypy_code = (
+                "import hashlib, os, socket, threading, time\n"
+                "from p2pool import auto_mesh\n"
+                "echo_srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n"
+                "echo_srv.bind(('127.0.0.1', 0)); echo_srv.listen(2)\n"
+                "echo_port = echo_srv.getsockname()[1]\n"
+                "def _echo_loop():\n"
+                "    c, _ = echo_srv.accept()\n"
+                "    while True:\n"
+                "        d = c.recv(8192)\n"
+                "        if not d: break\n"
+                "        c.sendall(d)\n"
+                "    c.close(); echo_srv.close()\n"
+                "te = threading.Thread(target=_echo_loop); te.daemon = True; te.start()\n"
+                "ua = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); ua.bind(('127.0.0.1', 0))\n"
+                "ub = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); ub.bind(('127.0.0.1', 0))\n"
+                "pa, pb_u = ua.getsockname()[1], ub.getsockname()[1]\n"
+                "tp = threading.Thread(target=auto_mesh._udp_tunnel_pump_worker); tp.daemon = True; tp.start()\n"
+                "ready_port = []\n"
+                "tun_a = auto_mesh._UdpTunnelSession(777, ('127.0.0.1', pb_u), 'bbbb', True, ua, target_local_port=echo_port)\n"
+                "tun_b = auto_mesh._UdpTunnelSession(777, ('127.0.0.1', pa), 'aaaa', False, ub, target_local_port=echo_port)\n"
+                "with auto_mesh._UDP_TUNNELS_LOCK:\n"
+                "    auto_mesh._UDP_TUNNELS[777] = tun_a\n"
+                "tun_b_map = {777: tun_b}\n"
+                "def _pump_udp(usock, my_tun):\n"
+                "    while not my_tun.closed:\n"
+                "        try:\n"
+                "            pkt, _ = usock.recvfrom(2048)\n"
+                "            pr = auto_mesh.unpack_shp_packet(pkt)\n"
+                "            if pr: my_tun.on_udp_packet(pr[0], pr[2], pr[3], pr[4])\n"
+                "        except Exception: break\n"
+                "tun_b.start_responder_socket()\n"
+                "with auto_mesh._UDP_TUNNELS_LOCK:\n"
+                "    auto_mesh._UDP_TUNNELS[778] = tun_b\n"
+                "tun_a.start_initiator_listener(on_ready_cb=lambda lp: ready_port.append(lp))\n"
+                "ta = threading.Thread(target=_pump_udp, args=(ua, tun_a)); ta.daemon = True; ta.start()\n"
+                "tb = threading.Thread(target=_pump_udp, args=(ub, tun_b)); tb.daemon = True; tb.start()\n"
+                "for _ in range(40):\n"
+                "    if ready_port: break\n"
+                "    tun_b._send_udp(auto_mesh.SHP_OPEN_ACK, 0, 0, b'')\n"
+                "    time.sleep(0.05)\n"
+                "assert ready_port, 'SHP1 initiator bridge did not become ready!'\n"
+                "cli = socket.create_connection(('127.0.0.1', ready_port[0]), timeout=5.0)\n"
+                "blob = os.urandom(65536)\n"
+                "cli.sendall(blob)\n"
+                "got = bytearray()\n"
+                "cli.settimeout(8.0)\n"
+                "while len(got) < len(blob):\n"
+                "    ch = cli.recv(8192)\n"
+                "    assert ch, 'EOF before 64KB completed'\n"
+                "    got.extend(ch)\n"
+                "assert hashlib.sha256(memoryview(got).tobytes()).hexdigest() == hashlib.sha256(blob).hexdigest()\n"
+                "cli.close(); tun_a.close(); tun_b.close(); ua.close(); ub.close()\n"
+                "print('SHP1_HOLEPUNCH_64KB_OK')\n"
+            )
+            php = subprocess.Popen([PYPY_BIN, "-B", "-c", hp_pypy_code], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            hp_out, hp_err = php.communicate(timeout=25)
+            assert php.returncode == 0 and b"SHP1_HOLEPUNCH_64KB_OK" in hp_out, (hp_out, hp_err)
+            print("[LIVE-PASS 2/5] Verified PyPy 2.7 runtime, native RandomX, BEP 15 Swarm & 64KB SHP1 UDP Hole-Punch tunnel!")
 
             # 3. Connect run_p2pool.py DIRECTLY to REAL Scash Core 30.4.0 scashd (zero RPC mocks!)
             tmp_data = os.path.join(ci_base, "p2pool_data")

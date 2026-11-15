@@ -708,7 +708,6 @@ class Node(object):
             -math.log(max(3600, last_seen - first_seen))/math.log(max(3600, t - last_seen))*random.expovariate(1)
         )][:max_count]
 
-
 # --- Scash AutoMesh P2Pool Peer Discovery Hook ---
 try:
     _orig_scash_p2p_start = Node.start
