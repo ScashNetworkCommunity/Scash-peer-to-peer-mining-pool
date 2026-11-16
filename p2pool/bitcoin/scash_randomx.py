@@ -44,6 +44,34 @@ def get_scash_epoch_seed_hex(timestamp, epoch_duration=MAINNET_EPOCH_DURATION):
     return h.decode('ascii') if not isinstance(h, str) else h
 
 
+
+def _clear_elf64_execstack(so_path):
+    """Clears PF_X (bit 0) on ELF64 PT_GNU_STACK (0x6474e551) so glibc >= 2.41 dlopen succeeds."""
+    try:
+        raw = bytearray(open(so_path, 'rb').read())
+        if len(raw) < 64 or raw[:4] != b'\x7fELF' or struct.unpack_from('<B', raw, 4)[0] != 2:
+            return False
+        e_phoff = struct.unpack_from('<Q', raw, 32)[0]
+        e_phentsize, e_phnum = struct.unpack_from('<HH', raw, 54)
+        changed = False
+        for i in range(e_phnum):
+            off = e_phoff + i * e_phentsize
+            if off + 8 <= len(raw):
+                p_type, p_flags = struct.unpack_from('<II', raw, off)
+                if p_type == 0x6474e551 and (p_flags & 1):
+                    struct.pack_into('<I', raw, off + 4, p_flags & ~1)
+                    changed = True
+        if changed:
+            tmp_p = so_path + '.noexec.tmp'
+            with open(tmp_p, 'wb') as f:
+                f.write(raw)
+            os.chmod(tmp_p, 0o755)
+            os.rename(tmp_p, so_path)
+            return True
+    except Exception:
+        pass
+    return False
+
 def _load_librandomx():
     global _rx_lib, _rx_found_file_on_disk
     if _rx_lib is not None:
@@ -75,7 +103,13 @@ def _load_librandomx():
         if exists_on_disk:
             _rx_found_file_on_disk = True
         try:
-            lib = ctypes.cdll.LoadLibrary(candidate)
+            try:
+                lib = ctypes.cdll.LoadLibrary(candidate)
+            except Exception as _e_first:
+                if exists_on_disk and 'executable stack' in str(_e_first).lower() and _clear_elf64_execstack(candidate):
+                    lib = ctypes.cdll.LoadLibrary(candidate)
+                else:
+                    raise
             lib.randomx_get_flags.argtypes = []
             lib.randomx_get_flags.restype = ctypes.c_uint
             lib.randomx_alloc_cache.argtypes = [ctypes.c_uint]
