@@ -418,6 +418,10 @@ def run_all_live_tests():
                             # the full 50.0 SCASH bootstrap subsidy to DONATION_SCRIPT (and ~0.5 SCASH = 1% once shares exist).
                             assert "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in pay_obj and float(pay_obj["scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc"]) >= 0.45, f"Expected author payout to scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc in /current_payouts, got: {pay_obj}"
                             assert "scash1q6q76dl9rjqtx6qsturnu9zkge3c0tpqrumxx8d" not in pay_obj, pay_obj
+                            api_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/api/pools", timeout=3).read().decode("utf-8")
+                            api_obj = (json.loads(api_raw) or {}).get("pools") or []
+                            assert len(api_obj) == 1 and api_obj[0].get("id") == "scash-p2pool" and float(api_obj[0].get("poolFeePercent", 0)) == 1.0, api_obj
+                            assert int((api_obj[0].get("networkStats") or {}).get("blockHeight", -1)) >= 0 and float((api_obj[0].get("networkStats") or {}).get("networkDifficulty", 0.0)) > 0.0, api_obj
                             web_ok = True
                             break
                     except Exception as _we:
@@ -598,6 +602,8 @@ def run_all_live_tests():
                                 assert "Bad peer banned" not in log_a_chk and "Bad peer banned" not in log_b_chk, (
                                     f"Peer ban detected!\n{read_tail(p2p_log)}\n{read_tail(p2p_log_b)}"
                                 )
+                                api_b = (json.loads(NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port_b}/api/pools", timeout=4).read().decode("utf-8")) or {}).get("pools") or []
+                                assert len(api_b) == 1 and int((api_b[0].get("poolStats") or {}).get("connectedMiners", 0)) >= 1 and float((api_b[0].get("poolStats") or {}).get("poolHashrate", 0.0)) > 0.0, api_b
                                 mesh_linked = True
                                 print(
                                     f"[LIVE-PASS 4/5] Automatic Serverless P2Pool Mesh verified! "

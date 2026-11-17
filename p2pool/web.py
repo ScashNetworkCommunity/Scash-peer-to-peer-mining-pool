@@ -476,9 +476,11 @@ def get_web_root(wb, datadir_path, bitcoind_getinfo_var, stop_event=variable.Eve
 
 # --- Scash QtKawaii Built-in XMRig & Community Nodes Web Endpoints ---
 try:
+    import os
     import base64 as _w_b64
     import json as _w_json
     import time as _w_time
+    import threading as _w_threading
     try:
         import urllib.request as _w_ureq
     except ImportError:
@@ -487,9 +489,11 @@ try:
     from p2pool import xmrig_manager as _xmrig_mgr
     from p2pool import scash_nodes as _scash_nodes
 
-    import threading as _w_threading
     _w_noproxy = _w_ureq.build_opener(_w_ureq.ProxyHandler({}))
+    _w_wan_opener = _w_ureq.build_opener()
     _node_status_cache = {'ts': 0.0, 'data': None, 'refreshing': False}
+    _ghpages_started = {'active': False}
+    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4yLjA8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMi4wPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
 
     def _do_refresh_scashd_node():
         try:
@@ -526,13 +530,22 @@ try:
                 mp = _rpc('getmempoolinfo')
                 blks = int(bc.get('blocks', 0))
                 hdrs = int(bc.get('headers', blks))
+                diff_v = float(bc.get('difficulty', 0.0) or 0.0)
+                nhps = diff_v * 4294967296.0 / 600.0 if diff_v > 0 else 0.0
+                try:
+                    mi = _rpc('getmininginfo')
+                    if isinstance(mi, dict) and mi.get('networkhashps') is not None:
+                        nhps = float(mi.get('networkhashps') or nhps)
+                except Exception:
+                    pass
                 out.update({
                     'blocks': blks,
                     'headers': hdrs,
                     'progress_pct': round((100.0 * blks / hdrs), 2) if hdrs > 0 else 100.0,
                     'chain': bc.get('chain', 'scash'),
                     'bestblockhash': bc.get('bestblockhash', ''),
-                    'difficulty': bc.get('difficulty', 0.0),
+                    'difficulty': diff_v,
+                    'networkhashps': nhps,
                     'connections': int(net.get('connections', 0)),
                     'subversion': net.get('subversion', '/Scash:30.4.0/'),
                     'mempool_txs': int(mp.get('size', 0)),
@@ -557,6 +570,436 @@ try:
             _t.start()
         return _node_status_cache['data']
 
+    def _build_miningcore_pool_payload(_wb_ref):
+        now_ts = _w_time.time()
+        iso_now = _w_time.strftime('%Y-%m-%dT%H:%M:%SZ', _w_time.gmtime(now_ts))
+        nd = _query_live_scashd_node() or {}
+        blk_h = int(nd.get('blocks') or 0)
+        net_diff = float(nd.get('difficulty') or 0.0)
+        net_conns = int(nd.get('connections') or 0)
+        net_hr = float(nd.get('networkhashps') or (net_diff * 4294967296.0 / 600.0 if net_diff > 0 else 0.0))
+
+        pool_hr = 0.0
+        shares_ps = 0.0
+        miners_cnt = 0
+        workers_cnt = 0
+        total_blocks = 0
+        last_block_iso = None
+
+        try:
+            from p2pool import data as _p2p_data
+            _don_script = getattr(_p2p_data, 'DONATION_SCRIPT', None)
+            _node = getattr(_wb_ref, 'node', None)
+            _tracker = getattr(_node, 'tracker', None)
+            _net = getattr(_node, 'net', None)
+            _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+            if _best is not None and _tracker is not None and _best in _tracker.items:
+                _ch_h = int(_tracker.get_height(_best))
+                _real_len = int(getattr(_net, 'REAL_CHAIN_LENGTH', 5760))
+                _scan_n = min(_ch_h, _real_len)
+                if _ch_h >= 2:
+                    try:
+                        _lb = min(_ch_h, 360, _real_len)
+                        if _lb >= 2:
+                            pool_hr = float(_p2p_data.get_pool_attempts_per_second(_tracker, _best, _lb))
+                            _s_tip = _tracker.items[_best]
+                            _s_old = _tracker.items[_tracker.get_nth_parent_hash(_best, _lb - 1)]
+                            _dt = max(1.0, float(_s_tip.timestamp - _s_old.timestamp))
+                            shares_ps = round(float(_lb - 1) / _dt, 4)
+                    except Exception:
+                        pass
+                elif _ch_h == 1:
+                    try:
+                        _s0 = _tracker.items[_best]
+                        _att = float(2**256) / max(1.0, float(_s0.target) + 1.0)
+                        _dt1 = max(15.0, float(now_ts - _s0.timestamp))
+                        pool_hr = _att / _dt1
+                        shares_ps = round(1.0 / _dt1, 4)
+                    except Exception:
+                        pass
+
+                _scripts = set()
+                _solved_ts = []
+                for _sh in _tracker.get_chain(_best, _scan_n):
+                    _sc = getattr(_sh, 'new_script', None)
+                    if _sc and _sc != _don_script:
+                        _scripts.add(_sc)
+                    try:
+                        if getattr(_sh, 'pow_hash', None) is not None and getattr(_sh, 'header', None) is not None:
+                            if _sh.pow_hash <= _sh.header['bits'].target:
+                                _solved_ts.append(int(_sh.timestamp))
+                    except Exception:
+                        pass
+                if not _scripts and hasattr(_p2p_data, 'get_expected_payouts'):
+                    try:
+                        _exp = _p2p_data.get_expected_payouts(_tracker, _best, 2**256 - 1, 5000000000, _net) or {}
+                        for _ek in _exp.keys():
+                            if _ek and _ek != _don_script:
+                                _scripts.add(_ek)
+                    except Exception:
+                        pass
+                miners_cnt = len(_scripts)
+                total_blocks = len(_solved_ts)
+                if _solved_ts:
+                    last_block_iso = _w_time.strftime('%Y-%m-%dT%H:%M:%SZ', _w_time.gmtime(max(_solved_ts)))
+        except Exception:
+            pass
+
+        try:
+            _xst = _xmrig_mgr.GLOBAL_XMRIG.get_status() or {}
+            if _xst.get('running'):
+                _lhr = float(_xst.get('hashrate_hs') or 0.0)
+                if _lhr > pool_hr:
+                    pool_hr = _lhr
+                if miners_cnt < 1:
+                    miners_cnt = 1
+            _st_mon = getattr(_wb_ref, 'local_rate_monitor', None)
+            if _st_mon is not None:
+                _datums = [x for x in _st_mon.get_datums_in_last()[0]]
+                _wset = set(d.get('user') for d in _datums if isinstance(d, dict) and d.get('user'))
+                workers_cnt = max(miners_cnt, len(_wset))
+            else:
+                workers_cnt = miners_cnt
+        except Exception:
+            workers_cnt = miners_cnt
+
+        return {
+            'id': 'scash-p2pool',
+            'coin': {
+                'type': 'SCASH',
+                'name': 'Satoshicash',
+                'symbol': 'SCASH',
+                'website': 'https://scashnetwork.org',
+                'market': 'SCASH-USDT',
+                'family': 'bitcoin',
+                'algorithm': 'RandomSCASH',
+            },
+            'ports': {
+                '8345': {
+                    'name': 'Decentralized P2Pool Local Stratum (rx/scash)',
+                    'listenAddress': '127.0.0.1',
+                    'difficulty': 0.0625,
+                    'varDiff': {
+                        'minDiff': 0.015625,
+                        'maxDiff': None,
+                        'targetTime': 15,
+                        'retargetTime': 60,
+                        'variancePercent': 30,
+                    },
+                }
+            },
+            'paymentProcessing': {
+                'enabled': True,
+                'minimumPayment': 0.0,
+                'payoutScheme': 'PPLNS',
+                'payoutSchemeConfig': {'factor': 1.0},
+            },
+            'clientConnectionTimeout': 600,
+            'jobRebroadcastTimeout': 15,
+            'blockRefreshInterval': 1000,
+            'poolFeePercent': 1.0,
+            'address': 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc',
+            'addressInfoLink': 'https://scash.tv/address/scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc',
+            'poolStats': {
+                'connectedMiners': int(miners_cnt),
+                'connectedWorkers': int(max(miners_cnt, workers_cnt)),
+                'poolHashrate': round(float(pool_hr), 2),
+                'sharesPerSecond': float(shares_ps),
+            },
+            'networkStats': {
+                'networkType': 'main',
+                'networkHashrate': round(float(net_hr), 2),
+                'networkDifficulty': float(net_diff),
+                'lastNetworkBlockTime': iso_now,
+                'blockHeight': int(blk_h),
+                'connectedPeers': int(net_conns),
+                'rewardType': 'POW',
+            },
+            'topMiners': [],
+            'totalPaid': 0.0,
+            'totalBlocks': int(total_blocks),
+            'lastPoolBlockTime': last_block_iso,
+            'blockReward': 50.0,
+            'updatedAt': iso_now,
+            'updatedAtEpoch': int(now_ts),
+        }
+
+    def _read_ghpages_token():
+        tok = (os.environ.get('SCASH_GHPAGES_TOKEN') or '').strip()
+        if tok:
+            return tok
+        dirs = ['.']
+        try:
+            _here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            for _d in (_here, os.path.dirname(_here)):
+                if _d and _d not in dirs:
+                    dirs.append(_d)
+        except Exception:
+            pass
+        try:
+            _sdd = os.environ.get('SCASH_ACTIVE_DATADIR') or _scash_nodes.get_scash_datadir()
+            if _sdd and _sdd not in dirs:
+                dirs.append(_sdd)
+        except Exception:
+            pass
+        for _base in dirs:
+            for _fn in ('ghpages_token.txt', 'ghpages_token.txt.txt', '.ghpages_token'):
+                try:
+                    _fp = os.path.join(_base, _fn)
+                    if os.path.isfile(_fp):
+                        _t = open(_fp, 'r').read().strip()
+                        if _t:
+                            return _t
+                except Exception:
+                    pass
+        return ''
+
+    def _push_ghpages_snapshot_once(tok, repo_slug, payload_obj, push_state=None):
+        api_base = (os.environ.get('SCASH_GH_API_BASE') or 'https://api.github.com').rstrip('/')
+        raw_base = (os.environ.get('SCASH_GH_RAW_BASE') or 'https://raw.githubusercontent.com').rstrip('/')
+        now_ep = int(_w_time.time())
+        if push_state is None:
+            push_state = {'history': [], 'last_miners': None, 'last_blocks': None, 'last_push_ts': 0}
+
+        # Enforce GitHub Pages soft limit (<= 9 builds per rolling 3600s hour; official cap is 10/hour)
+        push_state['history'] = [t for t in push_state.get('history', []) if (now_ep - t) < 3600]
+        if len(push_state['history']) >= 9:
+            return False
+
+        p0 = (payload_obj.get('pools') or [{}])[0]
+        ps = p0.get('poolStats') or {}
+        local_hr = float(ps.get('poolHashrate') or 0.0)
+        local_miners = int(ps.get('connectedMiners') or 0)
+        local_blocks = int(p0.get('totalBlocks') or 0)
+
+        event_changed = (
+            (push_state.get('last_miners') is not None and local_miners != push_state.get('last_miners'))
+            or (push_state.get('last_blocks') is not None and local_blocks != push_state.get('last_blocks'))
+        )
+        since_last = now_ep - int(push_state.get('last_push_ts') or 0)
+        # Push within 60s when miners join/leave or a block is solved; otherwise pace steady-state updates at 390s (~9/hr)
+        min_gap = 60 if event_changed else 390
+        if push_state.get('last_push_ts') and since_last < min_gap:
+            return False
+
+        try:
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.2.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
+            r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
+            if r_obj:
+                r_ep = int(r_obj[0].get('updatedAtEpoch') or 0)
+                r_ps = r_obj[0].get('poolStats') or {}
+                r_hr = float(r_ps.get('poolHashrate') or 0.0)
+                r_miners = int(r_ps.get('connectedMiners') or 0)
+                r_blocks = int(r_obj[0].get('totalBlocks') or 0)
+                r_age = now_ep - r_ep
+                # Multi-rig coordination: don't double-push right after another rig updated gh-pages
+                if r_age < (55 if (local_miners != r_miners or local_blocks != r_blocks) else 360):
+                    return False
+                # Don't let an idle rig overwrite an active rig's live hashrate for 15 minutes
+                if local_hr <= 0.0 and r_hr > 0.0 and r_age < 900:
+                    return False
+                # Avoid wasting hourly builds pushing identical 0-miner idle state more than once per 30 minutes
+                if local_hr <= 0.0 and r_hr <= 0.0 and local_miners == 0 and r_miners == 0 and r_age < 1800:
+                    return False
+        except Exception:
+            pass
+
+        def _gh_call(method, path, body_dict):
+            url = '%s/repos/%s%s' % (api_base, repo_slug, path)
+            data = _w_json.dumps(body_dict).encode('utf-8')
+            hdrs = {
+                'Authorization': 'Bearer ' + tok,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.2.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            }
+            req = _w_ureq.Request(url, data, hdrs)
+            req.get_method = lambda: method
+            resp = _w_wan_opener.open(req, timeout=8.0).read().decode('utf-8', 'replace')
+            return _w_json.loads(resp)
+
+        json_body = _w_json.dumps(payload_obj, indent=2, sort_keys=True) + chr(10)
+        tree_res = _gh_call('POST', '/git/trees', {
+            'tree': [
+                {'path': '.nojekyll', 'mode': '100644', 'type': 'blob', 'content': ''},
+                {'path': 'index.html', 'mode': '100644', 'type': 'blob', 'content': _GHPAGES_INDEX_HTML},
+                {'path': 'api/pools', 'mode': '100644', 'type': 'blob', 'content': json_body},
+                {'path': 'api/pools.json', 'mode': '100644', 'type': 'blob', 'content': json_body},
+            ]
+        })
+        commit_res = _gh_call('POST', '/git/commits', {
+            'message': 'Update live Scash P2Pool stats snapshot [skip ci]',
+            'tree': tree_res['sha'],
+            'parents': [],
+        })
+        c_sha = commit_res['sha']
+        try:
+            _gh_call('PATCH', '/git/refs/heads/gh-pages', {'sha': c_sha, 'force': True})
+        except Exception:
+            _gh_call('POST', '/git/refs', {'ref': 'refs/heads/gh-pages', 'sha': c_sha})
+
+        push_state['history'].append(now_ep)
+        push_state['last_push_ts'] = now_ep
+        push_state['last_miners'] = local_miners
+        push_state['last_blocks'] = local_blocks
+        return True
+
+    def _maybe_start_ghpages_publisher(_wb_ref):
+        if _ghpages_started['active']:
+            return
+        tok = _read_ghpages_token()
+        if not tok:
+            return
+        _ghpages_started['active'] = True
+        try:
+            import sys as _w_sys
+            _w_sys.stdout.write('[Stats API] GitHub Pages auto-publisher enabled (gh-pages /api/pools)' + chr(10))
+            _w_sys.stdout.flush()
+        except Exception:
+            pass
+        repo_slug = (os.environ.get('SCASH_GHPAGES_REPO') or 'ScashNetworkCommunity/Scash-peer-to-peer-mining-pool').strip()
+        push_state = {'history': [], 'last_miners': None, 'last_blocks': None, 'last_push_ts': 0}
+
+        def _loop():
+            _w_time.sleep(20.0)
+            while True:
+                try:
+                    cur_tok = _read_ghpages_token()
+                    if cur_tok:
+                        payload = {'pools': [_build_miningcore_pool_payload(_wb_ref)]}
+                        _push_ghpages_snapshot_once(cur_tok, repo_slug, payload, push_state=push_state)
+                except Exception:
+                    pass
+                # Poll local pool state every 60s (1 minute) so miner joins & solved blocks push within 1 minute
+                # while steady-state updates automatically respect GitHub Pages' <= 10 builds/hour cap!
+                _w_time.sleep(60.0)
+
+        _t = _w_threading.Thread(target=_loop)
+        _t.daemon = True
+        _t.start()
+
+
+    _community_reporter_started = {'active': False}
+    _collector_cache = {'ts': 0.0, 'url': ''}
+
+    def _resolve_collector_report_url():
+        override = (os.environ.get('SCASH_STATS_REPORT_URL') or '').strip()
+        if override:
+            return override
+        now_t = _w_time.time()
+        if (now_t - _collector_cache['ts']) < 900.0:
+            return _collector_cache['url']
+        _collector_cache['ts'] = now_t
+        repo_slug = (os.environ.get('SCASH_GHPAGES_REPO') or 'ScashNetworkCommunity/Scash-peer-to-peer-mining-pool').strip()
+        raw_base = (os.environ.get('SCASH_GH_RAW_BASE') or 'https://raw.githubusercontent.com').rstrip('/')
+        for u in (
+            '%s/%s/gh-pages/collector.json' % (raw_base, repo_slug),
+            'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
+        ):
+            try:
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.2.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                txt = _w_wan_opener.open(req, timeout=4.0).read().decode('utf-8', 'replace')
+                obj = _w_json.loads(txt) or {}
+                ru = str(obj.get('report_url') or '').strip()
+                if ru.startswith('https://') or ru.startswith('http://127.0.0.1'):
+                    _collector_cache['url'] = ru
+                    return ru
+                if 'report_url' in obj:
+                    _collector_cache['url'] = ''
+                    return ''
+            except Exception:
+                pass
+        return _collector_cache['url']
+
+    def _send_community_report_once(_wb_ref, report_url=None):
+        if os.environ.get('SCASH_DISABLE_PUBLIC_STATS') == '1':
+            return False
+        target_url = report_url or _resolve_collector_report_url()
+        if not target_url or not (target_url.startswith('https://') or target_url.startswith('http://127.0.0.1')):
+            return False
+        pool_obj = _build_miningcore_pool_payload(_wb_ref)
+        best_hex = ''
+        chain_h = 0
+        p2p_peers = 0
+        try:
+            _node = getattr(_wb_ref, 'node', None)
+            _tracker = getattr(_node, 'tracker', None)
+            _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+            if _best is not None:
+                best_hex = ('%064x' % int(_best)) if isinstance(_best, (int, getattr(__builtins__, 'long', int))) else str(_best)
+                if _tracker is not None and _best in _tracker.items:
+                    chain_h = int(_tracker.get_height(_best))
+            _p2pn = getattr(_node, 'p2p_node', None)
+            if _p2pn is not None and getattr(_p2pn, 'peers', None) is not None:
+                p2p_peers = len(_p2pn.peers)
+        except Exception:
+            pass
+        body = _w_json.dumps({
+            'version': '0.2.0',
+            'best_share_hash': best_hex,
+            'chain_height': int(chain_h),
+            'p2pool_peers': int(p2p_peers),
+            'pool_payload': pool_obj,
+        }).encode('utf-8')
+        opener = _w_noproxy if target_url.startswith('http://127.0.0.1') else _w_wan_opener
+        req = _w_ureq.Request(target_url, body, {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.2.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+        })
+        opener.open(req, timeout=4.5).read()
+        return True
+
+    def _maybe_start_community_reporter(_wb_ref):
+        if _community_reporter_started['active'] or os.environ.get('SCASH_DISABLE_PUBLIC_STATS') == '1':
+            return
+        if os.environ.get('SCASH_CI_ISOLATED_MESH') == '1':
+            return
+        _community_reporter_started['active'] = True
+
+        def _c_loop():
+            _w_time.sleep(12.0)
+            while True:
+                try:
+                    _send_community_report_once(_wb_ref)
+                except Exception:
+                    pass
+                _w_time.sleep(60.0)
+
+        _ct = _w_threading.Thread(target=_c_loop)
+        _ct.daemon = True
+        _ct.start()
+
+    class _ScashMiningcoreApiResource(_tw_resource.Resource):
+        isLeaf = True
+        def __init__(self, wb_ref=None):
+            _tw_resource.Resource.__init__(self)
+            self.wb_ref = wb_ref
+        def render_OPTIONS(self, request):
+            request.setHeader('Access-Control-Allow-Origin', '*')
+            request.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            request.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+            return b''
+        def render_GET(self, request):
+            request.setHeader('Content-Type', 'application/json')
+            request.setHeader('Access-Control-Allow-Origin', '*')
+            request.setHeader('Cache-Control', 'public, max-age=15')
+            raw_pp = getattr(request, 'postpath', None) or []
+            segs = []
+            for _s in raw_pp:
+                _st = _s.decode('utf-8', 'replace') if isinstance(_s, bytes) else str(_s)
+                if _st:
+                    segs.append(_st)
+            pool_obj = _build_miningcore_pool_payload(self.wb_ref)
+            if len(segs) >= 3 and segs[0] == 'pools' and segs[2] == 'blocks':
+                out = []
+            elif len(segs) >= 2 and segs[0] == 'pools' and segs[1] in ('scash-p2pool', 'scash'):
+                out = {'pool': pool_obj}
+            else:
+                out = {'pools': [pool_obj]}
+            s = _w_json.dumps(out)
+            return s if isinstance(s, bytes) else s.encode('utf-8')
+
     class _ScashMinerControlResource(_tw_resource.Resource):
         isLeaf = True
         def __init__(self, action):
@@ -578,6 +1021,17 @@ try:
             def _jb(obj):
                 s = _w_json.dumps(obj)
                 return s if isinstance(s, bytes) else s.encode('utf-8')
+            if self.action in ('start', 'stop'):
+                try:
+                    _cip = request.getClientIP()
+                except Exception:
+                    _cip = '127.0.0.1'
+                if _cip and str(_cip) not in ('127.0.0.1', '::1', 'localhost'):
+                    try:
+                        request.setResponseCode(403)
+                    except Exception:
+                        pass
+                    return _jb({'ok': False, 'error': 'Localhost only'})
             if self.action == 'status':
                 return _jb(_xmrig_mgr.GLOBAL_XMRIG.get_status())
             elif self.action == 'start':
@@ -604,12 +1058,17 @@ try:
     _orig_scash_get_web_root = get_web_root
     def get_web_root(*args, **kwargs):
         _wr = _orig_scash_get_web_root(*args, **kwargs)
+        _wb_obj = args[0] if args else kwargs.get('wb')
         try:
             from p2pool import auto_mesh as _scash_auto_mesh
-            _wb_obj = args[0] if args else kwargs.get('wb')
             _p2p_n = getattr(getattr(_wb_obj, 'node', None), 'p2p_node', None)
             if _p2p_n is not None:
                 _scash_auto_mesh.start_for_p2p_node(_p2p_n)
+        except Exception:
+            pass
+        try:
+            _maybe_start_ghpages_publisher(_wb_obj)
+            _maybe_start_community_reporter(_wb_obj)
         except Exception:
             pass
         _wr.putChild(b'miner_status', _ScashMinerControlResource('status'))
@@ -618,6 +1077,7 @@ try:
         _wr.putChild(b'nodes_list', _ScashMinerControlResource('nodes'))
         _wr.putChild(b'node_sync_status', _ScashMinerControlResource('sync'))
         _wr.putChild(b'mesh_status', _ScashMinerControlResource('mesh'))
+        _wr.putChild(b'api', _ScashMiningcoreApiResource(_wb_obj))
         return _wr
 except Exception:
     pass
