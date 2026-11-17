@@ -1,0 +1,66 @@
+{
+  "pools": [
+    {
+      "address": "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc",
+      "addressInfoLink": "https://scash.tv/address/scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc",
+      "blockRefreshInterval": 1000,
+      "blockReward": 50.0,
+      "clientConnectionTimeout": 600,
+      "coin": {
+        "algorithm": "RandomSCASH",
+        "family": "bitcoin",
+        "market": "SCASH-USDT",
+        "name": "Satoshicash",
+        "symbol": "SCASH",
+        "type": "SCASH",
+        "website": "https://scashnetwork.org"
+      },
+      "id": "scash-p2pool",
+      "jobRebroadcastTimeout": 15,
+      "lastPoolBlockTime": null,
+      "networkStats": {
+        "blockHeight": 0,
+        "connectedPeers": 0,
+        "lastNetworkBlockTime": "2026-11-17T12:11:05Z",
+        "networkDifficulty": 0.0,
+        "networkHashrate": 0.0,
+        "networkType": "main",
+        "rewardType": "POW"
+      },
+      "paymentProcessing": {
+        "enabled": true,
+        "minimumPayment": 0.0,
+        "payoutScheme": "PPLNS",
+        "payoutSchemeConfig": {
+          "factor": 1.0
+        }
+      },
+      "poolFeePercent": 1.0,
+      "poolStats": {
+        "connectedMiners": 0,
+        "connectedWorkers": 0,
+        "poolHashrate": 0.0,
+        "sharesPerSecond": 0.0
+      },
+      "ports": {
+        "8345": {
+          "difficulty": 0.0625,
+          "listenAddress": "127.0.0.1",
+          "name": "Decentralized P2Pool Local Stratum (rx/scash)",
+          "varDiff": {
+            "maxDiff": null,
+            "minDiff": 0.015625,
+            "retargetTime": 60,
+            "targetTime": 15,
+            "variancePercent": 30
+          }
+        }
+      },
+      "topMiners": [],
+      "totalBlocks": 0,
+      "totalPaid": 0.0,
+      "updatedAt": "2026-11-17T12:11:05Z",
+      "updatedAtEpoch": 0
+    }
+  ]
+}
