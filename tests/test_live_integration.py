@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.2.0 + Real Scash Core 30.4.0 Daemon!
+End-to-End Live CI Integration Verification for Scash P2Pool v0.3.0 + Real Scash Core 30.4.0 Daemon!
 Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
 so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
 is verified live on both Linux and Windows before packaging.
@@ -214,7 +214,7 @@ def run_all_live_tests():
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.2.0' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.3.0' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
                 "import start_scash_p2pool as sp; print('WARM_OK:', sp.ascii_safe(u'Loading block index\\u2026')); print(u'Loading block index\\u2026'); print('VERSION_OK:', p2pool.__version__)"
             )
@@ -236,7 +236,7 @@ def run_all_live_tests():
                 "gh = struct.pack('<I32s32sIII', 1, b'\\x00'*32, ml, 1708650456, 0x1e0fffff, 20076863); "
                 "rxh, _ = scash_randomx.calculate_scash_hash_and_cm_bytes(gh); "
                 "assert binascii.hexlify(rxh[::-1]).decode('ascii') == '33c450e0152826e3a8948b01464cf9182344a1544b3ddcf6153dd04b62938d01'; "
-                "assert 'v0.2.0' in main.p2pool.__version__, main.p2pool.__version__; "
+                "assert 'v0.3.0' in main.p2pool.__version__, main.p2pool.__version__; "
                 "addr = bdata.script2_to_address(pdata.DONATION_SCRIPT, networks.nets['scash']); "
                 "assert addr == 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc', addr; "
                 "print('ROOT_DONATION_OK:', addr, main.p2pool.__version__)"
@@ -510,6 +510,19 @@ def run_all_live_tests():
                     f"miner_status={last_ms}\nlocal_stats={last_ls}\n{read_tail(p2p_log)}"
                 )
                 assert st_stop.get("running") is False, st_stop
+                # Verify .kawaii_rig01 worker suffix decoded to miner's scash1... wallet (99% = ~49.5 SCASH) and did NOT fall back to -a author wallet (1% = ~0.5 SCASH)!
+                pay_after = {}
+                for _ in range(15):
+                    pay_after = json.loads(
+                        NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/current_payouts", timeout=5).read().decode("utf-8")
+                    )
+                    if "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2" in pay_after:
+                        break
+                    time.sleep(0.3)
+                miner_amt = float(pay_after.get("scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2", 0.0))
+                author_amt = float(pay_after.get("scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc", 0.0))
+                assert miner_amt >= 49.0 and author_amt <= 1.0, f"Worker suffix fallback bug! Expected ~49.5 SCASH to miner & ~0.5 SCASH (1%) to author, got: {pay_after}"
+                print(f"[LIVE-PAYOUT-SPLIT-VERIFIED] Miner (.kawaii_rig01)={miner_amt:.8f} SCASH (99%), Author={author_amt:.8f} SCASH (1%)!")
                 for _ in range(15):
                     if not tcp_open(8346, timeout=0.25):
                         break
@@ -518,7 +531,7 @@ def run_all_live_tests():
                 p2p_fh.flush()
                 final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
                 assert "Internal bug detected" not in final_log and "NarrowError" not in final_log and "Unhandled Error" not in final_log, final_log
-                assert "v0.2.0-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
+                assert "v0.3.0-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
                 print("[LIVE-PASS 3/5] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
 
                 # 3b. [LIVE-PASS 4/5]: Launch a SECOND P2Pool node (Node B) with ZERO -n / --peer flags

@@ -399,15 +399,25 @@ def script2_to_human(script2, net):
 # --- Scash Bech32 & P2WPKH Address Hooks ---
 from p2pool.bitcoin import bech32_scash as _b32_scash
 
+def _strip_scash_worker_suffix(address):
+    if not address:
+        return address
+    s = address.strip()
+    for _sep in ('.', '+', '/', ':', '_', ' ', '-'):
+        if _sep in s:
+            s = s.split(_sep, 1)[0]
+    return s
+
 _orig_address_to_pubkey_hash = address_to_pubkey_hash
 def address_to_pubkey_hash(address, net, *extra):
     cand_net = extra[-1] if extra else net
+    clean_addr = _strip_scash_worker_suffix(address)
     hrp = getattr(cand_net, 'HUMAN_READABLE_PART', None)
-    if hrp and address and address.lower().startswith(hrp + '1'):
-        witver, witprog = _b32_scash.decode_scash_address(address, hrp)
+    if hrp and clean_addr and clean_addr.lower().startswith(hrp + '1'):
+        witver, witprog = _b32_scash.decode_scash_address(clean_addr, hrp)
         if witprog is not None:
             return pack.IntType(160).unpack(witprog)
-    return _orig_address_to_pubkey_hash(address, net, *extra)
+    return _orig_address_to_pubkey_hash(clean_addr, net, *extra)
 
 _orig_pubkey_hash_to_address = pubkey_hash_to_address
 def pubkey_hash_to_address(pubkey_hash, net, *extra):
@@ -433,9 +443,10 @@ if 'script2_to_address' in globals():
 
 def address_to_script2(address, net, *extra):
     cand_net = extra[-1] if extra else net
+    clean_addr = _strip_scash_worker_suffix(address)
     hrp = getattr(cand_net, 'HUMAN_READABLE_PART', None)
-    if hrp and address and address.lower().startswith(hrp + '1'):
-        witver, witprog = _b32_scash.decode_scash_address(address, hrp)
+    if hrp and clean_addr and clean_addr.lower().startswith(hrp + '1'):
+        witver, witprog = _b32_scash.decode_scash_address(clean_addr, hrp)
         if witprog is not None:
             return '\x00\x14' + witprog
-    return pubkey_hash_to_script2(address_to_pubkey_hash(address, cand_net))
+    return pubkey_hash_to_script2(address_to_pubkey_hash(clean_addr, cand_net))

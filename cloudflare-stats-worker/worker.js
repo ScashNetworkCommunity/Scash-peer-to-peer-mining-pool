@@ -1,4 +1,4 @@
-// Scash P2Pool (v0.2.0) — 100% Serverless Community Consensus Stats API for MiningPoolStats
+// Scash P2Pool (v0.3.0) — 100% Serverless Community Consensus Stats API for MiningPoolStats
 // Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
 // Zero home servers, zero GitHub tokens, true 1-minute updates, median anti-spoof consensus.
 
@@ -154,7 +154,8 @@ export function aggregateReports(rows, nowSec) {
 
   const medNetHr = median(cohort.map(r => Number(r.net_hr || 0)));
   const medPoolHr = median(cohort.map(r => Number(r.pool_hr || 0)));
-  const safePoolHr = medNetHr > 0 ? Math.min(medPoolHr, medNetHr * 1.25) : medPoolHr;
+  const maxAllowedHr = medNetHr > 0 ? Math.max(medNetHr * 50.0, 50000000.0) : 50000000.0;
+  const safePoolHr = Math.min(medPoolHr, maxAllowedHr);
   const medMiners = Math.max(
     fresh.filter(r => Number(r.pool_hr || 0) > 0).length > 0 ? 1 : 0,
     Math.round(median(cohort.map(r => Number(r.miners_cnt || 0))))
@@ -198,13 +199,13 @@ export default {
     }
     await ensureSchema(env.DB);
 
-    if (request.method === "POST" && path === "/api/report") {
+    if (request.method === "POST" && (path === "/api/report" || path === "/" || path === "/api/pools")) {
       try {
         const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
         const ipHash = await sha256Short("scash-p2pool-v020|" + ip);
 
         const existing = await env.DB.prepare("SELECT updated_ep FROM node_reports WHERE ip_hash = ?").bind(ipHash).first();
-        if (existing && (nowSec - Number(existing.updated_ep || 0)) < 40) {
+        if (existing && (nowSec - Number(existing.updated_ep || 0)) < 12) {
           return new Response(JSON.stringify({ ok: true, throttled: true }), {
             headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
           });
@@ -220,8 +221,9 @@ export default {
         const netHr = Math.max(0, Number(ns.networkHashrate || 0) || 0);
         const rawPoolHr = Math.max(0, Number(ps.poolHashrate || 0) || 0);
 
-        // Sanity bound: reject impossible single-node claims (> 1.5x total Scash network hashrate when chain is synced)
-        if (blkH < 100 || (netHr > 0 && rawPoolHr > netHr * 1.5)) {
+        // Sanity bound: only reject absurd spoofed claims (> 50x network hashrate AND > 50 MH/s), never real 20+ KH/s rigs!
+        const sanityCap = netHr > 0 ? Math.max(netHr * 50.0, 50000000.0) : 50000000.0;
+        if (blkH < 100 || rawPoolHr > sanityCap) {
           return new Response(JSON.stringify({ ok: false, reason: "sanity_check" }), {
             status: 400,
             headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
@@ -299,9 +301,9 @@ export default {
 <style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.55}
 .card{background:#1c182b;border:1px solid #352d52;border-radius:14px;padding:22px;margin:18px 0}
 code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font-size:13px;overflow-x:auto}pre{padding:14px}a{color:#c084fc}</style></head>
-<body><h1>Scash P2Pool (<code>v0.2.0</code>) — Serverless Pool Stats</h1>
+<body><h1>Scash P2Pool (<code>v0.3.0</code>) — Serverless Pool Stats</h1>
 <p>100% decentralized community-reported P2Pool stats (1-minute live consensus across active P2Pool nodes):</p>
-<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.2.0</a></p>
+<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.3.0</a></p>
 <pre>${JSON.stringify({ pools: [poolObj] }, null, 2)}</pre></div></body></html>`;
     return new Response(html, { headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" } });
   }

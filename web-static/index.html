@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.2.0)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.0)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,7 +164,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.2.0)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.0)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -176,7 +176,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.2.0</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.0</span>
         </div>
       </div>
 
@@ -584,7 +584,7 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.2.0 (Core 30.4)</span>
+        <span>v0.3.0 (Core 30.4)</span>
       </div>
     </footer>
   </div>
@@ -942,11 +942,20 @@
       }
 
       if (payoutEntries.length > 0) {
+        const actPayoutTotal = payoutEntries.reduce((acc, [, v]) => acc + (Number(v) || 0), 0);
         for (const [addr, amt] of payoutEntries.slice(0, 8)) {
+          const rowPct = actPayoutTotal > 0 ? (Number(amt) / actPayoutTotal) * 100 : 0;
+          const roleLabel = addr.toLowerCase() === AUTHOR_WALLET.toLowerCase()
+            ? (payoutEntries.length === 1
+                ? 'Active Miner &bull; Pool Author (100%)'
+                : (rowPct > 1.5
+                    ? `Pool Author (1% Fee + ${Math.max(0, rowPct - 1.0).toFixed(1)}% Sharechain Weight)`
+                    : 'Pool Author Fee (1%)'))
+            : 'Active Sharechain Miner Payout';
           items.push(`
             <div class="p-2.5 rounded-lg bg-[#160d26]/90 border border-purple-500/35 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <div class="text-[11px] text-purple-300">${addr.toLowerCase() === AUTHOR_WALLET.toLowerCase() ? (payoutEntries.length === 1 ? 'Active Miner &bull; Pool Author (100%)' : 'Pool Author Fee (1%)') : 'Active Sharechain Miner Payout'}</div>
+                <div class="text-[11px] text-purple-300">${roleLabel}</div>
                 <div class="font-mono-code text-xs text-white truncate">${addr}</div>
               </div>
               <div class="font-mono-code text-xs text-emerald-300 font-semibold shrink-0">+${Number(amt).toFixed(8)} SCASH</div>
@@ -1001,7 +1010,7 @@
           <td class="py-2.5 px-3 text-purple-300">#${i + 1}</td>
           <td class="py-2.5 px-3 text-white">
             ${r.address}
-            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}${r.address.toLowerCase() === AUTHOR_WALLET.toLowerCase() ? '<span class="ml-1.5 px-1.5 py-0.5 text-[10px] rounded bg-purple-500/25 border border-purple-400 text-purple-200 font-sans font-semibold">1% AUTHOR</span>' : ''}
+            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}${r.address.toLowerCase() === AUTHOR_WALLET.toLowerCase() ? `<span class="ml-1.5 px-1.5 py-0.5 text-[10px] rounded bg-purple-500/25 border border-purple-400 text-purple-200 font-sans font-semibold">${r.pct > 1.5 ? '1% FEE + SHARES' : '1% AUTHOR'}</span>` : ''}
           </td>
           <td class="py-2.5 px-3 text-right text-cyan-300">${fmtHashrate(r.hs)}</td>
           <td class="py-2.5 px-3 text-right text-amber-300">${r.pct.toFixed(2)}%</td>
@@ -1012,7 +1021,7 @@
 
     function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.2.0-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.0-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
