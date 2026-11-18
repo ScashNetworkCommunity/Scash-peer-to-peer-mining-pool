@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.2)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.3)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,7 +164,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.2)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.3)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -176,7 +176,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.2</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.3</span>
         </div>
       </div>
 
@@ -291,7 +291,7 @@
                 </div>
               </div>
 
-              <!-- v0.3.2 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
+              <!-- v0.3.3 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- Box A: Miner SCASH Mined (7d / 30d / All-Time) -->
                 <div class="qt-cyan-card p-4 flex flex-col justify-between">
@@ -437,7 +437,7 @@
                   </div>
                 </div>
 
-                <div id="exchangeMarketsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div id="exchangeMarketsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <a href="https://www.ourbit.com/exchange/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
                     <div>
                       <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">Ourbit &#8599;</div>
@@ -452,16 +452,23 @@
                     </div>
                     <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
                   </a>
+                  <a href="https://trade.nestex.one/spot/SCASH" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+                    <div>
+                      <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">NestEx &#8599;</div>
+                      <div class="text-[10px] text-purple-300/80 font-mono-code">SCASH/USDT</div>
+                    </div>
+                    <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
+                  </a>
                 </div>
 
                 <div class="mt-2.5 pt-2 border-t border-purple-500/25 flex flex-wrap items-center justify-between gap-2 text-[11px] text-purple-300/85">
                   <div class="flex flex-wrap items-center gap-2.5">
-                    <span>Trade &amp; Track:</span>
+                    <span>Exchanges &amp; Trackers:</span>
                     <a href="https://www.ourbit.com/exchange/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">Ourbit</a>
                     <span>&bull;</span>
                     <a href="https://nonkyc.io/market/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">NonKYC</a>
                     <span>&bull;</span>
-                    <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-exchange" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">Scash P2P DEX</a>
+                    <a href="https://trade.nestex.one/spot/SCASH" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">NestEx</a>
                     <span>&bull;</span>
                     <a href="https://www.coingecko.com/en/coins/satoshi-cash-network" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">CoinGecko</a>
                   </div>
@@ -473,7 +480,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
                     <h2 class="text-sm font-semibold text-purple-100">Live P2Pool Blocks &amp; Sharechain Activity</h2>
-                    <p class="text-[11px] text-purple-300/80">Live pool shares &amp; block payouts &mdash; 0% pool fee, 100% goes straight to miners</p>
+                    <p class="text-[11px] text-purple-300/80">Blocks found in the last 24h &amp; active sharechain &mdash; 0% pool fee, 100% to miners</p>
                   </div>
                   <span id="poolUptimeBadge" class="text-[11px] font-mono-code px-2.5 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">
                     Uptime: &mdash;
@@ -703,7 +710,7 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.3.2 (Core 30.4)</span>
+        <span>v0.3.3 (Core 30.4)</span>
       </div>
     </footer>
   </div>
@@ -1149,7 +1156,9 @@
         return;
       }
 
-      const blocks = Array.isArray(live.recentBlocks) ? live.recentBlocks : [];
+      const nowSec = Math.floor(Date.now() / 1000);
+      const blocks = (Array.isArray(live.recentBlocks) ? live.recentBlocks : [])
+        .filter(b => b && Number(b.ts || 0) > 0 && (nowSec - Number(b.ts)) <= 86400);
       for (const b of blocks.slice(0, 15)) {
         const dt = b.ts ? new Date(b.ts * 1000).toLocaleString() : 'Solved Block';
         items.push(`
@@ -1247,7 +1256,7 @@
 
     function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.2-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.3-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
@@ -1332,14 +1341,18 @@
       if (ls && !ls.syncing) live.localStats = ls;
       if (gs) live.globalStats = gs;
       live.payouts = pay || {};
-      // Merge sharechain /recent_blocks with on-chain ledger recent_blocks so solved blocks remain visible past 24h!
+      // Keep Live P2Pool Blocks & Sharechain Activity strictly limited to blocks <= 24h (86400s) old!
+      // Older historical blocks remain counted in Pool Blocks Found (All-Time) & Miner SCASH Mined (7d/30d/All-Time).
+      const cutoff24h = Math.floor(Date.now() / 1000) - 86400;
       const mergedBlocksMap = new Map();
       for (const b of (Array.isArray(rb) ? rb : [])) {
-        if (b && b.number !== undefined) mergedBlocksMap.set(Number(b.number), b);
+        if (b && b.number !== undefined && Number(b.ts || 0) >= cutoff24h) {
+          mergedBlocksMap.set(Number(b.number), b);
+        }
       }
       if (telData && telData.ledger && Array.isArray(telData.ledger.recent_blocks)) {
         for (const lb of telData.ledger.recent_blocks) {
-          if (lb && lb.number !== undefined && !mergedBlocksMap.has(Number(lb.number))) {
+          if (lb && lb.number !== undefined && Number(lb.ts || 0) >= cutoff24h && !mergedBlocksMap.has(Number(lb.number))) {
             mergedBlocksMap.set(Number(lb.number), lb);
           }
         }

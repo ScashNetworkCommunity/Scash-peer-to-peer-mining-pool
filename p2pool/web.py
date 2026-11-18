@@ -516,7 +516,7 @@ try:
             raise
     _node_status_cache = {'ts': 0.0, 'data': None, 'refreshing': False}
     _ghpages_started = {'active': False}
-    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4zLjI8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMy4yPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
+    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4zLjM8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMy4zPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
 
     def _do_refresh_scashd_node():
         try:
@@ -594,7 +594,7 @@ try:
         return _node_status_cache['data']
 
 
-    # --- v0.3.2 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
+    # --- v0.3.3 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
     import binascii as _w_binascii
     from p2pool.bitcoin import bech32_scash as _w_b32
 
@@ -1114,7 +1114,7 @@ try:
             'recent_blocks': recent_list,
         }
 
-    # --- Liquidity-Weighted Multi-Exchange SCASH Price Tracker ---
+    # --- Liquidity-Weighted Multi-Exchange SCASH Price Tracker (Ourbit + NonKYC + NestEx + Auto-Discovered Venues) ---
     _CANONICAL_EXCHANGES = {
         'ourbit': {
             'key': 'ourbit',
@@ -1128,11 +1128,17 @@ try:
             'pair': 'SCASH/USDT',
             'url': 'https://nonkyc.io/market/SCASH_USDT',
         },
+        'nestex': {
+            'key': 'nestex',
+            'name': 'NestEx',
+            'pair': 'SCASH/USDT',
+            'url': 'https://trade.nestex.one/spot/SCASH',
+        },
     }
     _REFERENCE_MARKET_LINKS = [
         {'name': 'Ourbit', 'url': 'https://www.ourbit.com/exchange/SCASH_USDT'},
         {'name': 'NonKYC', 'url': 'https://nonkyc.io/market/SCASH_USDT'},
-        {'name': 'Scash P2P DEX', 'url': 'https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-exchange'},
+        {'name': 'NestEx', 'url': 'https://trade.nestex.one/spot/SCASH'},
         {'name': 'CoinGecko', 'url': 'https://www.coingecko.com/en/coins/satoshi-cash-network'},
     ]
     _market_lock = _w_threading.Lock()
@@ -1148,6 +1154,7 @@ try:
             'exchanges': [
                 {'key': 'ourbit', 'name': 'Ourbit', 'pair': 'SCASH/USDT', 'price_usd': None, 'depth_usd': 0.0, 'volume_24h_usd': 0.0, 'liquidity_usd': 0.0, 'weight_pct': 0.0, 'url': 'https://www.ourbit.com/exchange/SCASH_USDT'},
                 {'key': 'nonkyc', 'name': 'NonKYC', 'pair': 'SCASH/USDT', 'price_usd': None, 'depth_usd': 0.0, 'volume_24h_usd': 0.0, 'liquidity_usd': 0.0, 'weight_pct': 0.0, 'url': 'https://nonkyc.io/market/SCASH_USDT'},
+                {'key': 'nestex', 'name': 'NestEx', 'pair': 'SCASH/USDT', 'price_usd': None, 'depth_usd': 0.0, 'volume_24h_usd': 0.0, 'liquidity_usd': 0.0, 'weight_pct': 0.0, 'url': 'https://trade.nestex.one/spot/SCASH'},
             ],
             'reference_links': _REFERENCE_MARKET_LINKS,
             'updated_at': 0,
@@ -1157,7 +1164,7 @@ try:
     def _http_get_json_wan(url, timeout=4.5):
         req = _w_ureq.Request(url, headers={
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.3; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         raw = _scash_open_url(req, timeout=timeout, is_local=url.startswith('http://127.0.0.1'))
         return _w_json.loads(raw.decode('utf-8', 'replace'))
@@ -1169,8 +1176,14 @@ try:
         hi = ref_price * 1.10
         band_usd = 0.0
         full_usd = 0.0
-        for side, is_bid in ((bids or [], True), (asks or [], False)):
-            for row in side[:60]:
+        for raw_side, is_bid in ((bids, True), (asks, False)):
+            if isinstance(raw_side, dict):
+                side_rows = list(raw_side.items())
+            elif isinstance(raw_side, (list, tuple)):
+                side_rows = list(raw_side)
+            else:
+                side_rows = []
+            for row in side_rows[:80]:
                 try:
                     if isinstance(row, dict):
                         p = float(row.get('price') or row.get('rate') or 0.0)
@@ -1198,6 +1211,8 @@ try:
             return 'ourbit'
         if 'nonkyc' in s or 'non-kyc' in s:
             return 'nonkyc'
+        if 'nestex' in s:
+            return 'nestex'
         clean = ''.join(ch if ch.isalnum() else '_' for ch in str(raw_id or raw_name or 'exchange').lower()).strip('_')
         return clean or 'exchange'
 
@@ -1212,7 +1227,7 @@ try:
                 continue
             if price <= 0.0 or (depth < 1.0 and vol < 1.0):
                 continue
-            # Effective USD liquidity combines +-10% orderbook depth with 24h liquidity turnover
+            # Effective USD liquidity combines active +-10% orderbook / AMM LP depth with 24h USD turnover
             liq = depth + (0.25 * vol)
             if liq <= 0.0:
                 continue
@@ -1238,9 +1253,9 @@ try:
                 x['weight_pct'] = round(100.0 * x['liquidity_usd'] / tot_liq, 1)
         active.sort(key=lambda x: x['liquidity_usd'], reverse=True)
 
-        # Always keep Ourbit & NonKYC hyperlinks present even if one API is temporarily unreachable
+        # Always keep Ourbit, NonKYC & NestEx hyperlinks present even if one API is temporarily unreachable
         present_keys = set(x['key'] for x in active)
-        for req_k in ('ourbit', 'nonkyc'):
+        for req_k in ('ourbit', 'nonkyc', 'nestex'):
             if req_k not in present_keys:
                 meta = _CANONICAL_EXCHANGES[req_k]
                 active.append({
@@ -1277,6 +1292,7 @@ try:
             venues = {}
             ourbit_base = (os.environ.get('SCASH_OURBIT_API_BASE') or 'https://www.ourbit.com').rstrip('/')
             nonkyc_base = (os.environ.get('SCASH_NONKYC_API_BASE') or 'https://api.nonkyc.io/api/v2').rstrip('/')
+            nestex_base = (os.environ.get('SCASH_NESTEX_API_BASE') or 'https://api.nestex.one').rstrip('/')
             cg_url = os.environ.get('SCASH_COINGECKO_TICKERS_URL') or 'https://api.coingecko.com/api/v3/coins/satoshi-cash-network/tickers?depth=true'
             cp_url = os.environ.get('SCASH_COINPAPRIKA_MARKETS_URL') or 'https://api.coinpaprika.com/v1/coins/scash-satoshi-cash-network/markets?quotes=USD'
 
@@ -1310,34 +1326,126 @@ try:
             except Exception:
                 pass
 
-            # 2) Direct NonKYC public REST v2 market + orderbook depth
+            # 2) Direct NonKYC public REST v2 ticker + orderbook depth
+            #    IMPORTANT: On NonKYC /market/getbysymbol/SCASH_USDT, 'volume' is BASE SCASH coins (NOT USD)!
+            #    Always read CoinGecko-spec 'target_volume' / explicit 'usdVolume' / 'volumeUsd', or multiply base 'volume' by p_nk!
             try:
-                nk_tk = _http_get_json_wan('%s/market/getbysymbol/SCASH_USDT' % nonkyc_base, timeout=4.0)
-                if isinstance(nk_tk, dict):
-                    p_nk = float(nk_tk.get('lastPrice') or nk_tk.get('last_price') or nk_tk.get('last') or 0.0)
-                    vol_nk = float(nk_tk.get('usdVolume') or nk_tk.get('target_volume') or nk_tk.get('volume') or 0.0)
-                    d_nk = 0.0
-                    if p_nk > 0.0:
+                p_nk = 0.0
+                vol_nk = 0.0
+                try:
+                    nk_cg = _http_get_json_wan('%s/ticker/SCASH_USDT' % nonkyc_base, timeout=3.5)
+                    if isinstance(nk_cg, dict):
+                        p_nk = float(nk_cg.get('last_price') or nk_cg.get('lastPrice') or 0.0)
+                        if nk_cg.get('target_volume') is not None:
+                            vol_nk = float(nk_cg.get('target_volume') or 0.0)
+                        elif nk_cg.get('base_volume') is not None and p_nk > 0.0:
+                            vol_nk = float(nk_cg.get('base_volume') or 0.0) * p_nk
+                except Exception:
+                    pass
+                if p_nk <= 0.0 or vol_nk <= 0.0:
+                    nk_tk = _http_get_json_wan('%s/market/getbysymbol/SCASH_USDT' % nonkyc_base, timeout=4.0)
+                    if isinstance(nk_tk, dict):
+                        if p_nk <= 0.0:
+                            p_nk = float(nk_tk.get('lastPrice') or nk_tk.get('last_price') or nk_tk.get('last') or 0.0)
+                        if vol_nk <= 0.0:
+                            explicit_usd = nk_tk.get('usdVolume') if nk_tk.get('usdVolume') is not None else nk_tk.get('volumeUsd')
+                            if explicit_usd is not None and float(explicit_usd or 0.0) > 0.0:
+                                vol_nk = float(explicit_usd)
+                            elif nk_tk.get('target_volume') is not None and float(nk_tk.get('target_volume') or 0.0) > 0.0:
+                                vol_nk = float(nk_tk.get('target_volume'))
+                            elif p_nk > 0.0:
+                                # 'volume' on NonKYC getbysymbol is in base SCASH coins -> convert to USD!
+                                vol_nk = float(nk_tk.get('volume') or 0.0) * p_nk
+                d_nk = 0.0
+                if p_nk > 0.0:
+                    try:
+                        nk_dp = _http_get_json_wan('%s/market/getorderbookbysymbol/SCASH_USDT' % nonkyc_base, timeout=4.0)
+                        if isinstance(nk_dp, dict):
+                            d_nk = _calc_orderbook_band_usd(nk_dp.get('bids'), nk_dp.get('asks'), p_nk)
+                    except Exception:
+                        pass
+                if p_nk > 0.0:
+                    venues['nonkyc'] = {
+                        'name': 'NonKYC',
+                        'pair': 'SCASH/USDT',
+                        'price_usd': p_nk,
+                        'depth_usd': d_nk,
+                        'volume_24h_usd': vol_nk,
+                        'url': _CANONICAL_EXCHANGES['nonkyc']['url'],
+                    }
+            except Exception:
+                pass
+
+            # 3) Direct NestEx public REST API v1.31 (/cg/tickers/SCASH_USDT + /cg/orderbook/SCASH_USDT + /v1/liquidity/SCASH)
+            try:
+                nx_tk = None
+                try:
+                    nx_single = _http_get_json_wan('%s/cg/tickers/SCASH_USDT' % nestex_base, timeout=4.0)
+                    if isinstance(nx_single, dict) and (nx_single.get('last_price') or nx_single.get('bid') or nx_single.get('ask')):
+                        nx_tk = nx_single
+                    elif isinstance(nx_single, list):
+                        for row in nx_single:
+                            if isinstance(row, dict) and str(row.get('ticker_id') or '').upper() == 'SCASH_USDT':
+                                nx_tk = row
+                                break
+                except Exception:
+                    pass
+                if nx_tk is None:
+                    nx_all = _http_get_json_wan('%s/cg/tickers' % nestex_base, timeout=4.5)
+                    if isinstance(nx_all, list):
+                        for row in nx_all:
+                            if not isinstance(row, dict):
+                                continue
+                            tid = str(row.get('ticker_id') or '').upper()
+                            bcur = str(row.get('base_currency') or '').upper()
+                            tcur = str(row.get('target_currency') or '').upper()
+                            if tid == 'SCASH_USDT' or (bcur == 'SCASH' and tcur in ('USDT', 'USD', 'USDC')):
+                                nx_tk = row
+                                break
+                if isinstance(nx_tk, dict):
+                    p_nx = float(nx_tk.get('last_price') or nx_tk.get('last') or 0.0)
+                    if p_nx <= 0.0:
+                        b_nx = float(nx_tk.get('bid') or 0.0)
+                        a_nx = float(nx_tk.get('ask') or 0.0)
+                        if b_nx > 0.0 and a_nx > 0.0:
+                            p_nx = 0.5 * (b_nx + a_nx)
+                    # Per NestEx API v1.31, target_volume is 24h volume in USDT, base_volume is in SCASH
+                    vol_nx = float(nx_tk.get('target_volume') or 0.0)
+                    if vol_nx <= 0.0 and p_nx > 0.0:
+                        vol_nx = float(nx_tk.get('base_volume') or 0.0) * p_nx
+                    liq_rec_nx = float(nx_tk.get('liquidity') or 0.0)
+                    d_nx = 0.0
+                    if p_nx > 0.0:
                         try:
-                            nk_dp = _http_get_json_wan('%s/market/getorderbookbysymbol/SCASH_USDT' % nonkyc_base, timeout=4.0)
-                            if isinstance(nk_dp, dict):
-                                d_nk = _calc_orderbook_band_usd(nk_dp.get('bids'), nk_dp.get('asks'), p_nk)
+                            nx_dp = _http_get_json_wan('%s/cg/orderbook/SCASH_USDT?depth=100' % nestex_base, timeout=4.0)
+                            if isinstance(nx_dp, dict):
+                                d_nx = _calc_orderbook_band_usd(nx_dp.get('bids'), nx_dp.get('asks'), p_nx)
                         except Exception:
                             pass
-                    if p_nk > 0.0:
-                        venues['nonkyc'] = {
-                            'name': 'NonKYC',
+                        try:
+                            nx_lp = _http_get_json_wan('%s/v1/liquidity/SCASH' % nestex_base, timeout=3.5)
+                            lp_d = (nx_lp or {}).get('data') or {}
+                            if isinstance(lp_d, dict):
+                                lp_tot = float(lp_d.get('total') or 0.0)
+                                if lp_tot > 0.0:
+                                    d_nx += lp_tot
+                        except Exception:
+                            pass
+                    if d_nx <= 0.0 and liq_rec_nx > 0.0:
+                        d_nx = liq_rec_nx
+                    if p_nx > 0.0:
+                        venues['nestex'] = {
+                            'name': 'NestEx',
                             'pair': 'SCASH/USDT',
-                            'price_usd': p_nk,
-                            'depth_usd': d_nk,
-                            'volume_24h_usd': vol_nk,
-                            'url': _CANONICAL_EXCHANGES['nonkyc']['url'],
+                            'price_usd': p_nx,
+                            'depth_usd': d_nx,
+                            'volume_24h_usd': vol_nx,
+                            'url': _CANONICAL_EXCHANGES['nestex']['url'],
                         }
             except Exception:
                 pass
 
-            # 3) CoinGecko multi-exchange tickers (?depth=true) -> auto-discovers ANY new SCASH exchange + fills missing depth/vol!
-            got_cg = False
+            # 4) CoinGecko multi-exchange tickers (?depth=true) -> auto-discovers ANY new SCASH exchange + cross-checks USD volumes!
             try:
                 cg_obj = _http_get_json_wan(cg_url, timeout=5.0)
                 for tk in ((cg_obj or {}).get('tickers') or []):
@@ -1354,7 +1462,6 @@ try:
                     cg_d = float(tk.get('cost_to_move_up_usd') or 0.0) + float(tk.get('cost_to_move_down_usd') or 0.0)
                     if p_usd <= 0.0 or (v_usd < 1.0 and cg_d < 1.0):
                         continue
-                    got_cg = True
                     pair_str = '%s/%s' % (str(tk.get('base') or 'SCASH').upper(), str(tk.get('target') or 'USDT').upper())
                     t_url = str(tk.get('trade_url') or '').strip()
                     if ekey in _CANONICAL_EXCHANGES and not t_url:
@@ -1363,9 +1470,11 @@ try:
                         m_name = _CANONICAL_EXCHANGES[ekey]['name']
                     if ekey in venues:
                         cur = venues[ekey]
-                        if cur.get('volume_24h_usd', 0.0) <= 0.0 and v_usd > 0.0:
+                        cur_v = float(cur.get('volume_24h_usd') or 0.0)
+                        # Guard against base-coin vs USD volume unit mismatch (>4x CoinGecko's verified converted_volume.usd)
+                        if (cur_v <= 0.0 and v_usd > 0.0) or (v_usd > 0.0 and cur_v > 4.0 * v_usd):
                             cur['volume_24h_usd'] = v_usd
-                        if cur.get('depth_usd', 0.0) <= 0.0 and cg_d > 0.0:
+                        if float(cur.get('depth_usd') or 0.0) <= 0.0 and cg_d > 0.0:
                             cur['depth_usd'] = cg_d
                         if t_url and not cur.get('url'):
                             cur['url'] = t_url
@@ -1381,32 +1490,31 @@ try:
             except Exception:
                 pass
 
-            # 4) CoinPaprika multi-market backup if CoinGecko was rate-limited
-            if not got_cg:
-                try:
-                    cp_arr = _http_get_json_wan(cp_url, timeout=4.5)
-                    if isinstance(cp_arr, list):
-                        for mk in cp_arr:
-                            if not isinstance(mk, dict) or mk.get('outlier'):
-                                continue
-                            q_usd = ((mk.get('quotes') or {}).get('USD')) or {}
-                            p_cp = float(q_usd.get('price') or 0.0)
-                            v_cp = float(q_usd.get('volume_24h') or 0.0)
-                            if p_cp <= 0.0 or v_cp < 1.0:
-                                continue
-                            ex_nm = str(mk.get('exchange_name') or '').strip()
-                            ekey = _norm_exchange_key(mk.get('exchange_id'), ex_nm)
-                            if ekey not in venues:
-                                venues[ekey] = {
-                                    'name': _CANONICAL_EXCHANGES[ekey]['name'] if ekey in _CANONICAL_EXCHANGES else (ex_nm or ekey.capitalize()),
-                                    'pair': str(mk.get('pair') or 'SCASH/USDT'),
-                                    'price_usd': p_cp,
-                                    'depth_usd': 0.0,
-                                    'volume_24h_usd': v_cp,
-                                    'url': str(mk.get('market_url') or (_CANONICAL_EXCHANGES.get(ekey) or {}).get('url') or 'https://www.coingecko.com/en/coins/satoshi-cash-network'),
-                                }
-                except Exception:
-                    pass
+            # 5) CoinPaprika multi-market feed (runs every cycle too so exchanges indexed on CoinPaprika but not CoinGecko are included!)
+            try:
+                cp_arr = _http_get_json_wan(cp_url, timeout=4.5)
+                if isinstance(cp_arr, list):
+                    for mk in cp_arr:
+                        if not isinstance(mk, dict) or mk.get('outlier'):
+                            continue
+                        q_usd = ((mk.get('quotes') or {}).get('USD')) or {}
+                        p_cp = float(q_usd.get('price') or 0.0)
+                        v_cp = float(q_usd.get('volume_24h') or 0.0)
+                        if p_cp <= 0.0 or v_cp < 1.0:
+                            continue
+                        ex_nm = str(mk.get('exchange_name') or '').strip()
+                        ekey = _norm_exchange_key(mk.get('exchange_id'), ex_nm)
+                        if ekey not in venues:
+                            venues[ekey] = {
+                                'name': _CANONICAL_EXCHANGES[ekey]['name'] if ekey in _CANONICAL_EXCHANGES else (ex_nm or ekey.capitalize()),
+                                'pair': str(mk.get('pair') or 'SCASH/USDT'),
+                                'price_usd': p_cp,
+                                'depth_usd': 0.0,
+                                'volume_24h_usd': v_cp,
+                                'url': str(mk.get('market_url') or (_CANONICAL_EXCHANGES.get(ekey) or {}).get('url') or 'https://www.coingecko.com/en/coins/satoshi-cash-network'),
+                            }
+            except Exception:
+                pass
 
             if venues:
                 snap = _compute_weighted_market_snapshot(venues, block_reward=50.0)
@@ -1481,7 +1589,7 @@ try:
         market = _get_cached_scash_market()
         return {
             'ok': True,
-            'version': '0.3.2',
+            'version': '0.3.3',
             'hashrates': rates,
             'ledger': ledger,
             'market': market,
@@ -1730,7 +1838,7 @@ try:
             return False
 
         try:
-            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.3; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
             r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
             r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
             if r_obj:
@@ -1759,7 +1867,7 @@ try:
                 'Authorization': 'Bearer ' + tok,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.3; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             }
             req = _w_ureq.Request(url, data, hdrs)
             req.get_method = lambda: method
@@ -1859,7 +1967,7 @@ try:
             'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
         ):
             try:
-                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.3; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
                 txt = _scash_open_url(req, timeout=4.0, is_local=u.startswith('http://127.0.0.1')).decode('utf-8', 'replace')
                 obj = _w_json.loads(txt) or {}
                 if 'report_url' in obj:
@@ -1899,7 +2007,7 @@ try:
         except Exception:
             pass
         body = _w_json.dumps({
-            'version': '0.3.2',
+            'version': '0.3.3',
             'best_share_hash': best_hex,
             'chain_height': int(chain_h),
             'p2pool_peers': int(p2p_peers),
@@ -1907,7 +2015,7 @@ try:
         }).encode('utf-8')
         req = _w_ureq.Request(target_url, body, {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.3; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
         if not _community_reporter_started.get('logged'):

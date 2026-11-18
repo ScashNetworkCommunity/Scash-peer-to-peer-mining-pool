@@ -361,3 +361,30 @@ class Node(object):
             #print "removed! %i %f" % (len(to_remove), (end - start)/len(to_remove))
         
         self.set_best_share()
+
+
+# --- Scash Clean Peer Disconnect Filter ---
+try:
+    from twisted.internet import error as _scash_tw_err
+    from twisted.python import failure as _scash_tw_fail
+    from twisted.python import log as _scash_orig_log
+
+    class _ScashQuietPeerLogProxy(object):
+        def __init__(self, inner):
+            self._inner = inner
+        def err(self, _stuff=None, _why=None, **kw):
+            try:
+                f = _stuff if _stuff is not None else _scash_tw_fail.Failure()
+                if isinstance(f, _scash_tw_fail.Failure) and f.check(_scash_tw_err.ConnectionLost, _scash_tw_err.ConnectionDone):
+                    return None
+                if isinstance(f, (_scash_tw_err.ConnectionLost, _scash_tw_err.ConnectionDone)):
+                    return None
+            except Exception:
+                pass
+            return self._inner.err(_stuff, _why, **kw)
+        def __getattr__(self, attr):
+            return getattr(self._inner, attr)
+
+    log = _ScashQuietPeerLogProxy(_scash_orig_log)
+except Exception:
+    pass

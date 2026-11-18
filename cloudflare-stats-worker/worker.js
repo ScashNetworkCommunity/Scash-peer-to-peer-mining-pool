@@ -1,4 +1,4 @@
-// Scash P2Pool (v0.3.2) — 100% Serverless Community Consensus Stats API for MiningPoolStats
+// Scash P2Pool (v0.3.3) — 100% Serverless Community Consensus Stats API for MiningPoolStats
 // Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
 // Zero home servers, zero GitHub tokens, true 1-minute updates, median anti-spoof consensus.
 
@@ -300,9 +300,9 @@ export default {
 <style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.55}
 .card{background:#1c182b;border:1px solid #352d52;border-radius:14px;padding:22px;margin:18px 0}
 code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font-size:13px;overflow-x:auto}pre{padding:14px}a{color:#c084fc}</style></head>
-<body><h1>Scash P2Pool (<code>v0.3.2</code>) — Serverless Pool Stats</h1>
+<body><h1>Scash P2Pool (<code>v0.3.3</code>) — Serverless Pool Stats</h1>
 <p>100% decentralized community-reported P2Pool stats (1-minute live consensus across active P2Pool nodes):</p>
-<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.3.2</a></p>
+<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.3.3</a></p>
 <pre>${JSON.stringify({ pools: [poolObj] }, null, 2)}</pre></div></body></html>`;
     return new Response(html, { headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" } });
   }
