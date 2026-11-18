@@ -1,6 +1,6 @@
 ==============================================================================
-  SCASH P2POOL (QtKawaii Edition v0.3.0) - EASY QUICK START GUIDE
-  Publisher: magicalgirlsunite  |  99% PPLNS to Miners, 1% Fee to Pool Author
+  SCASH P2POOL (QtKawaii Edition v0.3.1) - EASY QUICK START GUIDE
+  Publisher: magicalgirlsunite  |  0% Pool Fee (100% PPLNS Direct to Miners)
 ==============================================================================
 
 HOW TO START MINING IN 3 EASY STEPS (WINDOWS):
@@ -27,9 +27,8 @@ HOW TO START MINING IN 3 EASY STEPS (WINDOWS):
 
 HOW PAYOUTS WORK:
    Finding 'Shares' earns your spot on the pool's payout list over a rolling
-   24-hour window. Whenever the pool solves a 50 SCASH block, 99% is paid
-   immediately into active miners' wallets and 1% goes to the pool author
-   (scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc). Nothing is held on a server!
+   24-hour window. Whenever the pool solves a 50 SCASH block, 100% is paid
+   immediately into active miners' wallets (0% pool fee). Nothing is held on a server!
 
 HOW TO STOP MINING:
    Simply close the black terminal window (click X) -- everything shuts down

@@ -1,15 +1,15 @@
 ## 🇨🇳 [**中文使用指南（简体中文 · 中国大陆/北京）**](README_ZH_CN.md) &nbsp;|&nbsp; 🇭🇰 [**中文使用指南（繁體中文 · 香港/港澳台）**](README_ZH_HK.md)
 
-# Scash P2Pool — Easy All-in-One CPU Mining Pool (QtKawaii Edition `v0.3.0`)
+# Scash P2Pool — Easy All-in-One CPU Mining Pool (QtKawaii Edition `v0.3.1`)
 
-**Publisher:** `magicalgirlsunite` | **Community:** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **Pool Fee:** **1%** to Pool Author (`scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc`), **99%** straight to Miners
+**Publisher:** `magicalgirlsunite` | **Community:** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **Pool Fee:** **0%** (**100%** of solved blocks go straight to Miners)
 
 Welcome to **Scash P2Pool**! This is an easy, all-in-one program that lets you mine **Scash (`SCASH`)** using your regular home computer's processor (CPU) together with other miners—with **no accounts to create**, **no website holding your coins**, and **no extra software to install**.
 
 Everything you need is packed inside one folder:
 - **Official Scash 2.3.0 (Core 30.4.0) Node** ([`ScashNetworkCommunity/scash`](https://github.com/ScashNetworkCommunity/scash/releases/tag/scash_v2.3.0-mid-world-core-30.4.0)) — connects automatically to the Scash network and reuses your existing Scash Wallet blockchain if you already have it on your PC!
 - **Scash P2Pool Sharechain** — teams up your CPU with other miners so everyone earns steady shares toward the next `50 SCASH` block.
-- **Fast Built-in CPU Miner** ([`ScashNetworkCommunity/xmrigCC`](https://github.com/ScashNetworkCommunity/xmrigCC) + [`WinRing0x64.sys`](https://github.com/xmrig/xmrig/blob/master/bin/WinRing0/WinRing0x64.sys) MSR CPU speed booster) — pre-configured for full RandomX speed (`0%` extra miner fee; only the `1%` P2Pool author fee applies).
+- **Fast Built-in CPU Miner** ([`ScashNetworkCommunity/xmrigCC`](https://github.com/ScashNetworkCommunity/xmrigCC) + [`WinRing0x64.sys`](https://github.com/xmrig/xmrig/blob/master/bin/WinRing0/WinRing0x64.sys) MSR CPU speed booster) — pre-configured for full RandomX speed (`0%` pool fee and `0%` miner fee).
 - **QtKawaii Web Dashboard** — opens automatically in your web browser so you can paste your wallet address, adjust CPU threads with a simple slider, and watch your live speed and payouts.
 
 ## 1. Which File Should I Download?
@@ -18,9 +18,9 @@ Go to the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-pee
 
 | Download File | Who Is It For? | Built-in CPU Miner Included? |
 | :--- | :--- | :--- |
-| **`scash-p2pool-0.3.0-win64.zip`** | **Recommended for Windows users!** Ready to mine out of the box. | **Yes** (`xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` speed booster) |
-| **`scash-p2pool-0.3.0-win64-nodeonly.zip`** | Advanced Windows users who want to use their own separate mining app. | **No** (`miner/` has no `.exe` or `.sys` files) |
-| **`scash-p2pool-0.3.0-x86_64-pc-linux-gnu.tgz`** | **Linux (64-bit) users.** Ready to mine out of the box. | **Yes** (`xmrigDaemon` + `xmrigMiner` with MSR support) |
+| **`scash-p2pool-0.3.1-win64.zip`** | **Recommended for Windows users!** Ready to mine out of the box. | **Yes** (`xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` speed booster) |
+| **`scash-p2pool-0.3.1-win64-nodeonly.zip`** | Advanced Windows users who want to use their own separate mining app. | **No** (`miner/` has no `.exe` or `.sys` files) |
+| **`scash-p2pool-0.3.1-x86_64-pc-linux-gnu.tgz`** | **Linux (64-bit) users.** Ready to mine out of the box. | **Yes** (`xmrigDaemon` + `xmrigMiner` with MSR support) |
 
 *(Make sure you also have the [Scash Wallet](https://github.com/ScashNetworkCommunity/scash/releases) installed so you have your own **`scash1...`** receiving address where your mined coins will be sent!)*
 
@@ -38,9 +38,9 @@ Just like [official Monero mining apps](https://www.getmonero.org/get-started/fa
 5. Click **Add an exclusion** -> choose **Folder** -> select **`C:\Scash-P2Pool`** ([Microsoft step-by-step guide](https://learn.microsoft.com/en-us/answers/questions/3187645/how-to-add-an-exception-to-windows-defender)).
 
 ### Step 2: Save & Unzip Inside `C:\Scash-P2Pool`
-1. On the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), **right-click** **`scash-p2pool-0.3.0-win64.zip`** and click **Save link as...**.
+1. On the [**Releases Page**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases), **right-click** **`scash-p2pool-0.3.1-win64.zip`** and click **Save link as...**.
 2. Choose **`C:\Scash-P2Pool`** and click **Save** *(saving straight into `C:\Scash-P2Pool` keeps Windows from deleting it in your `Downloads` folder)*.
-3. Open **`C:\Scash-P2Pool`**, **right-click** the `.zip` file, click **Extract All...**, and click **Extract** *(Tip: for instant 2-second extraction on Windows 11, you can also use **7-Zip** or run `tar -xf C:\Scash-P2Pool\scash-p2pool-0.3.0-win64.zip -C C:\Scash-P2Pool` in PowerShell)*.
+3. Open **`C:\Scash-P2Pool`**, **right-click** the `.zip` file, click **Extract All...**, and click **Extract** *(Tip: for instant 2-second extraction on Windows 11, you can also use **7-Zip** or run `tar -xf C:\Scash-P2Pool\scash-p2pool-0.3.1-win64.zip -C C:\Scash-P2Pool` in PowerShell)*.
 
 ### Step 3: Double-Click `Start-Scash-P2Pool.exe`
 Open your extracted folder and double-click **`Start-Scash-P2Pool.exe`** (or **`Start-Scash-P2Pool-Windows.bat`**). On your very first launch, Windows may show up to three normal prompts:
@@ -61,7 +61,7 @@ Open your extracted folder and double-click **`Start-Scash-P2Pool.exe`** (or **`
 ## 3. Common Beginner Questions (FAQ)
 
 **Q: I see "Accepted Shares" going up, so why is my Scash Wallet balance still 0?**
-Think of **Shares** like raffle/work tickets showing how much work your CPU contributed to the pool over the last 24 hours. Nobody gets paid tiny dust every minute—instead, **the moment anyone on Scash P2Pool solves a full Scash Block (`50 SCASH`)**, the Scash blockchain immediately sends **99%** of that `50 SCASH` block directly into the wallets of every miner on the **PPLNS Payouts** list (split fairly by your share %) and **1%** (`0.50 SCASH`) to the pool author (`scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc`). Because coins go straight to your wallet on the blockchain, the pool never holds your funds!
+Think of **Shares** like raffle/work tickets showing how much work your CPU contributed to the pool over the last 24 hours. Nobody gets paid tiny dust every minute—instead, **the moment anyone on Scash P2Pool solves a full Scash Block (`50 SCASH`)**, the Scash blockchain immediately sends **100%** of that `50 SCASH` block directly into the wallets of every miner on the **PPLNS Payouts** list (split fairly by your share %, with **0% pool fee**). Because coins go straight to your wallet on the blockchain, the pool never holds your funds!
 
 **Q: Can I keep Scash Wallet (`scash-qt`) installed on the same PC?**
 Yes! Scash P2Pool automatically detects your existing blockchain inside `AppData\Local\Scash` so you don't have to download blocks twice. *(Tip: If your Scash Wallet window was already open before your very first P2Pool launch, close Scash Wallet briefly—or restart it once—so both programs share your synced blocks smoothly.)*
@@ -76,8 +76,8 @@ Nope! Your `scash1...` wallet address is saved locally on your PC, so next time 
 
 ### Linux (64-bit) Quick Start
 ```bash
-tar -xzf scash-p2pool-0.3.0-x86_64-pc-linux-gnu.tgz
-cd scash-p2pool-0.3.0
+tar -xzf scash-p2pool-0.3.1-x86_64-pc-linux-gnu.tgz
+cd scash-p2pool-0.3.1
 # Optional: enable Linux 2MB HugePages & run with sudo if you want MSR CPU register tuning
 sudo sysctl -w vm.nr_hugepages=1280
 ./start-scash-p2pool-linux.sh
@@ -96,5 +96,5 @@ Mining works right away with **zero router changes**! However, if you know how t
 ### Optional: Verifying Your Download (`SHA256SUMS.txt`)
 If you'd like to verify your `.zip` matches `SHA256SUMS.txt` on the Releases page, open PowerShell and run:
 ```powershell
-Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.0-win64.zip -Algorithm SHA256
+Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.1-win64.zip -Algorithm SHA256
 ```

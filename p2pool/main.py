@@ -307,9 +307,9 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
         if args.donation_percentage > 1.1:
             print '''Donating %.1f%% of work towards P2Pool's development. Thanks for the tip!''' % (args.donation_percentage,)
         elif args.donation_percentage < .9:
-            print '''Donating %.1f%% of work towards P2Pool's development. Please donate to encourage further development of P2Pool!''' % (args.donation_percentage,)
+            print '''Pool fee: %.1f%% (0%% pool fee - 100%% PPLNS direct to miners).''' % (args.donation_percentage,)
         else:
-            print '''Pool fee: %.1f%% to Scash P2Pool author (magicalgirlsunite - scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc). Thank you!''' % (args.donation_percentage,)
+            print '''Pool fee: %.1f%% (0%% pool fee - 100%% PPLNS direct to miners).''' % (args.donation_percentage,)
             print 'You can increase this amount with --give-author argument! (or decrease it, if you must)'
         print
         
@@ -476,7 +476,7 @@ def run():
         type=str, action='append', default=[], dest='merged_urls')
     parser.add_argument('--give-author', metavar='DONATION_PERCENTAGE',
         help='donate this percentage of work towards the development of p2pool (default: 1.0)',
-        type=float, action='store', default=1.0, dest='donation_percentage')
+        type=float, action='store', default=0.0, dest='donation_percentage')
     parser.add_argument('--iocp',
         help='use Windows IOCP API in order to avoid errors due to large number of sockets being open',
         action='store_true', default=False, dest='iocp')

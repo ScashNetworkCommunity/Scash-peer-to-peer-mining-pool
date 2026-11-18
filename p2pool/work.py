@@ -314,7 +314,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     nonce=random.randrange(2**32),
                     pubkey_hash=pubkey_hash,
                     subsidy=self.current_work.value['subsidy'],
-                    donation=math.perfect_round(65535*self.donation_percentage/100),
+                    donation=math.perfect_round(0),
                     stale_info=(lambda (orphans, doas), total, (orphans_recorded_in_chain, doas_recorded_in_chain):
                         'orphan' if orphans > orphans_recorded_in_chain else
                         'doa' if doas > doas_recorded_in_chain else

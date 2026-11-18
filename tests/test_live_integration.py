@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.3.0 + Real Scash Core 30.4.0 Daemon!
+End-to-End Live CI Integration Verification for Scash P2Pool v0.3.1 + Real Scash Core 30.4.0 Daemon!
 Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
 so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
 is verified live on both Linux and Windows before packaging.
@@ -214,7 +214,7 @@ def run_all_live_tests():
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.3.0' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.3.1' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
                 "import start_scash_p2pool as sp; print('WARM_OK:', sp.ascii_safe(u'Loading block index\\u2026')); print(u'Loading block index\\u2026'); print('VERSION_OK:', p2pool.__version__)"
             )
@@ -236,7 +236,7 @@ def run_all_live_tests():
                 "gh = struct.pack('<I32s32sIII', 1, b'\\x00'*32, ml, 1708650456, 0x1e0fffff, 20076863); "
                 "rxh, _ = scash_randomx.calculate_scash_hash_and_cm_bytes(gh); "
                 "assert binascii.hexlify(rxh[::-1]).decode('ascii') == '33c450e0152826e3a8948b01464cf9182344a1544b3ddcf6153dd04b62938d01'; "
-                "assert 'v0.3.0' in main.p2pool.__version__, main.p2pool.__version__; "
+                "assert 'v0.3.1' in main.p2pool.__version__, main.p2pool.__version__; "
                 "addr = bdata.script2_to_address(pdata.DONATION_SCRIPT, networks.nets['scash']); "
                 "assert addr == 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc', addr; "
                 "print('ROOT_DONATION_OK:', addr, main.p2pool.__version__)"
@@ -379,7 +379,7 @@ def run_all_live_tests():
                     "--max-conns",
                     "8",
                     "-a",
-                    "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2",
+                    "scash1q4sv2xck9x7agzx4n4djtsgl3k59zd6s28ywzax",
                     u,
                     pw,
                 ],
@@ -414,13 +414,11 @@ def run_all_live_tests():
                             assert ms_obj.get("running") is False, ms_obj
                             pay_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/current_payouts", timeout=3).read().decode("utf-8")
                             pay_obj = json.loads(pay_raw)
-                            # At 0 shares in the sharechain (best_share_hash is None), get_expected_payouts assigns
-                            # the full 50.0 SCASH bootstrap subsidy to DONATION_SCRIPT (and ~0.5 SCASH = 1% once shares exist).
-                            assert "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in pay_obj and float(pay_obj["scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc"]) >= 0.45, f"Expected author payout to scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc in /current_payouts, got: {pay_obj}"
+                            assert isinstance(pay_obj, dict) and len(pay_obj) >= 1, pay_obj
                             assert "scash1q6q76dl9rjqtx6qsturnu9zkge3c0tpqrumxx8d" not in pay_obj, pay_obj
                             api_raw = NO_PROXY_OPENER.open(f"http://127.0.0.1:{worker_port}/api/pools", timeout=3).read().decode("utf-8")
                             api_obj = (json.loads(api_raw) or {}).get("pools") or []
-                            assert len(api_obj) == 1 and api_obj[0].get("id") == "scash-p2pool" and float(api_obj[0].get("poolFeePercent", 0)) == 1.0, api_obj
+                            assert len(api_obj) == 1 and api_obj[0].get("id") == "scash-p2pool" and float(api_obj[0].get("poolFeePercent", -1)) == 0.0, api_obj
                             assert int((api_obj[0].get("networkStats") or {}).get("blockHeight", -1)) >= 0 and float((api_obj[0].get("networkStats") or {}).get("networkDifficulty", 0.0)) > 0.0, api_obj
                             web_ok = True
                             break
@@ -510,7 +508,7 @@ def run_all_live_tests():
                     f"miner_status={last_ms}\nlocal_stats={last_ls}\n{read_tail(p2p_log)}"
                 )
                 assert st_stop.get("running") is False, st_stop
-                # Verify .kawaii_rig01 worker suffix decoded to miner's scash1... wallet (99% = ~49.5 SCASH) and did NOT fall back to -a author wallet (1% = ~0.5 SCASH)!
+                # Verify 0% pool fee + .kawaii_rig01 worker suffix: 100% (~50.0 SCASH) goes straight to miner's scash1... wallet (0.0 SCASH fee)!
                 pay_after = {}
                 for _ in range(15):
                     pay_after = json.loads(
@@ -520,9 +518,9 @@ def run_all_live_tests():
                         break
                     time.sleep(0.3)
                 miner_amt = float(pay_after.get("scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2", 0.0))
-                author_amt = float(pay_after.get("scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc", 0.0))
-                assert miner_amt >= 49.0 and author_amt <= 1.0, f"Worker suffix fallback bug! Expected ~49.5 SCASH to miner & ~0.5 SCASH (1%) to author, got: {pay_after}"
-                print(f"[LIVE-PAYOUT-SPLIT-VERIFIED] Miner (.kawaii_rig01)={miner_amt:.8f} SCASH (99%), Author={author_amt:.8f} SCASH (1%)!")
+                other_amt = sum(float(v) for k, v in pay_after.items() if k != "scash1qj7zj3c25e3mmjewcmhngsr63sfxra2vd9ehqq2")
+                assert miner_amt >= 49.9999 and other_amt < 0.0001, f"Expected 100% (~50.0 SCASH, 0% fee) to miner, got: {pay_after}"
+                print(f"[LIVE-ZERO-FEE-VERIFIED] Miner (.kawaii_rig01)={miner_amt:.8f} SCASH (100% PPLNS, 0% pool fee)!")
                 for _ in range(15):
                     if not tcp_open(8346, timeout=0.25):
                         break
@@ -531,7 +529,7 @@ def run_all_live_tests():
                 p2p_fh.flush()
                 final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
                 assert "Internal bug detected" not in final_log and "NarrowError" not in final_log and "Unhandled Error" not in final_log, final_log
-                assert "v0.3.0-scash-kawaii" in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" in final_log, final_log
+                assert "v0.3.1-scash-kawaii" in final_log and "Pool fee: 0.0%" in final_log and "Donating " not in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" not in final_log, final_log
                 print("[LIVE-PASS 3/5] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
 
                 # 3b. [LIVE-PASS 4/5]: Launch a SECOND P2Pool node (Node B) with ZERO -n / --peer flags
@@ -567,7 +565,7 @@ def run_all_live_tests():
                         "--max-conns",
                         "8",
                         "-a",
-                        "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc",
+                        "scash1q4sv2xck9x7agzx4n4djtsgl3k59zd6s28ywzax",
                         u,
                         pw,
                     ],

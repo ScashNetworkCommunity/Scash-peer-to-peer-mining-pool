@@ -516,7 +516,7 @@ try:
             raise
     _node_status_cache = {'ts': 0.0, 'data': None, 'refreshing': False}
     _ghpages_started = {'active': False}
-    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4yLjA8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMi4wPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
+    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4zLjE8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMy4xPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
 
     def _do_refresh_scashd_node():
         try:
@@ -742,9 +742,9 @@ try:
             'clientConnectionTimeout': 600,
             'jobRebroadcastTimeout': 15,
             'blockRefreshInterval': 1000,
-            'poolFeePercent': 1.0,
-            'address': 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc',
-            'addressInfoLink': 'https://scash.tv/address/scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc',
+            'poolFeePercent': 0.0,
+            'address': '',
+            'addressInfoLink': 'https://scash.tv/',
             'poolStats': {
                 'connectedMiners': int(miners_cnt),
                 'connectedWorkers': int(max(miners_cnt, workers_cnt)),
@@ -828,7 +828,7 @@ try:
             return False
 
         try:
-            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
             r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
             r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
             if r_obj:
@@ -857,7 +857,7 @@ try:
                 'Authorization': 'Bearer ' + tok,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             }
             req = _w_ureq.Request(url, data, hdrs)
             req.get_method = lambda: method
@@ -957,7 +957,7 @@ try:
             'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
         ):
             try:
-                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
                 txt = _scash_open_url(req, timeout=4.0, is_local=u.startswith('http://127.0.0.1')).decode('utf-8', 'replace')
                 obj = _w_json.loads(txt) or {}
                 if 'report_url' in obj:
@@ -997,7 +997,7 @@ try:
         except Exception:
             pass
         body = _w_json.dumps({
-            'version': '0.3.0',
+            'version': '0.3.1',
             'best_share_hash': best_hex,
             'chain_height': int(chain_h),
             'p2pool_peers': int(p2p_peers),
@@ -1005,7 +1005,7 @@ try:
         }).encode('utf-8')
         req = _w_ureq.Request(target_url, body, {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.0; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
         if not _community_reporter_started.get('logged'):

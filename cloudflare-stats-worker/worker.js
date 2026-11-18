@@ -1,8 +1,7 @@
-// Scash P2Pool (v0.3.0) — 100% Serverless Community Consensus Stats API for MiningPoolStats
+// Scash P2Pool (v0.3.1) — 100% Serverless Community Consensus Stats API for MiningPoolStats
 // Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
 // Zero home servers, zero GitHub tokens, true 1-minute updates, median anti-spoof consensus.
 
-const POOL_AUTHOR_ADDR = "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc";
 const REPORT_TTL_SEC = 195; // Expire silent nodes after ~3.25 minutes (nodes report every 60s)
 
 const SCHEMA_SQL = `
@@ -82,9 +81,9 @@ function buildMiningcorePool(agg, nowSec) {
     clientConnectionTimeout: 600,
     jobRebroadcastTimeout: 15,
     blockRefreshInterval: 1000,
-    poolFeePercent: 1.0,
-    address: POOL_AUTHOR_ADDR,
-    addressInfoLink: "https://scash.tv/address/" + POOL_AUTHOR_ADDR,
+    poolFeePercent: 0.0,
+    address: "",
+    addressInfoLink: "https://scash.tv/",
     poolStats: {
       connectedMiners: agg.miners_cnt,
       connectedWorkers: agg.workers_cnt,
@@ -301,9 +300,9 @@ export default {
 <style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.55}
 .card{background:#1c182b;border:1px solid #352d52;border-radius:14px;padding:22px;margin:18px 0}
 code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font-size:13px;overflow-x:auto}pre{padding:14px}a{color:#c084fc}</style></head>
-<body><h1>Scash P2Pool (<code>v0.3.0</code>) — Serverless Pool Stats</h1>
+<body><h1>Scash P2Pool (<code>v0.3.1</code>) — Serverless Pool Stats</h1>
 <p>100% decentralized community-reported P2Pool stats (1-minute live consensus across active P2Pool nodes):</p>
-<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.3.0</a></p>
+<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.3.1</a></p>
 <pre>${JSON.stringify({ pools: [poolObj] }, null, 2)}</pre></div></body></html>`;
     return new Response(html, { headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" } });
   }

@@ -1,15 +1,15 @@
 ### 🌐 语言 / Language: [🇺🇸 English README](README.md) &nbsp;|&nbsp; **🇨🇳 简体中文（中国大陆/北京）** &nbsp;|&nbsp; [🇭🇰 繁體中文（香港/港澳台）](README_ZH_HK.md)
 
-# Scash P2Pool — 一键式去中心化 CPU 联合矿池（QtKawaii 版 `v0.3.0`）
+# Scash P2Pool — 一键式去中心化 CPU 联合矿池（QtKawaii 版 `v0.3.1`）
 
-**发布团队：** `magicalgirlsunite` | **开源社区：** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **矿池费率：** **99%** 区块奖励链上直发矿工钱包，**1%** 矿池作者维护费（`scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc`）
+**发布团队：** `magicalgirlsunite` | **开源社区：** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **矿池费率：** **0% 手续费**（**100%** 区块奖励链上直发矿工钱包）
 
 欢迎使用 **Scash P2Pool**！这是一款开箱即用的全合一 **Scash (`SCASH`)** 去中心化点对点（P2P）CPU 挖矿程序。您只需使用家用电脑的处理器（CPU）即可与其他矿工联合挖矿——**无需注册账号**、**无中心化服务器托管资金**、**无最低起付门槛**，也**无需额外安装复杂环境**。
 
 所有组件均已打包在同一个文件夹内：
 - **官方 Scash 2.3.0 (Core 30.4.0) 全节点**（[`ScashNetworkCommunity/scash`](https://github.com/ScashNetworkCommunity/scash/releases/tag/scash_v2.3.0-mid-world-core-30.4.0)）—— 自动连接 Scash 主网节点；如果您的电脑上已安装过 Scash 钱包，程序会自动复用现有区块数据，无需重复同步！
 - **Scash P2Pool 份额链（Sharechain）** —— 将全球家用 CPU 矿工的算力点对点汇聚在一起，共同冲击下一个 `50 SCASH` 区块并按 PPLNS 稳定累计工作量份额。
-- **内置高速 RandomX CPU 挖矿内核**（[`ScashNetworkCommunity/xmrigCC`](https://github.com/ScashNetworkCommunity/xmrigCC) + [`WinRing0x64.sys`](https://github.com/xmrig/xmrig/blob/master/bin/WinRing0/WinRing0x64.sys) MSR 硬件寄存器加速驱动）—— 已针对 `rx/scash` 调优满血算力（内核本身 **0% 抽水**，全局仅含 P2Pool 份额链 **1%** 作者维护费）。
+- **内置高速 RandomX CPU 挖矿内核**（[`ScashNetworkCommunity/xmrigCC`](https://github.com/ScashNetworkCommunity/xmrigCC) + [`WinRing0x64.sys`](https://github.com/xmrig/xmrig/blob/master/bin/WinRing0/WinRing0x64.sys) MSR 硬件寄存器加速驱动）—— 已针对 `rx/scash` 调优满血算力（挖矿内核与 P2Pool 矿池均为 **0% 手续费**）。
 - **QtKawaii 本地网页控制台** —— 启动后自动在浏览器打开，填入您的 `scash1...` 钱包地址即可一键开挖，支持拖动滑块调节 CPU 线程数并实时查看算力与预计收益。
 
 ## 1. 下载哪个文件？
@@ -18,9 +18,9 @@
 
 | 下载文件名 | 适用人群 | 是否包含内置 CPU 挖矿程序？ |
 | :--- | :--- | :--- |
-| **`scash-p2pool-0.3.0-win64.zip`** | **Windows 用户首选推荐！** 解压即可一键开挖。 | **包含**（内置 `xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` 加速驱动） |
-| **`scash-p2pool-0.3.0-win64-nodeonly.zip`** | 希望自行使用外部挖矿软件的高级 Windows 用户。 | **不包含**（仅含全节点、P2Pool 与网页控制台） |
-| **`scash-p2pool-0.3.0-x86_64-pc-linux-gnu.tgz`** | **Linux (64 位) 用户。** 开箱即用。 | **包含**（内置支持 MSR 加速的 `xmrigDaemon` + `xmrigMiner`） |
+| **`scash-p2pool-0.3.1-win64.zip`** | **Windows 用户首选推荐！** 解压即可一键开挖。 | **包含**（内置 `xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` 加速驱动） |
+| **`scash-p2pool-0.3.1-win64-nodeonly.zip`** | 希望自行使用外部挖矿软件的高级 Windows 用户。 | **不包含**（仅含全节点、P2Pool 与网页控制台） |
+| **`scash-p2pool-0.3.1-x86_64-pc-linux-gnu.tgz`** | **Linux (64 位) 用户。** 开箱即用。 | **包含**（内置支持 MSR 加速的 `xmrigDaemon` + `xmrigMiner`） |
 
 *（开挖前请确保您已安装 [Scash 官方钱包](https://github.com/ScashNetworkCommunity/scash/releases)，并准备好您自己的 **`scash1...`** 收款地址！）*
 
@@ -38,7 +38,7 @@
 5. 点击 **添加排除项** -> 选择 **文件夹** -> 选中 **`C:\Scash-P2Pool`**（[微软官方图文说明](https://learn.microsoft.com/en-us/answers/questions/3187645/how-to-add-an-exception-to-windows-defender)）。
 
 ### 第二步：下载并解压到 `C:\Scash-P2Pool`
-1. 在 [**Releases 发布页面**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases) 右键点击 **`scash-p2pool-0.3.0-win64.zip`**，选择 **链接另存为...**，直接保存到 **`C:\Scash-P2Pool`**。
+1. 在 [**Releases 发布页面**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases) 右键点击 **`scash-p2pool-0.3.1-win64.zip`**，选择 **链接另存为...**，直接保存到 **`C:\Scash-P2Pool`**。
 2. 打开 **`C:\Scash-P2Pool`**，右键点击压缩包 -> **全部解压缩 (Extract All...)**。
 
 ### 第三步：双击运行 `Start-Scash-P2Pool.exe`
@@ -60,7 +60,7 @@
 ## 3. 常见问题解答（FAQ）
 
 **问：为什么“Accepted Shares（已接受份额）”一直在增加，但钱包余额还是 0？**
-答：**份额（Shares）** 就像您在过去 24 小时内向联合矿池提交的工作量凭证。P2Pool 不会每分钟发放零碎粉尘，而是**每当 P2Pool 全网任意矿工爆出一个完整的 Scash 区块（`50 SCASH`）时**，区块链会在该区块的创币交易（Coinbase）中**直接将 99% 的区块奖励按 PPLNS 份额比例打入每位在榜矿工自己的 `scash1...` 钱包**，其余 **1%**（`0.50 SCASH`）打入矿池作者维护地址（`scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc`）。收益链上秒到账，矿池从不触碰或托管您的资金！
+答：**份额（Shares）** 就像您在过去 24 小时内向联合矿池提交的工作量凭证。P2Pool 不会每分钟发放零碎粉尘，而是**每当 P2Pool 全网任意矿工爆出一个完整的 Scash 区块（`50 SCASH`）时**，区块链会在该区块的创币交易（Coinbase）中**直接将 100% 的区块奖励按 PPLNS 份额比例打入每位在榜矿工自己的 `scash1...` 钱包（0% 矿池手续费）**。收益链上秒到账，矿池从不触碰或托管您的资金！
 
 **问：可以和桌面版 Scash 钱包（`scash-qt`）装在同一台电脑吗？**
 答：完全可以！Scash P2Pool 会自动识别并复用 `AppData\Local\Scash` 中已同步的区块数据。*（提示：如果在首次启动 P2Pool 前您已经打开了 Scash 钱包窗口，建议先关闭一次钱包再启动 P2Pool，以便平滑共享区块目录。）*
@@ -72,8 +72,8 @@
 
 ### Linux (64 位) 快速启动
 ```bash
-tar -xzf scash-p2pool-0.3.0-x86_64-pc-linux-gnu.tgz
-cd scash-p2pool-0.3.0
+tar -xzf scash-p2pool-0.3.1-x86_64-pc-linux-gnu.tgz
+cd scash-p2pool-0.3.1
 # 可选：开启 Linux 2MB 大页内存，并使用 sudo 运行以启用 MSR 寄存器加速
 sudo sysctl -w vm.nr_hugepages=1280
 ./start-scash-p2pool-linux.sh
@@ -92,5 +92,5 @@ sudo sysctl -w vm.nr_hugepages=1280
 ### 校验安装包哈希值（`sha256sum`）
 您可以在 PowerShell 中核对下载包的 SHA256 是否与发布页一致：
 ```powershell
-Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.0-win64.zip -Algorithm SHA256
+Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.1-win64.zip -Algorithm SHA256
 ```

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.0)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.1)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,7 +164,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.0)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.1)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -176,7 +176,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.0</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.1</span>
         </div>
       </div>
 
@@ -221,7 +221,7 @@
               <div class="qt-cyan-card p-4 sm:p-5">
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-2.5">
-                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Live Node &amp; P2Pool Status <span class="text-[11px] text-purple-300 font-normal">(1% Author Fee)</span></h2>
+                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Live Node &amp; P2Pool Status <span class="text-[11px] text-emerald-300 font-normal">(0% Pool Fee)</span></h2>
                     <span class="scash-pixel-badge text-[10px] text-white font-pixel">Scash</span>
                   </div>
                   <span id="minerStateBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 font-medium">
@@ -282,7 +282,7 @@
                     class="w-56 max-w-full h-auto rounded-xl select-none pointer-events-none"
                   />
                   <div id="mascotSpeechBubble" class="mt-1.5 px-3 py-1.5 rounded-full bg-[#24173d]/95 border border-[#4deeea]/70 text-[11px] text-cyan-200 shadow-lg text-center">
-                    Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (99% PPLNS &bull; 1% fee to author)
+                    Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (0% Pool Fee &bull; 100% PPLNS)
                   </div>
                 </div>
 
@@ -355,7 +355,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
                     <h2 class="text-sm font-semibold text-purple-100">Live P2Pool Blocks &amp; Sharechain Activity</h2>
-                    <p class="text-[11px] text-purple-300/80">Live pool shares &amp; block payouts &mdash; 99% goes straight to miners, 1% to pool author</p>
+                    <p class="text-[11px] text-purple-300/80">Live pool shares &amp; block payouts &mdash; 0% pool fee, 100% goes straight to miners</p>
                   </div>
                   <span id="poolUptimeBadge" class="text-[11px] font-mono-code px-2.5 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">
                     Uptime: &mdash;
@@ -388,7 +388,7 @@
               <div>
                 <h2 class="text-base font-bold text-white">Live PPLNS Sharechain Payouts (<span id="payoutHeaderReward">50.00000000</span> SCASH Block Reward)</h2>
                 <p class="text-xs text-purple-200/80">
-                  Finding shares earns your spot on this payout list! Whenever the pool solves a 50 SCASH block, <strong>99%</strong> is sent immediately to miners here (based on shares from the last 24 hours) and <strong>1%</strong> goes to the pool author (<code class="font-mono-code text-purple-200">scash1qct8...32vwc</code>).
+                  Finding shares earns your spot on this payout list! Whenever the pool solves a 50 SCASH block, <strong>100%</strong> is sent immediately to miners here based on shares from the last 24 hours (<strong>0% pool fee</strong>).
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -444,7 +444,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div class="qt-purple-inner p-3.5 space-y-1">
                 <div class="font-semibold text-cyan-300">1. How and when do I get paid?</div>
-                <p class="text-purple-200/85 leading-relaxed">While mining, you earn <strong>Shares</strong> (proof of your CPU's work over the last 24 hours). Whenever anyone on P2Pool solves a full <strong>50 SCASH</strong> block, the Scash blockchain immediately pays <strong>99%</strong> directly into active miners' wallets and <strong>1%</strong> (0.50 SCASH) to the pool author. Nothing is held back on a server!</p>
+                <p class="text-purple-200/85 leading-relaxed">While mining, you earn <strong>Shares</strong> (proof of your CPU's work over the last 24 hours). Whenever anyone on P2Pool solves a full <strong>50 SCASH</strong> block, the Scash blockchain immediately pays <strong>100%</strong> directly into active miners' wallets (<strong>0% pool fee</strong>). Nothing is held back on a server!</p>
               </div>
               <div class="qt-purple-inner p-3.5 space-y-1">
                 <div class="font-semibold text-cyan-300">2. How do I get maximum CPU mining speed?</div>
@@ -584,14 +584,13 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.3.0 (Core 30.4)</span>
+        <span>v0.3.1 (Core 30.4)</span>
       </div>
     </footer>
   </div>
 
   <script>
-    const AUTHOR_WALLET = 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc';
-    const live = {
+        const live = {
       online: false,
       nodeSync: null,
       miner: null,
@@ -811,8 +810,8 @@
         }
         if (bubble) {
           bubble.innerHTML = ms.running
-            ? '&#10024; Hashing <span class="font-mono-code text-cyan-300">rx/scash</span> on :8345! (99% PPLNS &bull; 1% fee to author)'
-            : 'Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (99% PPLNS &bull; 1% fee to author)';
+            ? '&#10024; Hashing <span class="font-mono-code text-cyan-300">rx/scash</span> on :8345! (0% Pool Fee &bull; 100% PPLNS)'
+            : 'Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (0% Pool Fee &bull; 100% PPLNS)';
         }
         footerStatus.className = 'text-emerald-300';
         footerStatus.textContent = `● Scash Block #${blks.toLocaleString()} • P2Pool Sharechain Ready`;
@@ -823,20 +822,15 @@
       const poolHs = gs ? (Number(gs.pool_hash_rate) || 0) : 0;
       const effPoolHs = Math.max(poolHs, localHs);
       const shTotalPre = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
-      const rawPayoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) > 0);
+      const rawPayoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) >= 0.00001);
+      const savedW = (wInput?.value || ms.wallet || '').trim().toLowerCase();
       const payoutEntries = (
         shTotalPre === 0 &&
         poolHs <= 0 &&
         rawPayoutEntries.length === 1 &&
-        rawPayoutEntries[0][0].toLowerCase() === AUTHOR_WALLET.toLowerCase()
+        (!savedW || rawPayoutEntries[0][0].toLowerCase() !== savedW)
       ) ? [] : rawPayoutEntries;
-      const totalPayoutSum = payoutEntries.reduce((a, [, v]) => a + (Number(v) || 0), 0);
-      const minerPayoutEntries = payoutEntries.filter(([addr, amt]) => {
-        if (addr.toLowerCase() !== AUTHOR_WALLET.toLowerCase()) return true;
-        if (payoutEntries.length === 1) return true;
-        const pct = totalPayoutSum > 0 ? (Number(amt) / totalPayoutSum) * 100 : 0;
-        return pct > 1.5;
-      });
+      const minerPayoutEntries = payoutEntries;
       const activeStratumWorkers = ls && ls.miner_hash_rates ? Object.keys(ls.miner_hash_rates).length : 0;
       const activeMinerCount = Math.max(minerPayoutEntries.length, activeStratumWorkers, ms.running ? 1 : 0);
 
@@ -942,20 +936,11 @@
       }
 
       if (payoutEntries.length > 0) {
-        const actPayoutTotal = payoutEntries.reduce((acc, [, v]) => acc + (Number(v) || 0), 0);
         for (const [addr, amt] of payoutEntries.slice(0, 8)) {
-          const rowPct = actPayoutTotal > 0 ? (Number(amt) / actPayoutTotal) * 100 : 0;
-          const roleLabel = addr.toLowerCase() === AUTHOR_WALLET.toLowerCase()
-            ? (payoutEntries.length === 1
-                ? 'Active Miner &bull; Pool Author (100%)'
-                : (rowPct > 1.5
-                    ? `Pool Author (1% Fee + ${Math.max(0, rowPct - 1.0).toFixed(1)}% Sharechain Weight)`
-                    : 'Pool Author Fee (1%)'))
-            : 'Active Sharechain Miner Payout';
           items.push(`
             <div class="p-2.5 rounded-lg bg-[#160d26]/90 border border-purple-500/35 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <div class="text-[11px] text-purple-300">${roleLabel}</div>
+                <div class="text-[11px] text-purple-300">Active Sharechain Miner Payout</div>
                 <div class="font-mono-code text-xs text-white truncate">${addr}</div>
               </div>
               <div class="font-mono-code text-xs text-emerald-300 font-semibold shrink-0">+${Number(amt).toFixed(8)} SCASH</div>
@@ -1010,7 +995,7 @@
           <td class="py-2.5 px-3 text-purple-300">#${i + 1}</td>
           <td class="py-2.5 px-3 text-white">
             ${r.address}
-            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}${r.address.toLowerCase() === AUTHOR_WALLET.toLowerCase() ? `<span class="ml-1.5 px-1.5 py-0.5 text-[10px] rounded bg-purple-500/25 border border-purple-400 text-purple-200 font-sans font-semibold">${r.pct > 1.5 ? '1% FEE + SHARES' : '1% AUTHOR'}</span>` : ''}
+            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
           </td>
           <td class="py-2.5 px-3 text-right text-cyan-300">${fmtHashrate(r.hs)}</td>
           <td class="py-2.5 px-3 text-right text-amber-300">${r.pct.toFixed(2)}%</td>
@@ -1021,7 +1006,7 @@
 
     function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.0-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.1-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
