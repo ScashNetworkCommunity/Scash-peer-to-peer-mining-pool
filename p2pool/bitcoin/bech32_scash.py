@@ -65,6 +65,6 @@ def decode_scash_address(addr, expected_hrp='scash'):
     return data[0], ''.join(chr(b) for b in decoded)
 
 def encode_scash_address(pubkey_hash_bytes, hrp='scash', witver=0):
-    data = [witver] + convertbits([ord(c) for c in pubkey_hash_bytes], 8, 5, True)
+    data = [witver] + convertbits([c if isinstance(c, int) else ord(c) for c in pubkey_hash_bytes], 8, 5, True)
     checksum = bech32_create_checksum(hrp, data)
     return hrp + '1' + ''.join(CHARSET[d] for d in data + checksum)

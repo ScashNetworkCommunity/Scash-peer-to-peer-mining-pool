@@ -516,7 +516,7 @@ try:
             raise
     _node_status_cache = {'ts': 0.0, 'data': None, 'refreshing': False}
     _ghpages_started = {'active': False}
-    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4zLjE8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMy4xPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
+    _GHPAGES_INDEX_HTML = _w_b64.b64decode('PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MSI+PHRpdGxlPlNjYXNoIFAyUG9vbCDigJQgUHVibGljIE1pbmluZ2NvcmUgLyBNaW5pbmdQb29sU3RhdHMgQVBJPC90aXRsZT48c3R5bGU+Ym9keXtiYWNrZ3JvdW5kOiMxMjEwMWM7Y29sb3I6I2YzZWVmYztmb250LWZhbWlseTpzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxzYW5zLXNlcmlmO21heC13aWR0aDo3NjBweDttYXJnaW46NDBweCBhdXRvO3BhZGRpbmc6MCAyMHB4O2xpbmUtaGVpZ2h0OjEuNTV9LmNhcmR7YmFja2dyb3VuZDojMWMxODJiO2JvcmRlcjoxcHggc29saWQgIzM1MmQ1Mjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoyMnB4O21hcmdpbjoxOHB4IDB9Y29kZSxwcmV7YmFja2dyb3VuZDojMTAwZDFhO2NvbG9yOiNhNWYzZmM7cGFkZGluZzozcHggN3B4O2JvcmRlci1yYWRpdXM6NnB4O2ZvbnQtc2l6ZToxM3B4O292ZXJmbG93LXg6YXV0b31wcmV7cGFkZGluZzoxNHB4fWF7Y29sb3I6I2MwODRmY308L3N0eWxlPjwvaGVhZD48Ym9keT48aDE+U2Nhc2ggUDJQb29sICg8Y29kZT52MC4zLjI8L2NvZGU+KSDigJQgUHVibGljIFBvb2wgU3RhdHMgQVBJPC9oMT48cD5NaW5pbmdjb3JlLWNvbXBhdGlibGUgcmVhZC1vbmx5IEpTT04gZW5kcG9pbnQgZm9yIDxhIGhyZWY9Imh0dHBzOi8vbWluaW5ncG9vbHN0YXRzLnN0cmVhbS9zYXRvc2hpY2FzaCI+TWluaW5nUG9vbFN0YXRzPC9hPiBhbmQgcG9vbCB0cmFja2Vyczo8L3A+PGRpdiBjbGFzcz0iY2FyZCI+PHA+PHN0cm9uZz5UcmFja2VyIEFQSSBFbmRwb2ludHM6PC9zdHJvbmc+IDxhIGhyZWY9Ii4vYXBpL3Bvb2xzIj48Y29kZT4vYXBpL3Bvb2xzPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iLi9hcGkvcG9vbHMuanNvbiI+PGNvZGU+L2FwaS9wb29scy5qc29uPC9jb2RlPjwvYT4gJm1pZGRvdDsgPGEgaHJlZj0iaHR0cHM6Ly9naXRodWIuY29tL1NjYXNoTmV0d29ya0NvbW11bml0eS9TY2FzaC1wZWVyLXRvLXBlZXItbWluaW5nLXBvb2wvcmVsZWFzZXMvbGF0ZXN0Ij5Eb3dubG9hZCBTY2FzaCBQMlBvb2wgdjAuMy4yPC9hPjwvcD48cHJlIGlkPSJvdXQiPkxvYWRpbmcgLi9hcGkvcG9vbHMuanNvbiAuLi48L3ByZT48L2Rpdj48c2NyaXB0PmZldGNoKCcuL2FwaS9wb29scy5qc29uJyx7Y2FjaGU6J25vLXN0b3JlJ30pLnRoZW4ocj0+ci5qc29uKCkpLnRoZW4oZD0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1KU09OLnN0cmluZ2lmeShkLG51bGwsMik7fSkuY2F0Y2goZT0+e2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXQnKS50ZXh0Q29udGVudD1TdHJpbmcoZSk7fSk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4K').decode('utf-8')
 
     def _do_refresh_scashd_node():
         try:
@@ -592,6 +592,900 @@ try:
             _t.daemon = True
             _t.start()
         return _node_status_cache['data']
+
+
+    # --- v0.3.2 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
+    import binascii as _w_binascii
+    from p2pool.bitcoin import bech32_scash as _w_b32
+
+    _hr_ring_lock = _w_threading.Lock()
+    _pool_hr_ring = []
+    _stratum_hr_ring = []
+    _hr_sampler_started = {'active': False}
+
+    def _ring_push(ring_list, now_ts, val):
+        v = max(0.0, float(val or 0.0))
+        t_now = float(now_ts)
+        if ring_list and (t_now - ring_list[-1][0]) < 1.5:
+            ring_list[-1] = (t_now, v)
+        else:
+            ring_list.append((t_now, v))
+        cutoff = t_now - 2100.0
+        if len(ring_list) > 40 and ring_list[0][0] < cutoff:
+            del ring_list[:-480]
+            while ring_list and ring_list[0][0] < cutoff:
+                ring_list.pop(0)
+
+    def _ring_avg(ring_list, window_sec, now_ts):
+        if not ring_list:
+            return 0.0
+        cutoff = float(now_ts) - float(window_sec)
+        vals = [ x[1] for x in ring_list if x[0] >= cutoff ]
+        if not vals:
+            return float(ring_list[-1][1])
+        return sum(vals) / float(len(vals))
+
+    def _measure_instant_stratum_hs(_wb_ref):
+        try:
+            _st_mon = getattr(_wb_ref, 'local_rate_monitor', None)
+            if _st_mon is None:
+                return 0.0
+            datums, dt = _st_mon.get_datums_in_last()
+            if not datums or not dt or float(dt) <= 0.0:
+                return 0.0
+            work_sum = 0.0
+            from p2pool.bitcoin import data as _b_d2
+            for d in datums:
+                if isinstance(d, dict) and d.get('work') is not None:
+                    work_sum += float(d.get('work') or 0.0)
+                elif isinstance(d, dict) and d.get('target') is not None:
+                    work_sum += float(_b_d2.target_to_average_attempts(int(d['target'])))
+            return max(0.0, work_sum / float(dt))
+        except Exception:
+            return 0.0
+
+    def _measure_sharechain_rates(_wb_ref, now_ts):
+        live_hs = 0.0
+        sc_60s_hs = 0.0
+        sc_30m_hs = 0.0
+        has_sc_30m = False
+        try:
+            from p2pool import data as _p2p_d2
+            _node = getattr(_wb_ref, 'node', None)
+            _tracker = getattr(_node, 'tracker', None)
+            _net = getattr(_node, 'net', None)
+            _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+            if _best is not None and _tracker is not None and _best in _tracker.items:
+                _ch_h = int(_tracker.get_height(_best))
+                _real_len = int(getattr(_net, 'REAL_CHAIN_LENGTH', 5760))
+                if _ch_h >= 2:
+                    _s_tip = _tracker.items[_best]
+                    _tip_age = max(0.0, float(now_ts) - float(_s_tip.timestamp))
+                    _lb = min(_ch_h, 360, _real_len)
+                    if _lb >= 2:
+                        live_hs = float(_p2p_d2.get_pool_attempts_per_second(_tracker, _best, _lb))
+                    # Measure contiguous active window (up to 60 shares) when tip is fresh
+                    if _tip_age <= 300.0:
+                        _act_n = 1
+                        _cur_h = _best
+                        _prev_t = float(_s_tip.timestamp)
+                        for _ in range(min(_ch_h - 1, 60)):
+                            _par_h = _tracker.items[_cur_h].previous_hash
+                            if _par_h not in _tracker.items:
+                                break
+                            _par_t = float(_tracker.items[_par_h].timestamp)
+                            if (_prev_t - _par_t) > 300.0:
+                                break
+                            _act_n += 1
+                            _cur_h = _par_h
+                            _prev_t = _par_t
+                        if _act_n >= 3:
+                            _act_hr = float(_p2p_d2.get_pool_attempts_per_second(_tracker, _best, _act_n))
+                            if _act_hr > live_hs:
+                                live_hs = _act_hr
+                            sc_60s_hs = _act_hr
+                    # Exact 30-minute (1800s) sharechain window
+                    if _tip_age <= 1800.0:
+                        _n30 = 1
+                        _cur30 = _best
+                        _tip_t = float(_s_tip.timestamp)
+                        for _ in range(min(_ch_h - 1, _real_len - 1, 720)):
+                            _par30 = _tracker.items[_cur30].previous_hash
+                            if _par30 not in _tracker.items:
+                                break
+                            _n30 += 1
+                            _cur30 = _par30
+                            if (_tip_t - float(_tracker.items[_cur30].timestamp)) >= 1800.0:
+                                break
+                        if _n30 >= 2:
+                            sc_30m_hs = float(_p2p_d2.get_pool_attempts_per_second(_tracker, _best, _n30))
+                            has_sc_30m = True
+                elif _ch_h == 1:
+                    _s0 = _tracker.items[_best]
+                    _att = float(2**256) / max(1.0, float(_s0.target) + 1.0)
+                    _dt1 = max(15.0, float(now_ts - _s0.timestamp))
+                    live_hs = _att / _dt1
+                    if (now_ts - float(_s0.timestamp)) <= 1800.0:
+                        sc_30m_hs = _att / max(1800.0, _dt1)
+                        has_sc_30m = True
+        except Exception:
+            pass
+        return live_hs, sc_60s_hs, sc_30m_hs, has_sc_30m
+
+    def _sample_hashrate_rings(_wb_ref, now_ts=None):
+        t_now = float(now_ts if now_ts is not None else _w_time.time())
+        xst = _xmrig_mgr.GLOBAL_XMRIG.get_status() or {}
+        xm_live = float(xst.get('hashrate_hs') or 0.0) if xst.get('running') else 0.0
+        xm_10 = float(xst.get('hashrate_10s_hs') or xm_live) if xst.get('running') else 0.0
+        xm_60 = float(xst.get('hashrate_60s_hs') or xm_10) if xst.get('running') else 0.0
+        xm_30m = float(xst.get('hashrate_30m_hs') or xm_60) if xst.get('running') else 0.0
+
+        st_inst = _measure_instant_stratum_hs(_wb_ref)
+        sc_live, sc_60, sc_30m, has_sc_30m = _measure_sharechain_rates(_wb_ref, t_now)
+        loc_live = max(xm_live, st_inst)
+        pool_inst = max(sc_live, loc_live)
+
+        with _hr_ring_lock:
+            _ring_push(_stratum_hr_ring, t_now, st_inst)
+            _ring_push(_pool_hr_ring, t_now, pool_inst)
+            st_10 = _ring_avg(_stratum_hr_ring, 10.0, t_now)
+            st_60 = _ring_avg(_stratum_hr_ring, 60.0, t_now)
+            st_30m = _ring_avg(_stratum_hr_ring, 1800.0, t_now)
+            p_roll_10 = _ring_avg(_pool_hr_ring, 10.0, t_now)
+            p_roll_60 = _ring_avg(_pool_hr_ring, 60.0, t_now)
+            p_roll_30m = _ring_avg(_pool_hr_ring, 1800.0, t_now)
+            ring_span = (t_now - _pool_hr_ring[0][0]) if len(_pool_hr_ring) >= 2 else 0.0
+
+        local_10s = max(xm_10, st_10)
+        local_60s = max(xm_60, st_60)
+        local_30m = max(xm_30m, st_30m)
+
+        pool_10s = max(p_roll_10, local_10s)
+        pool_60s = max(p_roll_60, sc_60 if sc_60 > 0 else 0.0, local_60s)
+        if has_sc_30m and ring_span < 1500.0:
+            pool_30m = max(sc_30m, local_30m)
+        else:
+            pool_30m = max(p_roll_30m, sc_30m if has_sc_30m else 0.0, local_30m)
+
+        return {
+            'local_live_hs': round(loc_live, 2),
+            'local_10s_hs': round(local_10s, 2),
+            'local_60s_hs': round(local_60s, 2),
+            'local_30m_hs': round(local_30m, 2),
+            'pool_live_hs': round(pool_inst, 2),
+            'pool_10s_hs': round(pool_10s, 2),
+            'pool_60s_hs': round(pool_60s, 2),
+            'pool_30m_hs': round(pool_30m, 2),
+        }
+
+    # --- Incremental Local Scashd P2Pool Block & Miner Payout Ledger ---
+    _P2POOL_CB_HEX_TAGS = ('2f5032506f6f6c2f', '7363617368703236')  # '/P2Pool/' and 'scashp26'
+    _ledger_lock = _w_threading.Lock()
+    _ledger_state = {
+        'loaded_path': '',
+        'chain': '',
+        'min_scanned_height': None,
+        'max_scanned_height': None,
+        'blocks': {},
+        'scanning': False,
+        'last_scan_ts': 0.0,
+    }
+    _ledger_daemon_started = {'active': False}
+
+    def _get_rpc_conn_params():
+        dd = os.environ.get('SCASH_ACTIVE_DATADIR') or _scash_nodes.get_scash_datadir()
+        port = int(os.environ.get('SCASH_RPC_PORT') or 8342)
+        u = os.environ.get('SCASH_RPC_USER') or ''
+        pw = os.environ.get('SCASH_RPC_PASS') or ''
+        if not u or not pw:
+            cu, cp = _scash_nodes.read_cookie_credentials(dd)
+            if cu and cp:
+                u, pw = cu, cp
+            else:
+                fu, fp = _scash_nodes.read_conf_credentials(dd)
+                u, pw = fu or 'scashminer', fp or 'kawaiip2poolpass'
+        return dd, port, u, pw
+
+    def _scashd_rpc_batch(port, u, pw, calls, timeout=6.0):
+        url = 'http://127.0.0.1:%d/' % int(port)
+        payload = []
+        for idx, (m, params) in enumerate(calls):
+            payload.append({'jsonrpc': '1.0', 'id': idx, 'method': m, 'params': params})
+        body = _w_json.dumps(payload).encode('utf-8')
+        auth = _w_b64.b64encode(('%s:%s' % (u, pw)).encode('utf-8')).decode('ascii')
+        req = _w_ureq.Request(url, body, {'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth})
+        raw = _w_noproxy.open(req, timeout=timeout).read().decode('utf-8', 'replace')
+        parsed = _w_json.loads(raw)
+        if isinstance(parsed, list):
+            by_id = {}
+            for item in parsed:
+                if isinstance(item, dict) and item.get('id') is not None:
+                    by_id[int(item['id'])] = item.get('result')
+            return [ by_id.get(i) for i in range(len(calls)) ]
+        return []
+
+    def _resolve_ledger_path(dd):
+        for cand_dir in (dd, _xmrig_mgr.MINER_DIR):
+            if cand_dir and os.path.isdir(cand_dir):
+                return os.path.join(cand_dir, 'p2pool_blocks_ledger.json')
+        return os.path.join(_xmrig_mgr.MINER_DIR, 'p2pool_blocks_ledger.json')
+
+    def _load_ledger_if_needed(lpath, chain_name):
+        with _ledger_lock:
+            if _ledger_state['loaded_path'] == lpath and _ledger_state['chain'] == chain_name:
+                return
+            _ledger_state['loaded_path'] = lpath
+            _ledger_state['chain'] = chain_name
+            _ledger_state['min_scanned_height'] = None
+            _ledger_state['max_scanned_height'] = None
+            _ledger_state['blocks'] = {}
+            if os.path.isfile(lpath):
+                try:
+                    raw = open(lpath, 'r').read()
+                    obj = _w_json.loads(raw) or {}
+                    if obj.get('chain') == chain_name and isinstance(obj.get('blocks'), dict):
+                        _ledger_state['min_scanned_height'] = obj.get('min_scanned_height')
+                        _ledger_state['max_scanned_height'] = obj.get('max_scanned_height')
+                        _ledger_state['blocks'] = obj.get('blocks') or {}
+                except Exception:
+                    pass
+
+    def _save_ledger_disk():
+        with _ledger_lock:
+            lpath = _ledger_state['loaded_path']
+            if not lpath:
+                return
+            snap = {
+                'version': 1,
+                'chain': _ledger_state['chain'],
+                'min_scanned_height': _ledger_state['min_scanned_height'],
+                'max_scanned_height': _ledger_state['max_scanned_height'],
+                'updated_at': int(_w_time.time()),
+                'blocks': _ledger_state['blocks'],
+            }
+        try:
+            d = os.path.dirname(lpath)
+            if d and not os.path.isdir(d):
+                os.makedirs(d)
+            tmp_p = lpath + '.tmp'
+            with open(tmp_p, 'w') as f:
+                f.write(_w_json.dumps(snap, sort_keys=True))
+            if os.path.exists(lpath):
+                try:
+                    os.remove(lpath)
+                except Exception:
+                    pass
+            os.rename(tmp_p, lpath)
+        except Exception:
+            pass
+
+    def _extract_p2pool_block_record(blk_obj, share_block_hashes=None):
+        if not isinstance(blk_obj, dict):
+            return None
+        bhash = str(blk_obj.get('hash') or '').strip().lower()
+        height = int(blk_obj.get('height') or 0)
+        btime = int(blk_obj.get('time') or 0)
+        txs = blk_obj.get('tx') or []
+        if not txs or not isinstance(txs[0], dict):
+            return None
+        cb_tx = txs[0]
+        vins = cb_tx.get('vin') or []
+        cb_hex = ''
+        for vin in vins:
+            if isinstance(vin, dict) and vin.get('coinbase'):
+                cb_hex = str(vin.get('coinbase') or '').lower()
+                break
+        is_p2pool = any(tag in cb_hex for tag in _P2POOL_CB_HEX_TAGS)
+        if (not is_p2pool) and share_block_hashes and bhash in share_block_hashes:
+            is_p2pool = True
+        if not is_p2pool:
+            return None
+
+        payouts = {}
+        total_reward = 0.0
+        for vout in (cb_tx.get('vout') or []):
+            if not isinstance(vout, dict):
+                continue
+            val = float(vout.get('value') or 0.0)
+            if val <= 0.0:
+                continue
+            spk = vout.get('scriptPubKey') or {}
+            spk_type = str(spk.get('type') or '').lower()
+            spk_hex = str(spk.get('hex') or '').lower()
+            if spk_type == 'nulldata' or spk_hex.startswith('6a'):
+                continue
+            total_reward += val
+            addrs = set()
+            a1 = spk.get('address')
+            if a1:
+                addrs.add(str(a1).strip().lower())
+            for a_extra in (spk.get('addresses') or []):
+                if a_extra:
+                    addrs.add(str(a_extra).strip().lower())
+            # Decode P2WPKH 0014<20-byte-hash> directly to scash1... so both Mainnet & Regtest match scash1 wallets!
+            if len(spk_hex) == 44 and spk_hex.startswith('0014'):
+                try:
+                    raw20 = _w_binascii.unhexlify(spk_hex[4:])
+                    sc_addr = _w_b32.encode_scash_address(raw20, 'scash')
+                    if sc_addr:
+                        addrs.add(str(sc_addr).strip().lower())
+                except Exception:
+                    pass
+            for ad in addrs:
+                payouts[ad] = round(float(payouts.get(ad, 0.0)) + val, 8)
+        return {
+            'height': height,
+            'hash': bhash,
+            'ts': btime,
+            'reward': round(total_reward, 8),
+            'payouts': payouts,
+        }
+
+    def _collect_sharechain_solved_hashes(_wb_ref):
+        out = set()
+        try:
+            _node = getattr(_wb_ref, 'node', None)
+            _tracker = getattr(_node, 'tracker', None)
+            _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+            if _best is not None and _tracker is not None and _best in _tracker.items:
+                _ch_h = int(_tracker.get_height(_best))
+                for _sh in _tracker.get_chain(_best, min(_ch_h, 5760)):
+                    if getattr(_sh, 'pow_hash', None) is not None and getattr(_sh, 'header', None) is not None:
+                        if _sh.pow_hash <= _sh.header['bits'].target:
+                            if getattr(_sh, 'header_hash', None) is not None:
+                                out.add('%064x' % int(_sh.header_hash))
+        except Exception:
+            pass
+        return out
+
+    def _scan_height_slice(port, u, pw, heights, share_hashes):
+        if not heights:
+            return
+        hashes = _scashd_rpc_batch(port, u, pw, [ ('getblockhash', [int(h)]) for h in heights ], timeout=8.0)
+        valid_pairs = []
+        for h, bh in zip(heights, hashes):
+            if bh and isinstance(bh, (str, type(u''))):
+                valid_pairs.append((int(h), str(bh).strip()))
+        if not valid_pairs:
+            return
+        blocks_raw = _scashd_rpc_batch(port, u, pw, [ ('getblock', [bh, 2]) for _, bh in valid_pairs ], timeout=12.0)
+        with _ledger_lock:
+            for (h, bh), bobj in zip(valid_pairs, blocks_raw):
+                h_key = str(h)
+                rec = _extract_p2pool_block_record(bobj, share_hashes)
+                if rec is not None:
+                    _ledger_state['blocks'][h_key] = rec
+                elif h_key in _ledger_state['blocks']:
+                    # Remove stale/reorged entry if canonical block at height h is no longer a P2Pool block
+                    del _ledger_state['blocks'][h_key]
+
+    def _sync_p2pool_ledger_once(_wb_ref=None, max_backfill_blocks=600):
+        with _ledger_lock:
+            if _ledger_state['scanning']:
+                return False
+            _ledger_state['scanning'] = True
+        try:
+            dd, port, u, pw = _get_rpc_conn_params()
+            bc_list = _scashd_rpc_batch(port, u, pw, [('getblockchaininfo', [])], timeout=3.0)
+            bc = bc_list[0] if bc_list and isinstance(bc_list[0], dict) else None
+            if not bc:
+                return False
+            tip_h = int(bc.get('blocks') or 0)
+            if tip_h <= 0:
+                return False
+            chain_name = str(bc.get('chain') or 'scash')
+            prune_h = int(bc.get('pruneheight') or 0) if bc.get('pruned') else 0
+            # Scash P2Pool launched around block #153,000 in Nov 2026; scanning back to 140,000 covers 100% of all-time Mainnet history!
+            floor_h = max(1, prune_h, 140000 if (chain_name in ('scash', 'main') and tip_h >= 140000) else 1)
+
+            lpath = _resolve_ledger_path(dd)
+            _load_ledger_if_needed(lpath, chain_name)
+            share_hashes = _collect_sharechain_solved_hashes(_wb_ref)
+
+            with _ledger_lock:
+                min_s = _ledger_state['min_scanned_height']
+                max_s = _ledger_state['max_scanned_height']
+
+            dirty = False
+            batch_sz = 50
+
+            if max_s is None or min_s is None:
+                # Scan newest tip blocks first so recent blocks appear immediately!
+                low_start = max(floor_h, tip_h - batch_sz + 1)
+                _scan_height_slice(port, u, pw, list(range(low_start, tip_h + 1)), share_hashes)
+                with _ledger_lock:
+                    _ledger_state['min_scanned_height'] = low_start
+                    _ledger_state['max_scanned_height'] = tip_h
+                    min_s = low_start
+                    max_s = tip_h
+                dirty = True
+            else:
+                # Re-verify 6-block tail + scan any newly mined blocks at chain tip
+                fwd_start = max(floor_h, int(max_s) - 6)
+                if tip_h >= fwd_start:
+                    cur = fwd_start
+                    while cur <= tip_h:
+                        top_c = min(tip_h, cur + batch_sz - 1)
+                        _scan_height_slice(port, u, pw, list(range(cur, top_c + 1)), share_hashes)
+                        with _ledger_lock:
+                            if _ledger_state['max_scanned_height'] is None or top_c > _ledger_state['max_scanned_height']:
+                                _ledger_state['max_scanned_height'] = top_c
+                        cur = top_c + 1
+                        dirty = True
+
+            # Backfill older history down to floor_h in bounded chunks
+            backfilled = 0
+            while min_s is not None and int(min_s) > floor_h and backfilled < int(max_backfill_blocks):
+                hi_b = int(min_s) - 1
+                lo_b = max(floor_h, hi_b - batch_sz + 1)
+                _scan_height_slice(port, u, pw, list(range(lo_b, hi_b + 1)), share_hashes)
+                with _ledger_lock:
+                    _ledger_state['min_scanned_height'] = lo_b
+                    min_s = lo_b
+                backfilled += (hi_b - lo_b + 1)
+                dirty = True
+                if backfilled < int(max_backfill_blocks) and lo_b > floor_h:
+                    _w_time.sleep(0.015)
+
+            with _ledger_lock:
+                _ledger_state['last_scan_ts'] = _w_time.time()
+            if dirty:
+                _save_ledger_disk()
+            return True
+        except Exception:
+            return False
+        finally:
+            with _ledger_lock:
+                _ledger_state['scanning'] = False
+
+    def _summarize_ledger_stats(wallet_addr=None, now_ts=None):
+        t_now = float(now_ts if now_ts is not None else _w_time.time())
+        cut_7d = t_now - (7.0 * 86400.0)
+        cut_30d = t_now - (30.0 * 86400.0)
+        w_clean = ''
+        if wallet_addr:
+            try:
+                from p2pool.bitcoin import data as _bd_strip
+                w_clean = str(_bd_strip._strip_scash_worker_suffix(wallet_addr) or '').strip().lower()
+            except Exception:
+                w_clean = str(wallet_addr).strip().split('.')[0].lower()
+
+        with _ledger_lock:
+            recs = list(_ledger_state['blocks'].values())
+            min_s = _ledger_state['min_scanned_height']
+            max_s = _ledger_state['max_scanned_height']
+            is_scanning = bool(_ledger_state['scanning'])
+
+        recs.sort(key=lambda r: int(r.get('height') or 0), reverse=True)
+        pool_all = len(recs)
+        pool_7d = 0
+        pool_30d = 0
+        pool_scash_all = 0.0
+        miner_7d = 0.0
+        miner_30d = 0.0
+        miner_all = 0.0
+        miner_blocks = 0
+
+        for r in recs:
+            bts = float(r.get('ts') or 0.0)
+            rew = float(r.get('reward') or 0.0)
+            pool_scash_all += rew
+            if bts >= cut_30d:
+                pool_30d += 1
+            if bts >= cut_7d:
+                pool_7d += 1
+            if w_clean:
+                pmap = r.get('payouts') or {}
+                m_amt = float(pmap.get(w_clean) or 0.0)
+                if m_amt > 0.0:
+                    miner_all += m_amt
+                    miner_blocks += 1
+                    if bts >= cut_30d:
+                        miner_30d += m_amt
+                    if bts >= cut_7d:
+                        miner_7d += m_amt
+
+        last_blk = recs[0] if recs else None
+        recent_list = [
+            {
+                'number': int(r.get('height') or 0),
+                'hash': str(r.get('hash') or ''),
+                'ts': int(r.get('ts') or 0),
+                'reward': round(float(r.get('reward') or 0.0), 8),
+            }
+            for r in recs[:25]
+        ]
+        return {
+            'wallet': w_clean,
+            'miner_scash_7d': round(miner_7d, 8),
+            'miner_scash_30d': round(miner_30d, 8),
+            'miner_scash_all_time': round(miner_all, 8),
+            'miner_blocks_paid': int(miner_blocks),
+            'pool_blocks_7d': int(pool_7d),
+            'pool_blocks_30d': int(pool_30d),
+            'pool_blocks_all_time': int(pool_all),
+            'pool_scash_all_time': round(pool_scash_all, 8),
+            'last_block_height': int(last_blk['height']) if last_blk else None,
+            'last_block_hash': str(last_blk['hash']) if last_blk else None,
+            'last_block_ts': int(last_blk['ts']) if last_blk else None,
+            'min_scanned_height': min_s,
+            'max_scanned_height': max_s,
+            'backfill_scanning': is_scanning,
+            'recent_blocks': recent_list,
+        }
+
+    # --- Liquidity-Weighted Multi-Exchange SCASH Price Tracker ---
+    _CANONICAL_EXCHANGES = {
+        'ourbit': {
+            'key': 'ourbit',
+            'name': 'Ourbit',
+            'pair': 'SCASH/USDT',
+            'url': 'https://www.ourbit.com/exchange/SCASH_USDT',
+        },
+        'nonkyc': {
+            'key': 'nonkyc',
+            'name': 'NonKYC',
+            'pair': 'SCASH/USDT',
+            'url': 'https://nonkyc.io/market/SCASH_USDT',
+        },
+    }
+    _REFERENCE_MARKET_LINKS = [
+        {'name': 'Ourbit', 'url': 'https://www.ourbit.com/exchange/SCASH_USDT'},
+        {'name': 'NonKYC', 'url': 'https://nonkyc.io/market/SCASH_USDT'},
+        {'name': 'Scash P2P DEX', 'url': 'https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-exchange'},
+        {'name': 'CoinGecko', 'url': 'https://www.coingecko.com/en/coins/satoshi-cash-network'},
+    ]
+    _market_lock = _w_threading.Lock()
+    _market_cache = {
+        'ts': 0.0,
+        'refreshing': False,
+        'data': {
+            'ok': False,
+            'weighted_price_usd': None,
+            'block_value_usd': None,
+            'total_liquidity_usd': 0.0,
+            'total_volume_24h_usd': 0.0,
+            'exchanges': [
+                {'key': 'ourbit', 'name': 'Ourbit', 'pair': 'SCASH/USDT', 'price_usd': None, 'depth_usd': 0.0, 'volume_24h_usd': 0.0, 'liquidity_usd': 0.0, 'weight_pct': 0.0, 'url': 'https://www.ourbit.com/exchange/SCASH_USDT'},
+                {'key': 'nonkyc', 'name': 'NonKYC', 'pair': 'SCASH/USDT', 'price_usd': None, 'depth_usd': 0.0, 'volume_24h_usd': 0.0, 'liquidity_usd': 0.0, 'weight_pct': 0.0, 'url': 'https://nonkyc.io/market/SCASH_USDT'},
+            ],
+            'reference_links': _REFERENCE_MARKET_LINKS,
+            'updated_at': 0,
+        },
+    }
+
+    def _http_get_json_wan(url, timeout=4.5):
+        req = _w_ureq.Request(url, headers={
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+        })
+        raw = _scash_open_url(req, timeout=timeout, is_local=url.startswith('http://127.0.0.1'))
+        return _w_json.loads(raw.decode('utf-8', 'replace'))
+
+    def _calc_orderbook_band_usd(bids, asks, ref_price):
+        if ref_price <= 0:
+            return 0.0
+        lo = ref_price * 0.90
+        hi = ref_price * 1.10
+        band_usd = 0.0
+        full_usd = 0.0
+        for side, is_bid in ((bids or [], True), (asks or [], False)):
+            for row in side[:60]:
+                try:
+                    if isinstance(row, dict):
+                        p = float(row.get('price') or row.get('rate') or 0.0)
+                        q = float(row.get('quantity') or row.get('amount') or row.get('volume') or 0.0)
+                    elif isinstance(row, (list, tuple)) and len(row) >= 2:
+                        p = float(row[0] or 0.0)
+                        q = float(row[1] or 0.0)
+                    else:
+                        continue
+                    if p <= 0 or q <= 0:
+                        continue
+                    notional = p * q
+                    # Guard against extreme spoof orders (> 5x or < 0.2x mid price)
+                    if 0.2 * ref_price <= p <= 5.0 * ref_price:
+                        full_usd += notional
+                    if (is_bid and p >= lo and p <= ref_price * 1.05) or ((not is_bid) and p <= hi and p >= ref_price * 0.95):
+                        band_usd += notional
+                except Exception:
+                    pass
+        return band_usd if band_usd > 0 else min(full_usd, 25000.0)
+
+    def _norm_exchange_key(raw_id, raw_name):
+        s = ('%s %s' % (raw_id or '', raw_name or '')).strip().lower()
+        if 'ourbit' in s:
+            return 'ourbit'
+        if 'nonkyc' in s or 'non-kyc' in s:
+            return 'nonkyc'
+        clean = ''.join(ch if ch.isalnum() else '_' for ch in str(raw_id or raw_name or 'exchange').lower()).strip('_')
+        return clean or 'exchange'
+
+    def _compute_weighted_market_snapshot(raw_venues, block_reward=50.0, now_ep=None):
+        t_ep = int(now_ep if now_ep is not None else _w_time.time())
+        active = []
+        for k, v in raw_venues.items():
+            price = float(v.get('price_usd') or 0.0)
+            depth = max(0.0, float(v.get('depth_usd') or 0.0))
+            vol = max(0.0, float(v.get('volume_24h_usd') or 0.0))
+            if v.get('is_stale') or v.get('is_anomaly'):
+                continue
+            if price <= 0.0 or (depth < 1.0 and vol < 1.0):
+                continue
+            # Effective USD liquidity combines +-10% orderbook depth with 24h liquidity turnover
+            liq = depth + (0.25 * vol)
+            if liq <= 0.0:
+                continue
+            item = {
+                'key': k,
+                'name': v.get('name') or k.capitalize(),
+                'pair': v.get('pair') or 'SCASH/USDT',
+                'price_usd': round(price, 6),
+                'depth_usd': round(depth, 2),
+                'volume_24h_usd': round(vol, 2),
+                'liquidity_usd': round(liq, 2),
+                'weight_pct': 0.0,
+                'url': v.get('url') or '',
+            }
+            active.append(item)
+
+        tot_liq = sum(x['liquidity_usd'] for x in active)
+        tot_vol = sum(x['volume_24h_usd'] for x in active)
+        w_price = None
+        if tot_liq > 0.0 and active:
+            w_price = sum(x['price_usd'] * x['liquidity_usd'] for x in active) / tot_liq
+            for x in active:
+                x['weight_pct'] = round(100.0 * x['liquidity_usd'] / tot_liq, 1)
+        active.sort(key=lambda x: x['liquidity_usd'], reverse=True)
+
+        # Always keep Ourbit & NonKYC hyperlinks present even if one API is temporarily unreachable
+        present_keys = set(x['key'] for x in active)
+        for req_k in ('ourbit', 'nonkyc'):
+            if req_k not in present_keys:
+                meta = _CANONICAL_EXCHANGES[req_k]
+                active.append({
+                    'key': req_k,
+                    'name': meta['name'],
+                    'pair': meta['pair'],
+                    'price_usd': None,
+                    'depth_usd': 0.0,
+                    'volume_24h_usd': 0.0,
+                    'liquidity_usd': 0.0,
+                    'weight_pct': 0.0,
+                    'url': meta['url'],
+                })
+
+        return {
+            'ok': bool(w_price is not None and w_price > 0),
+            'weighted_price_usd': round(w_price, 6) if w_price is not None else None,
+            'block_value_usd': round(w_price * float(block_reward or 50.0), 4) if w_price is not None else None,
+            'total_liquidity_usd': round(tot_liq, 2),
+            'total_volume_24h_usd': round(tot_vol, 2),
+            'exchanges': active,
+            'reference_links': _REFERENCE_MARKET_LINKS,
+            'updated_at': t_ep,
+        }
+
+    def _refresh_scash_market_once():
+        if os.environ.get('SCASH_CI_ISOLATED_MESH') == '1' and not os.environ.get('SCASH_MARKET_TEST_URLS'):
+            return _market_cache['data']
+        with _market_lock:
+            if _market_cache['refreshing']:
+                return _market_cache['data']
+            _market_cache['refreshing'] = True
+        try:
+            venues = {}
+            ourbit_base = (os.environ.get('SCASH_OURBIT_API_BASE') or 'https://www.ourbit.com').rstrip('/')
+            nonkyc_base = (os.environ.get('SCASH_NONKYC_API_BASE') or 'https://api.nonkyc.io/api/v2').rstrip('/')
+            cg_url = os.environ.get('SCASH_COINGECKO_TICKERS_URL') or 'https://api.coingecko.com/api/v3/coins/satoshi-cash-network/tickers?depth=true'
+            cp_url = os.environ.get('SCASH_COINPAPRIKA_MARKETS_URL') or 'https://api.coinpaprika.com/v1/coins/scash-satoshi-cash-network/markets?quotes=USD'
+
+            # 1) Direct Ourbit public REST v2 ticker + orderbook depth
+            try:
+                ob_tk = _http_get_json_wan('%s/open/api/v2/market/ticker?symbol=SCASH_USDT' % ourbit_base, timeout=4.0)
+                ob_rows = (ob_tk or {}).get('data') or []
+                if isinstance(ob_rows, list) and ob_rows:
+                    r0 = ob_rows[0] or {}
+                    p_ob = float(r0.get('last') or 0.0)
+                    vol_quote = float(r0.get('amount') or 0.0)
+                    if vol_quote <= 0.0 and p_ob > 0.0:
+                        vol_quote = float(r0.get('volume') or 0.0) * p_ob
+                    d_ob = 0.0
+                    if p_ob > 0.0:
+                        try:
+                            ob_dp = _http_get_json_wan('%s/open/api/v2/market/depth?symbol=SCASH_USDT&depth=50' % ourbit_base, timeout=4.0)
+                            dp_d = (ob_dp or {}).get('data') or {}
+                            d_ob = _calc_orderbook_band_usd(dp_d.get('bids'), dp_d.get('asks'), p_ob)
+                        except Exception:
+                            pass
+                    if p_ob > 0.0:
+                        venues['ourbit'] = {
+                            'name': 'Ourbit',
+                            'pair': 'SCASH/USDT',
+                            'price_usd': p_ob,
+                            'depth_usd': d_ob,
+                            'volume_24h_usd': vol_quote,
+                            'url': _CANONICAL_EXCHANGES['ourbit']['url'],
+                        }
+            except Exception:
+                pass
+
+            # 2) Direct NonKYC public REST v2 market + orderbook depth
+            try:
+                nk_tk = _http_get_json_wan('%s/market/getbysymbol/SCASH_USDT' % nonkyc_base, timeout=4.0)
+                if isinstance(nk_tk, dict):
+                    p_nk = float(nk_tk.get('lastPrice') or nk_tk.get('last_price') or nk_tk.get('last') or 0.0)
+                    vol_nk = float(nk_tk.get('usdVolume') or nk_tk.get('target_volume') or nk_tk.get('volume') or 0.0)
+                    d_nk = 0.0
+                    if p_nk > 0.0:
+                        try:
+                            nk_dp = _http_get_json_wan('%s/market/getorderbookbysymbol/SCASH_USDT' % nonkyc_base, timeout=4.0)
+                            if isinstance(nk_dp, dict):
+                                d_nk = _calc_orderbook_band_usd(nk_dp.get('bids'), nk_dp.get('asks'), p_nk)
+                        except Exception:
+                            pass
+                    if p_nk > 0.0:
+                        venues['nonkyc'] = {
+                            'name': 'NonKYC',
+                            'pair': 'SCASH/USDT',
+                            'price_usd': p_nk,
+                            'depth_usd': d_nk,
+                            'volume_24h_usd': vol_nk,
+                            'url': _CANONICAL_EXCHANGES['nonkyc']['url'],
+                        }
+            except Exception:
+                pass
+
+            # 3) CoinGecko multi-exchange tickers (?depth=true) -> auto-discovers ANY new SCASH exchange + fills missing depth/vol!
+            got_cg = False
+            try:
+                cg_obj = _http_get_json_wan(cg_url, timeout=5.0)
+                for tk in ((cg_obj or {}).get('tickers') or []):
+                    if not isinstance(tk, dict):
+                        continue
+                    if tk.get('is_stale') or tk.get('is_anomaly'):
+                        continue
+                    mkt = tk.get('market') or {}
+                    m_name = str(mkt.get('name') or '').strip()
+                    m_id = str(mkt.get('identifier') or '').strip()
+                    ekey = _norm_exchange_key(m_id, m_name)
+                    p_usd = float((tk.get('converted_last') or {}).get('usd') or 0.0)
+                    v_usd = float((tk.get('converted_volume') or {}).get('usd') or 0.0)
+                    cg_d = float(tk.get('cost_to_move_up_usd') or 0.0) + float(tk.get('cost_to_move_down_usd') or 0.0)
+                    if p_usd <= 0.0 or (v_usd < 1.0 and cg_d < 1.0):
+                        continue
+                    got_cg = True
+                    pair_str = '%s/%s' % (str(tk.get('base') or 'SCASH').upper(), str(tk.get('target') or 'USDT').upper())
+                    t_url = str(tk.get('trade_url') or '').strip()
+                    if ekey in _CANONICAL_EXCHANGES and not t_url:
+                        t_url = _CANONICAL_EXCHANGES[ekey]['url']
+                    elif ekey in _CANONICAL_EXCHANGES:
+                        m_name = _CANONICAL_EXCHANGES[ekey]['name']
+                    if ekey in venues:
+                        cur = venues[ekey]
+                        if cur.get('volume_24h_usd', 0.0) <= 0.0 and v_usd > 0.0:
+                            cur['volume_24h_usd'] = v_usd
+                        if cur.get('depth_usd', 0.0) <= 0.0 and cg_d > 0.0:
+                            cur['depth_usd'] = cg_d
+                        if t_url and not cur.get('url'):
+                            cur['url'] = t_url
+                    else:
+                        venues[ekey] = {
+                            'name': m_name or ekey.capitalize(),
+                            'pair': pair_str,
+                            'price_usd': p_usd,
+                            'depth_usd': cg_d,
+                            'volume_24h_usd': v_usd,
+                            'url': t_url or 'https://www.coingecko.com/en/coins/satoshi-cash-network',
+                        }
+            except Exception:
+                pass
+
+            # 4) CoinPaprika multi-market backup if CoinGecko was rate-limited
+            if not got_cg:
+                try:
+                    cp_arr = _http_get_json_wan(cp_url, timeout=4.5)
+                    if isinstance(cp_arr, list):
+                        for mk in cp_arr:
+                            if not isinstance(mk, dict) or mk.get('outlier'):
+                                continue
+                            q_usd = ((mk.get('quotes') or {}).get('USD')) or {}
+                            p_cp = float(q_usd.get('price') or 0.0)
+                            v_cp = float(q_usd.get('volume_24h') or 0.0)
+                            if p_cp <= 0.0 or v_cp < 1.0:
+                                continue
+                            ex_nm = str(mk.get('exchange_name') or '').strip()
+                            ekey = _norm_exchange_key(mk.get('exchange_id'), ex_nm)
+                            if ekey not in venues:
+                                venues[ekey] = {
+                                    'name': _CANONICAL_EXCHANGES[ekey]['name'] if ekey in _CANONICAL_EXCHANGES else (ex_nm or ekey.capitalize()),
+                                    'pair': str(mk.get('pair') or 'SCASH/USDT'),
+                                    'price_usd': p_cp,
+                                    'depth_usd': 0.0,
+                                    'volume_24h_usd': v_cp,
+                                    'url': str(mk.get('market_url') or (_CANONICAL_EXCHANGES.get(ekey) or {}).get('url') or 'https://www.coingecko.com/en/coins/satoshi-cash-network'),
+                                }
+                except Exception:
+                    pass
+
+            if venues:
+                snap = _compute_weighted_market_snapshot(venues, block_reward=50.0)
+                with _market_lock:
+                    _market_cache['data'] = snap
+                    _market_cache['ts'] = _w_time.time()
+            else:
+                with _market_lock:
+                    _market_cache['ts'] = _w_time.time() - 40.0
+        finally:
+            with _market_lock:
+                _market_cache['refreshing'] = False
+        return _market_cache['data']
+
+    def _get_cached_scash_market():
+        now_t = _w_time.time()
+        with _market_lock:
+            age = now_t - float(_market_cache['ts'] or 0.0)
+            busy = bool(_market_cache['refreshing'])
+            cur = _market_cache['data']
+        if age >= 60.0 and not busy:
+            _mt = _w_threading.Thread(target=_refresh_scash_market_once)
+            _mt.daemon = True
+            _mt.start()
+        return cur
+
+    def _maybe_start_v032_telemetry_daemons(_wb_ref):
+        if not _hr_sampler_started['active']:
+            _hr_sampler_started['active'] = True
+            def _hr_loop():
+                while True:
+                    try:
+                        _sample_hashrate_rings(_wb_ref)
+                    except Exception:
+                        pass
+                    _w_time.sleep(5.0)
+            _ht = _w_threading.Thread(target=_hr_loop)
+            _ht.daemon = True
+            _ht.start()
+
+        if not _ledger_daemon_started['active']:
+            _ledger_daemon_started['active'] = True
+            def _lg_loop():
+                _w_time.sleep(1.0)
+                while True:
+                    try:
+                        _sync_p2pool_ledger_once(_wb_ref, max_backfill_blocks=1500)
+                        with _ledger_lock:
+                            min_s = _ledger_state['min_scanned_height']
+                            ch = _ledger_state['chain']
+                        target_floor = 140000 if ch in ('scash', 'main') else 1
+                        if min_s is not None and int(min_s) > target_floor:
+                            _w_time.sleep(0.35)
+                            continue
+                    except Exception:
+                        pass
+                    _w_time.sleep(15.0)
+            _lt = _w_threading.Thread(target=_lg_loop)
+            _lt.daemon = True
+            _lt.start()
+        _get_cached_scash_market()
+
+    def _build_pool_telemetry_payload(_wb_ref, wallet_param=None):
+        w_eff = (wallet_param or _xmrig_mgr.GLOBAL_XMRIG.wallet or '').strip()
+        # Ensure initial tip scan runs immediately if ledger hasn't scanned yet
+        with _ledger_lock:
+            uninitialized = (_ledger_state['max_scanned_height'] is None and not _ledger_state['scanning'])
+        if uninitialized:
+            _sync_p2pool_ledger_once(_wb_ref, max_backfill_blocks=100)
+        rates = _sample_hashrate_rings(_wb_ref)
+        ledger = _summarize_ledger_stats(wallet_addr=w_eff)
+        market = _get_cached_scash_market()
+        return {
+            'ok': True,
+            'version': '0.3.2',
+            'hashrates': rates,
+            'ledger': ledger,
+            'market': market,
+        }
 
     def _build_miningcore_pool_payload(_wb_ref):
         now_ts = _w_time.time()
@@ -687,6 +1581,14 @@ try:
                 total_blocks = len(_solved_ts)
                 if _solved_ts:
                     last_block_iso = _w_time.strftime('%Y-%m-%dT%H:%M:%SZ', _w_time.gmtime(max(_solved_ts)))
+        except Exception:
+            pass
+        try:
+            _lg_sum = _summarize_ledger_stats()
+            if int(_lg_sum.get('pool_blocks_all_time') or 0) > total_blocks:
+                total_blocks = int(_lg_sum['pool_blocks_all_time'])
+            if _lg_sum.get('last_block_ts') and not last_block_iso:
+                last_block_iso = _w_time.strftime('%Y-%m-%dT%H:%M:%SZ', _w_time.gmtime(int(_lg_sum['last_block_ts'])))
         except Exception:
             pass
 
@@ -828,7 +1730,7 @@ try:
             return False
 
         try:
-            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
             r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
             r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
             if r_obj:
@@ -857,7 +1759,7 @@ try:
                 'Authorization': 'Bearer ' + tok,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             }
             req = _w_ureq.Request(url, data, hdrs)
             req.get_method = lambda: method
@@ -957,7 +1859,7 @@ try:
             'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
         ):
             try:
-                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
                 txt = _scash_open_url(req, timeout=4.0, is_local=u.startswith('http://127.0.0.1')).decode('utf-8', 'replace')
                 obj = _w_json.loads(txt) or {}
                 if 'report_url' in obj:
@@ -997,7 +1899,7 @@ try:
         except Exception:
             pass
         body = _w_json.dumps({
-            'version': '0.3.1',
+            'version': '0.3.2',
             'best_share_hash': best_hex,
             'chain_height': int(chain_h),
             'p2pool_peers': int(p2p_peers),
@@ -1005,7 +1907,7 @@ try:
         }).encode('utf-8')
         req = _w_ureq.Request(target_url, body, {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.1; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.2; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
         if not _community_reporter_started.get('logged'):
@@ -1137,6 +2039,8 @@ try:
             elif self.action == 'mesh':
                 from p2pool import auto_mesh as _scash_auto_mesh
                 return _jb(_scash_auto_mesh.get_mesh_status())
+            elif self.action == 'telemetry':
+                return _jb(_build_pool_telemetry_payload(self.wb_ref, wallet_param=_arg('wallet')))
             return _jb({'ok': False})
 
     _orig_scash_get_web_root = get_web_root
@@ -1151,10 +2055,12 @@ try:
         except Exception:
             pass
         try:
+            _maybe_start_v032_telemetry_daemons(_wb_obj)
             _maybe_start_ghpages_publisher(_wb_obj)
             _maybe_start_community_reporter(_wb_obj)
         except Exception:
             pass
+        _wr.putChild(b'pool_telemetry', _ScashMinerControlResource('telemetry', wb_ref=_wb_obj))
         _wr.putChild(b'miner_status', _ScashMinerControlResource('status'))
         _wr.putChild(b'miner_start', _ScashMinerControlResource('start', wb_ref=_wb_obj))
         _wr.putChild(b'miner_stop', _ScashMinerControlResource('stop'))

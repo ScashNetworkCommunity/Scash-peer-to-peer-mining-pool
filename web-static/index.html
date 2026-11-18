@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.1)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.2)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,7 +164,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.1)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.2)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -176,7 +176,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.1</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.2</span>
         </div>
       </div>
 
@@ -248,27 +248,96 @@
                   </div>
                 </div>
 
-                <!-- 4 Live Mini KPI Cards -->
+                <!-- 4 Live Mini KPI Cards (with 10s / 60s / 30m Averages for Miner & Pool!) -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-purple-500/25 text-xs">
-                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
-                    <div class="text-[11px] text-purple-300/75">Local Hashrate</div>
-                    <div id="kpiLocalHashrate" class="font-mono-code font-bold text-cyan-300 text-sm mt-0.5">0 H/s</div>
-                    <div id="kpiLocalSub" class="text-[10px] text-purple-300/75 mt-0.5">Miner Idle</div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">Local Miner Hashrate</div>
+                      <div id="kpiLocalHashrate" class="font-mono-code font-bold text-cyan-300 text-sm mt-0.5">0 H/s</div>
+                    </div>
+                    <div class="mt-1.5 pt-1 border-t border-purple-500/25 space-y-0.5 font-mono-code text-[10px]">
+                      <div class="flex justify-between"><span class="text-purple-300/70">10s:</span><span id="kpiLocal10s" class="text-cyan-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">60s:</span><span id="kpiLocal60s" class="text-cyan-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">30m:</span><span id="kpiLocal30m" class="text-cyan-200">0 H/s</span></div>
+                    </div>
+                    <div id="kpiLocalSub" class="text-[10px] text-purple-300/75 mt-1 truncate">Miner Idle</div>
                   </div>
-                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
-                    <div class="text-[11px] text-purple-300/75">P2Pool Hashrate</div>
-                    <div id="kpiPoolHashrate" class="font-mono-code font-bold text-purple-200 text-sm mt-0.5">0 H/s</div>
-                    <div id="kpiPoolMiners" class="text-[10px] text-purple-300/75 mt-0.5">0 Active Miners</div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">P2Pool Hashrate</div>
+                      <div id="kpiPoolHashrate" class="font-mono-code font-bold text-purple-200 text-sm mt-0.5">0 H/s</div>
+                    </div>
+                    <div class="mt-1.5 pt-1 border-t border-purple-500/25 space-y-0.5 font-mono-code text-[10px]">
+                      <div class="flex justify-between"><span class="text-purple-300/70">10s:</span><span id="kpiPool10s" class="text-purple-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">60s:</span><span id="kpiPool60s" class="text-purple-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">30m:</span><span id="kpiPool30m" class="text-purple-200">0 H/s</span></div>
+                    </div>
+                    <div id="kpiPoolMiners" class="text-[10px] text-purple-300/75 mt-1 truncate">0 Active Miners</div>
                   </div>
-                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
-                    <div class="text-[11px] text-purple-300/75">Local Node Shares</div>
-                    <div id="kpiNodeShares" class="font-mono-code font-bold text-amber-300 text-sm mt-0.5">0 Total</div>
-                    <div id="kpiNodeSharesSub" class="text-[10px] text-purple-300/75 mt-0.5">0 Orphan &bull; 0 Dead</div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">Local Node Shares</div>
+                      <div id="kpiNodeShares" class="font-mono-code font-bold text-amber-300 text-sm mt-0.5">0 Total</div>
+                    </div>
+                    <div id="kpiNodeSharesSub" class="text-[10px] text-purple-300/75 mt-1">0 Orphan &bull; 0 Dead</div>
                   </div>
-                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5">
-                    <div class="text-[11px] text-purple-300/75">Network Diff</div>
-                    <div id="kpiNetDiff" class="font-mono-code font-bold text-emerald-300 text-sm mt-0.5">&mdash;</div>
-                    <div id="kpiShareDiffSub" class="text-[10px] text-purple-300/75 mt-0.5">Share Diff: &mdash;</div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">Network Diff</div>
+                      <div id="kpiNetDiff" class="font-mono-code font-bold text-emerald-300 text-sm mt-0.5">&mdash;</div>
+                    </div>
+                    <div id="kpiShareDiffSub" class="text-[10px] text-purple-300/75 mt-1">Share Diff: &mdash;</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- v0.3.2 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Box A: Miner SCASH Mined (7d / 30d / All-Time) -->
+                <div class="qt-cyan-card p-4 flex flex-col justify-between">
+                  <div class="flex items-center justify-between gap-2 mb-2.5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-300">Your SCASH Mined</h3>
+                    <span id="kpiMinerBlocksBadge" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">0 Blocks Paid</span>
+                  </div>
+                  <div class="space-y-1.5 text-xs font-mono-code">
+                    <div class="flex items-center justify-between bg-[#140b23]/90 border border-purple-500/35 rounded-lg px-2.5 py-1.5">
+                      <span class="font-sans text-[11px] text-purple-200/85">Last 7 Days</span>
+                      <div class="text-right">
+                        <span id="kpiMinerMined7d" class="font-bold text-emerald-300">0.0000 SCASH</span>
+                        <span id="kpiMinerMined7dUsd" class="text-[10px] text-purple-300/80 ml-1"></span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between bg-[#140b23]/90 border border-purple-500/35 rounded-lg px-2.5 py-1.5">
+                      <span class="font-sans text-[11px] text-purple-200/85">Last 30 Days</span>
+                      <div class="text-right">
+                        <span id="kpiMinerMined30d" class="font-bold text-cyan-300">0.0000 SCASH</span>
+                        <span id="kpiMinerMined30dUsd" class="text-[10px] text-purple-300/80 ml-1"></span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between bg-[#140b23]/90 border border-cyan-400/45 rounded-lg px-2.5 py-1.5">
+                      <span class="font-sans text-[11px] font-semibold text-purple-100">All-Time</span>
+                      <div class="text-right">
+                        <span id="kpiMinerMinedAll" class="font-bold text-amber-300">0.0000 SCASH</span>
+                        <span id="kpiMinerMinedAllUsd" class="text-[10px] text-purple-300/80 ml-1"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="kpiMinerMinedNote" class="text-[10px] text-purple-300/75 mt-2 truncate">Verified directly from on-chain P2Pool coinbase payouts</div>
+                </div>
+
+                <!-- Box B: Pool Total Blocks Found Together (All-Time) -->
+                <div class="qt-cyan-card p-4 flex flex-col justify-between">
+                  <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-300">Pool Blocks Found (All-Time)</h3>
+                    <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/50 text-amber-300">P2Pool Total</span>
+                  </div>
+                  <div class="my-2.5 bg-[#140b23]/90 border border-amber-400/45 rounded-xl p-3 text-center">
+                    <div class="font-mono-code text-2xl font-extrabold text-amber-300 tracking-tight" id="kpiPoolBlocksAllTime">0</div>
+                    <div class="text-[11px] text-purple-200 mt-0.5">Total Scash Blocks Solved Together (<span id="kpiPoolScashAllTime" class="font-mono-code text-emerald-300">0 SCASH</span>)</div>
+                  </div>
+                  <div class="flex items-center justify-between text-[10.5px] font-mono-code text-purple-200/90 pt-1 border-t border-purple-500/25">
+                    <span>7d: <strong id="kpiPoolBlocks7d" class="text-cyan-300">0</strong> &bull; 30d: <strong id="kpiPoolBlocks30d" class="text-purple-200">0</strong></span>
+                    <span id="kpiPoolLastBlockSub" class="text-purple-300/80 truncate">Scanning chain...</span>
                   </div>
                 </div>
               </div>
@@ -349,9 +418,58 @@
               </div>
             </div>
 
-            <!-- Right Column: Real Solved Blocks & Active Sharechain Stream -->
-            <div class="lg:col-span-6">
-              <div class="qt-cyan-card p-4 sm:p-5 flex flex-col h-full">
+            <!-- Right Column: Liquidity-Weighted SCASH Price Tracker + Real Solved Blocks & Sharechain Stream -->
+            <div class="lg:col-span-6 flex flex-col gap-4">
+
+              <!-- Box C: Liquidity-Weighted SCASH Price Tracker with Exchange Hyperlinks -->
+              <div class="qt-cyan-card p-4 sm:p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h2 class="text-sm font-semibold text-purple-100">SCASH Price Tracker</h2>
+                      <span class="text-[10px] font-mono-code px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/50 text-emerald-300">Liquidity-Weighted Avg</span>
+                    </div>
+                    <p class="text-[11px] text-purple-300/80 mt-0.5">Live USD average weighted by active orderbook depth &amp; 24h exchange liquidity</p>
+                  </div>
+                  <div class="text-right">
+                    <div id="kpiScashWeightedPrice" class="font-mono-code text-lg font-extrabold text-emerald-300">&mdash;</div>
+                    <div id="kpiBlockUsdValue" class="font-mono-code text-[10.5px] text-cyan-300">50 SCASH Block: &mdash;</div>
+                  </div>
+                </div>
+
+                <div id="exchangeMarketsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <a href="https://www.ourbit.com/exchange/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+                    <div>
+                      <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">Ourbit &#8599;</div>
+                      <div class="text-[10px] text-purple-300/80 font-mono-code">SCASH/USDT</div>
+                    </div>
+                    <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
+                  </a>
+                  <a href="https://nonkyc.io/market/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+                    <div>
+                      <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">NonKYC &#8599;</div>
+                      <div class="text-[10px] text-purple-300/80 font-mono-code">SCASH/USDT</div>
+                    </div>
+                    <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
+                  </a>
+                </div>
+
+                <div class="mt-2.5 pt-2 border-t border-purple-500/25 flex flex-wrap items-center justify-between gap-2 text-[11px] text-purple-300/85">
+                  <div class="flex flex-wrap items-center gap-2.5">
+                    <span>Trade &amp; Track:</span>
+                    <a href="https://www.ourbit.com/exchange/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">Ourbit</a>
+                    <span>&bull;</span>
+                    <a href="https://nonkyc.io/market/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">NonKYC</a>
+                    <span>&bull;</span>
+                    <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-exchange" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">Scash P2P DEX</a>
+                    <span>&bull;</span>
+                    <a href="https://www.coingecko.com/en/coins/satoshi-cash-network" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">CoinGecko</a>
+                  </div>
+                  <span id="kpiTotalLiquiditySub" class="font-mono-code text-[10.5px] text-purple-300/80">24h Vol: &mdash;</span>
+                </div>
+              </div>
+
+              <div class="qt-cyan-card p-4 sm:p-5 flex flex-col">
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
                     <h2 class="text-sm font-semibold text-purple-100">Live P2Pool Blocks &amp; Sharechain Activity</h2>
@@ -564,6 +682,7 @@
             <option value="/global_stats">GET /global_stats</option>
             <option value="/current_payouts">GET /current_payouts</option>
             <option value="/recent_blocks">GET /recent_blocks</option>
+            <option value="/pool_telemetry">GET /pool_telemetry</option>
           </select>
           <button type="button" id="runApiQueryBtn" class="qt-action-btn py-1 px-3 text-xs">Fetch Live</button>
         </div>
@@ -584,7 +703,7 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.3.1 (Core 30.4)</span>
+        <span>v0.3.2 (Core 30.4)</span>
       </div>
     </footer>
   </div>
@@ -597,6 +716,7 @@
       localStats: null,
       globalStats: null,
       payouts: {},
+      telemetry: null,
       recentBlocks: [],
       peerAddrs: [],
       walletEditedByUser: false,
@@ -612,6 +732,26 @@
       if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MH/s';
       if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KH/s';
       return n.toFixed(1) + ' H/s';
+    }
+
+    function fmtUsdPrice(p) {
+      const n = Number(p);
+      if (!Number.isFinite(n) || n <= 0) return '—';
+      if (n >= 1) return '$' + n.toFixed(4);
+      if (n >= 0.01) return '$' + n.toFixed(5);
+      return '$' + n.toFixed(6);
+    }
+
+    function fmtUsdCompact(v) {
+      const n = Number(v) || 0;
+      if (n <= 0) return '$0';
+      if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+      if (n >= 1e3) return '$' + (n / 1e3).toFixed(2) + 'K';
+      return '$' + n.toFixed(2);
+    }
+
+    function escHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
 
     function fmtUptime(sec) {
@@ -722,8 +862,14 @@
         footerStatus.textContent = '● Local P2Pool Offline (127.0.0.1:8345 unreachable)';
         if (bubble) bubble.textContent = 'Local P2Pool server is offline. Launch Start-Scash-P2Pool to connect!';
         document.getElementById('kpiLocalHashrate').textContent = '0 H/s';
+        document.getElementById('kpiLocal10s').textContent = '0 H/s';
+        document.getElementById('kpiLocal60s').textContent = '0 H/s';
+        document.getElementById('kpiLocal30m').textContent = '0 H/s';
         document.getElementById('kpiLocalSub').textContent = 'Offline';
         document.getElementById('kpiPoolHashrate').textContent = '0 H/s';
+        document.getElementById('kpiPool10s').textContent = '0 H/s';
+        document.getElementById('kpiPool60s').textContent = '0 H/s';
+        document.getElementById('kpiPool30m').textContent = '0 H/s';
         document.getElementById('kpiPoolMiners').textContent = '0 Active Miners';
         document.getElementById('liveActivityContainer').innerHTML =
           '<div class="text-center py-12 px-4 text-xs text-rose-300">Disconnected from <code class="font-mono-code">127.0.0.1:8345</code>. Start <code class="font-mono-code">Start-Scash-P2Pool-Windows.bat</code> or <code class="font-mono-code">Start-Scash-P2Pool.exe</code> to view live node telemetry.</div>';
@@ -843,11 +989,106 @@
       const myPayout = userWallet && payoutMapActive[userWallet] ? Number(payoutMapActive[userWallet]) : 0.0;
       document.getElementById('myCurrentPayoutText').textContent = myPayout.toFixed(8) + ' SCASH';
 
+      const tel = live.telemetry || {};
+      const hrTel = tel.hashrates || {};
+      const lgTel = tel.ledger || {};
+      const mkTel = tel.market || {};
+
+      const loc10 = Math.max(Number(ms.hashrate_10s_hs || 0), Number(hrTel.local_10s_hs || 0), localHs);
+      const loc60 = Math.max(Number(ms.hashrate_60s_hs || 0), Number(hrTel.local_60s_hs || 0), (ms.running || activeStratumWorkers > 0) ? 0 : 0);
+      const loc30m = Math.max(Number(ms.hashrate_30m_hs || 0), Number(hrTel.local_30m_hs || 0));
+
+      const pool10 = Math.max(Number(hrTel.pool_10s_hs || 0), effPoolHs, loc10);
+      const pool60 = Math.max(Number(hrTel.pool_60s_hs || 0), loc60 > 0 ? loc60 : effPoolHs);
+      const pool30m = Math.max(Number(hrTel.pool_30m_hs || 0), loc30m > 0 ? loc30m : effPoolHs);
+
       document.getElementById('kpiLocalHashrate').textContent = fmtHashrate(localHs);
+      document.getElementById('kpiLocal10s').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? loc10 : 0);
+      document.getElementById('kpiLocal60s').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? (loc60 || loc10) : 0);
+      document.getElementById('kpiLocal30m').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? (loc30m || loc60 || loc10) : 0);
       const msrTag = ms.msr_active === true ? ' • MSR ON' : (ms.hugepages_active === true ? ' • HugePages' : '');
       document.getElementById('kpiLocalSub').textContent = ms.running ? `${ms.threads || 1} Threads${msrTag}` : (activeStratumWorkers > 0 ? `${activeStratumWorkers} Stratum Worker(s)` : 'Miner Idle');
+
       document.getElementById('kpiPoolHashrate').textContent = fmtHashrate(effPoolHs);
+      document.getElementById('kpiPool10s').textContent = fmtHashrate(effPoolHs > 0 ? pool10 : Number(hrTel.pool_10s_hs || 0));
+      document.getElementById('kpiPool60s').textContent = fmtHashrate(effPoolHs > 0 ? pool60 : Number(hrTel.pool_60s_hs || 0));
+      document.getElementById('kpiPool30m').textContent = fmtHashrate(effPoolHs > 0 ? pool30m : Number(hrTel.pool_30m_hs || 0));
       document.getElementById('kpiPoolMiners').textContent = `${activeMinerCount} Active Miner${activeMinerCount === 1 ? '' : 's'}`;
+
+      // Render Miner SCASH Mined (7d / 30d / All-Time) + USD equivalents
+      const wPrice = Number(mkTel.weighted_price_usd || 0);
+      const m7 = Number(lgTel.miner_scash_7d || 0);
+      const m30 = Number(lgTel.miner_scash_30d || 0);
+      const mAll = Number(lgTel.miner_scash_all_time || 0);
+      const mPaidBlks = Number(lgTel.miner_blocks_paid || 0);
+      document.getElementById('kpiMinerMined7d').textContent = `${m7.toFixed(4)} SCASH`;
+      document.getElementById('kpiMinerMined30d').textContent = `${m30.toFixed(4)} SCASH`;
+      document.getElementById('kpiMinerMinedAll').textContent = `${mAll.toFixed(4)} SCASH`;
+      document.getElementById('kpiMinerMined7dUsd').textContent = (wPrice > 0 && m7 > 0) ? `(${fmtUsdCompact(m7 * wPrice)})` : '';
+      document.getElementById('kpiMinerMined30dUsd').textContent = (wPrice > 0 && m30 > 0) ? `(${fmtUsdCompact(m30 * wPrice)})` : '';
+      document.getElementById('kpiMinerMinedAllUsd').textContent = (wPrice > 0 && mAll > 0) ? `(${fmtUsdCompact(mAll * wPrice)})` : '';
+      document.getElementById('kpiMinerBlocksBadge').textContent = `${mPaidBlks} Block${mPaidBlks === 1 ? '' : 's'} Paid`;
+      document.getElementById('kpiMinerMinedNote').textContent = userWallet
+        ? `On-chain P2Pool payouts for ${userWallet.slice(0, 12)}...${userWallet.slice(-6)}`
+        : 'Paste your scash1... wallet to view your 7d / 30d / all-time SCASH mined';
+
+      // Render Pool Total Blocks Found Together (All-Time)
+      const rbCount = Array.isArray(live.recentBlocks) ? live.recentBlocks.length : 0;
+      const pAllBlks = Math.max(Number(lgTel.pool_blocks_all_time || 0), rbCount);
+      const p7Blks = Math.max(Number(lgTel.pool_blocks_7d || 0), rbCount);
+      const p30Blks = Math.max(Number(lgTel.pool_blocks_30d || 0), rbCount);
+      const pScashAll = Number(lgTel.pool_scash_all_time || (pAllBlks * blockReward));
+      document.getElementById('kpiPoolBlocksAllTime').textContent = pAllBlks.toLocaleString();
+      document.getElementById('kpiPoolScashAllTime').textContent = `${pScashAll.toFixed(2)} SCASH`;
+      document.getElementById('kpiPoolBlocks7d').textContent = p7Blks.toLocaleString();
+      document.getElementById('kpiPoolBlocks30d').textContent = p30Blks.toLocaleString();
+      if (lgTel.last_block_height) {
+        document.getElementById('kpiPoolLastBlockSub').textContent = `Latest: #${Number(lgTel.last_block_height).toLocaleString()}`;
+      } else if (lgTel.backfill_scanning) {
+        document.getElementById('kpiPoolLastBlockSub').textContent = 'Scanning local blocks...';
+      } else {
+        document.getElementById('kpiPoolLastBlockSub').textContent = pAllBlks > 0 ? `${pAllBlks} Solved` : '0 Solved Yet';
+      }
+
+      // Render Liquidity-Weighted SCASH Price Tracker & Exchange Hyperlinks
+      if (wPrice > 0) {
+        document.getElementById('kpiScashWeightedPrice').textContent = fmtUsdPrice(wPrice);
+        document.getElementById('kpiBlockUsdValue').textContent = `50 SCASH Block: ~$${(wPrice * blockReward).toFixed(2)}`;
+      } else {
+        document.getElementById('kpiScashWeightedPrice').textContent = 'Fetching...';
+        document.getElementById('kpiBlockUsdValue').textContent = '50 SCASH Block: —';
+      }
+      const totVol = Number(mkTel.total_volume_24h_usd || 0);
+      const totLiq = Number(mkTel.total_liquidity_usd || 0);
+      document.getElementById('kpiTotalLiquiditySub').textContent = totVol > 0
+        ? `24h Vol: ${fmtUsdCompact(totVol)} • Weight Liq: ${fmtUsdCompact(totLiq)}`
+        : 'Live CEX + DEX Markets';
+
+      const exBox = document.getElementById('exchangeMarketsContainer');
+      if (exBox && Array.isArray(mkTel.exchanges) && mkTel.exchanges.length > 0) {
+        exBox.innerHTML = mkTel.exchanges.map(ex => {
+          const exUrl = escHtml(ex.url || 'https://www.coingecko.com/en/coins/satoshi-cash-network');
+          const exName = escHtml(ex.name || 'Exchange');
+          const exPair = escHtml(ex.pair || 'SCASH/USDT');
+          const hasP = Number(ex.price_usd || 0) > 0;
+          const pTxt = hasP ? fmtUsdPrice(ex.price_usd) : 'Live Market ↗';
+          const subRight = hasP
+            ? `${Number(ex.weight_pct || 0).toFixed(1)}% wt • Vol ${fmtUsdCompact(ex.volume_24h_usd)}`
+            : 'Open exchange book';
+          return `
+            <a href="${exUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+              <div class="min-w-0 pr-2">
+                <div class="font-semibold text-cyan-300 hover:underline truncate">${exName} &#8599;</div>
+                <div class="text-[10px] text-purple-300/80 font-mono-code truncate">${exPair}</div>
+              </div>
+              <div class="text-right shrink-0 font-mono-code">
+                <div class="text-xs font-bold ${hasP ? 'text-emerald-300' : 'text-purple-200'}">${pTxt}</div>
+                <div class="text-[10px] text-purple-300/80">${subRight}</div>
+              </div>
+            </a>
+          `;
+        }).join('');
+      }
 
       const shTotal = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
       const shOrph = ls && ls.shares ? Number(ls.shares.orphan || 0) : 0;
@@ -1006,7 +1247,7 @@
 
     function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.1-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.2-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
@@ -1062,30 +1303,48 @@
       live.nodeSync = ns || {};
       live.miner = ms || {};
 
+      const wQuery = encodeURIComponent((document.getElementById('quickWalletInput')?.value || (ms && ms.wallet) || '').trim());
+
       if (ns && ns.syncing) {
         live.localStats = null;
         live.globalStats = null;
         live.payouts = {};
         live.recentBlocks = [];
         live.peerAddrs = [];
+        const syncTel = await fetchJsonOrNull(`/pool_telemetry?wallet=${wQuery}`);
+        if (syncTel) live.telemetry = syncTel;
         renderAllLive();
         return;
       }
 
-      const [ls, gs, pay, rb, peersTxt, meshSt] = await Promise.all([
+      const [ls, gs, pay, rb, peersTxt, meshSt, telData] = await Promise.all([
         fetchJsonOrNull('/local_stats'),
         fetchJsonOrNull('/global_stats'),
         fetchJsonOrNull('/current_payouts'),
         fetchJsonOrNull('/recent_blocks'),
         fetchTextOrNull('/peer_addresses'),
-        fetchJsonOrNull('/mesh_status')
+        fetchJsonOrNull('/mesh_status'),
+        fetchJsonOrNull(`/pool_telemetry?wallet=${wQuery}`)
       ]);
 
+      if (telData) live.telemetry = telData;
       if (meshSt) live.mesh = meshSt;
       if (ls && !ls.syncing) live.localStats = ls;
       if (gs) live.globalStats = gs;
       live.payouts = pay || {};
-      live.recentBlocks = Array.isArray(rb) ? rb : [];
+      // Merge sharechain /recent_blocks with on-chain ledger recent_blocks so solved blocks remain visible past 24h!
+      const mergedBlocksMap = new Map();
+      for (const b of (Array.isArray(rb) ? rb : [])) {
+        if (b && b.number !== undefined) mergedBlocksMap.set(Number(b.number), b);
+      }
+      if (telData && telData.ledger && Array.isArray(telData.ledger.recent_blocks)) {
+        for (const lb of telData.ledger.recent_blocks) {
+          if (lb && lb.number !== undefined && !mergedBlocksMap.has(Number(lb.number))) {
+            mergedBlocksMap.set(Number(lb.number), lb);
+          }
+        }
+      }
+      live.recentBlocks = Array.from(mergedBlocksMap.values()).sort((a, b) => Number(b.number || 0) - Number(a.number || 0));
       if (peersTxt) {
         const cleaned = peersTxt.replace(/"/g, '').trim();
         live.peerAddrs = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
@@ -1186,6 +1445,8 @@
           msg.className = 'text-[10px] text-amber-300 mt-1';
         }
         renderExternalMinerCmd();
+        clearTimeout(window._walletTelTimer);
+        window._walletTelTimer = setTimeout(() => pollAllLiveEndpoints(), 350);
       });
 
       document.getElementById('cpuThreadSlider')?.addEventListener('input', e => {

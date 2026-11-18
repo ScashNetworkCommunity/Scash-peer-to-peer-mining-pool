@@ -1,5 +1,5 @@
 """
-Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.3.1).
+Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.3.2).
 Manages local xmrigDaemon + xmrigMiner (rx/scash, built with -DWITH_MSR=ON,
 -DWITH_ASM=ON, WinRing0x64.sys, HugePages, and hwloc physical-core affinity)
 connecting strictly to 127.0.0.1:8345 and reports 100% real live process status,
@@ -27,7 +27,10 @@ XMRIG_CONFIG_FILE = os.path.join(MINER_DIR, "config.json")
 _NO_PROXY_OPENER = urllib_req.build_opener(urllib_req.ProxyHandler({}))
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
-_SPEED_RE = re.compile(r"speed\s+\S+\s+([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE)
+_SPEED_RE = re.compile(
+    r"speed\s+\S+\s+([0-9]+(?:\.[0-9]+)?|n/a)(?:\s+([0-9]+(?:\.[0-9]+)?|n/a))?(?:\s+([0-9]+(?:\.[0-9]+)?|n/a))?",
+    re.IGNORECASE,
+)
 _ACCEPT_RE = re.compile(r"accepted\s*\((\d+)/(\d+)\)", re.IGNORECASE)
 _TOTAL_ACC_RE = re.compile(r"Total accepted:\s*(\d+)", re.IGNORECASE)
 _HTTP_API_RE = re.compile(r"HTTP API\s+127\.0\.0\.1:(\d+)", re.IGNORECASE)
@@ -48,6 +51,9 @@ class LocalMinerController(object):
         self.hugepages_active = None
         self.http_port = 8346
         self.hashrate_hs = 0.0
+        self.hashrate_60s_raw = 0.0
+        self.hashrate_15m_raw = 0.0
+        self._hr_samples = []
         self.accepted_shares = 0
         self.rejected_shares = 0
         self.logs = []
@@ -208,7 +214,17 @@ class LocalMinerController(object):
                     pass
             if m_spd:
                 try:
-                    self.hashrate_hs = float(m_spd.group(1))
+                    g1 = m_spd.group(1)
+                    if g1 and g1.lower() != "n/a":
+                        v10 = float(g1)
+                        self.hashrate_hs = v10
+                        self._record_hr_sample_locked(v10)
+                    g2 = m_spd.group(2)
+                    if g2 and g2.lower() != "n/a":
+                        self.hashrate_60s_raw = float(g2)
+                    g3 = m_spd.group(3)
+                    if g3 and g3.lower() != "n/a":
+                        self.hashrate_15m_raw = float(g3)
                 except Exception:
                     pass
             if m_acc:
@@ -249,6 +265,32 @@ class LocalMinerController(object):
             with self.lock:
                 if self.process is proc:
                     self.hashrate_hs = 0.0
+                    self.hashrate_60s_raw = 0.0
+                    self.hashrate_15m_raw = 0.0
+                    self._hr_samples = []
+
+    def _record_hr_sample_locked(self, hs_val, now_ts=None):
+        t_now = float(now_ts if now_ts is not None else time.time())
+        v = max(0.0, float(hs_val or 0.0))
+        if v <= 0.0:
+            return
+        if self._hr_samples and (t_now - self._hr_samples[-1][0]) < 0.9:
+            self._hr_samples[-1] = (t_now, v)
+        else:
+            self._hr_samples.append((t_now, v))
+        cutoff = t_now - 2100.0
+        if len(self._hr_samples) > 32 and self._hr_samples[0][0] < cutoff:
+            self._hr_samples = [ item for item in self._hr_samples if item[0] >= cutoff ]
+
+    def _window_avg_locked(self, window_sec, now_ts=None):
+        if not self._hr_samples:
+            return 0.0
+        t_now = float(now_ts if now_ts is not None else time.time())
+        cutoff = t_now - float(window_sec)
+        vals = [ item[1] for item in self._hr_samples if item[0] >= cutoff ]
+        if not vals:
+            return float(self._hr_samples[-1][1])
+        return sum(vals) / float(len(vals))
 
     def _summary_poller_thread(self, proc):
         while proc.poll() is None and self.process is proc:
@@ -268,8 +310,13 @@ class LocalMinerController(object):
             totals = hr_obj.get("total") or []
             th_list = hr_obj.get("threads")
             with self.lock:
-                if totals and totals[0] is not None:
+                if len(totals) >= 1 and totals[0] is not None:
                     self.hashrate_hs = float(totals[0])
+                    self._record_hr_sample_locked(self.hashrate_hs)
+                if len(totals) >= 2 and totals[1] is not None:
+                    self.hashrate_60s_raw = float(totals[1])
+                if len(totals) >= 3 and totals[2] is not None:
+                    self.hashrate_15m_raw = float(totals[2])
                 if isinstance(th_list, list) and len(th_list) > 0:
                     self.active_threads = len(th_list)
                 hp = data.get("hugepages")
@@ -340,7 +387,11 @@ class LocalMinerController(object):
         if platform.system() == "Windows":
             kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
         try:
-            self.hashrate_hs = 0.0
+            with self.lock:
+                self.hashrate_hs = 0.0
+                self.hashrate_60s_raw = 0.0
+                self.hashrate_15m_raw = 0.0
+                self._hr_samples = []
             self.msr_active = None
             self.hugepages_active = None
             self.process = subprocess.Popen(cmd, **kwargs)
@@ -364,7 +415,11 @@ class LocalMinerController(object):
     def stop_mining(self):
         proc = self.process
         self.process = None
-        self.hashrate_hs = 0.0
+        with self.lock:
+            self.hashrate_hs = 0.0
+            self.hashrate_60s_raw = 0.0
+            self.hashrate_15m_raw = 0.0
+            self._hr_samples = []
         if proc is not None and proc.poll() is None:
             pid = proc.pid
             try:
@@ -401,7 +456,27 @@ class LocalMinerController(object):
         winring0_present = os.path.isfile(os.path.join(MINER_DIR, "WinRing0x64.sys"))
         with self.lock:
             logs_copy = list(self.logs[-25:])
-            hr = round(float(self.hashrate_hs), 2) if alive else 0.0
+            if alive:
+                now_t = time.time()
+                hr10 = float(self.hashrate_hs) if self.hashrate_hs > 0 else self._window_avg_locked(10.0, now_t)
+                hr60 = float(self.hashrate_60s_raw) if self.hashrate_60s_raw > 0 else self._window_avg_locked(60.0, now_t)
+                roll30 = self._window_avg_locked(1800.0, now_t)
+                span_s = (now_t - self._hr_samples[0][0]) if len(self._hr_samples) >= 2 else 0.0
+                if roll30 > 0 and (span_s >= 900.0 or self.hashrate_15m_raw <= 0):
+                    hr30m = roll30
+                elif self.hashrate_15m_raw > 0:
+                    hr30m = float(self.hashrate_15m_raw)
+                else:
+                    hr30m = hr60 if hr60 > 0 else hr10
+                hr = round(hr10, 2)
+                hr_10s = round(hr10, 2)
+                hr_60s = round(hr60 if hr60 > 0 else hr10, 2)
+                hr_30m = round(hr30m if hr30m > 0 else hr_60s, 2)
+            else:
+                hr = 0.0
+                hr_10s = 0.0
+                hr_60s = 0.0
+                hr_30m = 0.0
             acc = int(self.accepted_shares)
             rej = int(self.rejected_shares)
             act_th = int(self.active_threads if alive else self.threads)
@@ -425,6 +500,9 @@ class LocalMinerController(object):
             "max_threads": multiprocessing.cpu_count() or 16,
             "large_pages": self.large_pages,
             "hashrate_hs": hr,
+            "hashrate_10s_hs": hr_10s,
+            "hashrate_60s_hs": hr_60s,
+            "hashrate_30m_hs": hr_30m,
             "accepted_shares": acc,
             "rejected_shares": rej,
             "stratum_url": "stratum+tcp://%s:%d" % (self.stratum_host, self.stratum_port),
