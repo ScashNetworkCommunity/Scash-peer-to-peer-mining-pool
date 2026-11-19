@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.5)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-cosmic: #170e29;
+      --bg-topbar: #281e41;
+      --bg-panel: rgba(26, 16, 41, 0.88);
+      --border-cyan: #4deeea;
+      --border-purple: #8a4fff;
+      --text-main: #f3eefc;
+      --text-dim: #b5a6d4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-cosmic);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+    .font-pixel { font-family: 'Press Start 2P', monospace; }
+    .qt-menubar {
+      background: #1d1430;
+      border-bottom: 1px solid #39295c;
+      font-size: 12px;
+      color: #cbbce6;
+    }
+    .qt-toolbar {
+      background: linear-gradient(180deg, #2d2149 0%, #23193a 100%);
+      border-bottom: 1.5px solid #4a3578;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    }
+    .qt-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 18px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e6ddf8;
+      background: linear-gradient(180deg, #32244d 0%, #24193a 100%);
+      border: 1.5px solid #5f5175;
+      transition: all 0.16s ease;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .qt-tab-btn:hover { border-color: #9d6bff; color: #ffffff; transform: translateY(-1px); }
+    .qt-tab-btn.active {
+      background: linear-gradient(180deg, #f7882f 0%, #d1490d 100%);
+      border: 1.5px solid #ffb366;
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(242, 127, 44, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+    .qt-cyan-card {
+      background: var(--bg-panel);
+      border: 1.5px solid var(--border-cyan);
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(77, 238, 234, 0.16), inset 0 0 18px rgba(77, 238, 234, 0.05);
+      backdrop-filter: blur(6px);
+    }
+    .qt-purple-inner {
+      background: rgba(20, 12, 34, 0.84);
+      border: 1.5px solid var(--border-purple);
+      border-radius: 8px;
+      box-shadow: 0 0 12px rgba(138, 79, 255, 0.2), inset 0 0 12px rgba(138, 79, 255, 0.08);
+    }
+    .qt-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #f3eefc;
+      background: #1a1029;
+      border: 1.5px solid var(--border-cyan);
+      box-shadow: 0 0 10px rgba(77, 238, 234, 0.2);
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .qt-action-btn:hover { background: rgba(77, 238, 234, 0.16); transform: translateY(-1px); }
+    .qt-orange-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #ffffff;
+      background: linear-gradient(180deg, #f7882f 0%, #d1490d 100%);
+      border: 1.5px solid #ffb366;
+      box-shadow: 0 0 12px rgba(242, 127, 44, 0.4);
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .qt-orange-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .qt-node-window {
+      background: #2d2d2d;
+      border: 1.5px solid #5a3d8a;
+      border-radius: 8px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.78), 0 0 24px rgba(138, 79, 255, 0.25);
+      color: #e4e4e4;
+    }
+    .qt-node-titlebar {
+      background: linear-gradient(90deg, #4b3278 0%, #372359 100%);
+      border-bottom: 1px solid #63439e;
+      border-radius: 6px 6px 0 0;
+      padding: 6px 12px;
+    }
+    .qt-node-tab {
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #bbbbbb;
+      background: #252525;
+      border: 1px solid #3d3d3d;
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+    }
+    .qt-node-tab.active { background: #333333; color: #ffffff; border-color: #555555; font-weight: 600; }
+    #starfieldCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; }
+    .app-layer { position: relative; z-index: 10; }
+    .scash-pixel-badge {
+      background: linear-gradient(135deg, #9d4edd 0%, #c77dff 50%, #7b2cbf 100%);
+      border: 2px solid #e0aaff;
+      box-shadow: 0 0 14px rgba(199, 125, 255, 0.65), inset 0 0 8px rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      padding: 3px 9px;
+      letter-spacing: 1px;
+    }
+    .qt-theme-select {
+      background: #1a1029;
+      color: #f3eefc;
+      border: 1.5px solid var(--border-cyan);
+      border-radius: 8px;
+      padding: 5.5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(77, 238, 234, 0.18);
+      cursor: pointer;
+      outline: none;
+    }
+    .qt-theme-select option { background: #1a1029; color: #f3eefc; }
+
+    /* ==================== SWITCHABLE THEMES (QtKawaii = Default) ==================== */
+    /* 2. Midnight Pro (Clean Institutional Slate/Sky Dark) */
+    html[data-theme="midnight"] {
+      --bg-cosmic: #0b1120;
+      --bg-topbar: #0f172a;
+      --bg-panel: rgba(15, 23, 42, 0.94);
+      --border-cyan: #38bdf8;
+      --border-purple: #334155;
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+    }
+    html[data-theme="midnight"] .qt-menubar { background: #090e1a; border-bottom-color: #1e293b; color: #94a3b8; }
+    html[data-theme="midnight"] .qt-toolbar { background: linear-gradient(180deg, #111827 0%, #0f172a 100%); border-bottom-color: #1e293b; }
+    html[data-theme="midnight"] .qt-tab-btn { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+    html[data-theme="midnight"] .qt-tab-btn:hover { border-color: #38bdf8; color: #ffffff; }
+    html[data-theme="midnight"] .qt-tab-btn.active, html[data-theme="midnight"] .qt-orange-btn {
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      border-color: #7dd3fc;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+    html[data-theme="midnight"] .qt-cyan-card { border-color: rgba(56, 189, 248, 0.45); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+    html[data-theme="midnight"] .qt-purple-inner { background: #090f1d; border-color: #1e293b; box-shadow: none; }
+    html[data-theme="midnight"] .qt-action-btn, html[data-theme="midnight"] .qt-theme-select { background: #0f172a; border-color: #38bdf8; color: #f1f5f9; box-shadow: none; }
+    html[data-theme="midnight"] .qt-theme-select option { background: #0f172a; color: #f1f5f9; }
+    html[data-theme="midnight"] .scash-pixel-badge { background: linear-gradient(135deg, #0284c7, #2563eb); border-color: #7dd3fc; box-shadow: none; }
+    html[data-theme="midnight"] [class*="bg-[#140b23]"], html[data-theme="midnight"] [class*="bg-[#120a1f]"],
+    html[data-theme="midnight"] [class*="bg-[#160d26]"], html[data-theme="midnight"] [class*="bg-[#24193a]"],
+    html[data-theme="midnight"] [class*="bg-[#211538]"], html[data-theme="midnight"] [class*="bg-[#24173d]"] {
+      background-color: #0b1324 !important;
+    }
+    html[data-theme="midnight"] [class*="border-purple-"] { border-color: rgba(51, 65, 85, 0.85) !important; }
+    html[data-theme="midnight"] [class*="text-purple-"] { color: #94a3b8 !important; }
+
+    /* 3. Cypherpunk Terminal (Matrix Emerald / Phosphor Obsidian) */
+    html[data-theme="terminal"] {
+      --bg-cosmic: #050b07;
+      --bg-topbar: #08140d;
+      --bg-panel: rgba(7, 18, 12, 0.94);
+      --border-cyan: #10b981;
+      --border-purple: #065f46;
+      --text-main: #ecfdf5;
+      --text-dim: #6ee7b7;
+    }
+    html[data-theme="terminal"] body { font-family: 'JetBrains Mono', monospace; }
+    html[data-theme="terminal"] .qt-menubar { background: #040906; border-bottom-color: #064e3b; color: #6ee7b7; }
+    html[data-theme="terminal"] .qt-toolbar { background: linear-gradient(180deg, #091910 0%, #06110b 100%); border-bottom-color: #065f46; }
+    html[data-theme="terminal"] .qt-tab-btn { background: #091910; border-color: #065f46; color: #a7f3d0; }
+    html[data-theme="terminal"] .qt-tab-btn:hover { border-color: #34d399; color: #ffffff; }
+    html[data-theme="terminal"] .qt-tab-btn.active, html[data-theme="terminal"] .qt-orange-btn {
+      background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+      border-color: #6ee7b7;
+      color: #022c22;
+      font-weight: 700;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+    }
+    html[data-theme="terminal"] .qt-cyan-card { border-color: #10b981; box-shadow: 0 0 16px rgba(16, 185, 129, 0.14); }
+    html[data-theme="terminal"] .qt-purple-inner { background: #030805; border-color: #065f46; box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.08); }
+    html[data-theme="terminal"] .qt-action-btn, html[data-theme="terminal"] .qt-theme-select { background: #06120b; border-color: #10b981; color: #a7f3d0; }
+    html[data-theme="terminal"] .qt-theme-select option { background: #06120b; color: #a7f3d0; }
+    html[data-theme="terminal"] .scash-pixel-badge { background: #065f46; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.45); }
+    html[data-theme="terminal"] [class*="bg-[#140b23]"], html[data-theme="terminal"] [class*="bg-[#120a1f]"],
+    html[data-theme="terminal"] [class*="bg-[#160d26]"], html[data-theme="terminal"] [class*="bg-[#24193a]"],
+    html[data-theme="terminal"] [class*="bg-[#211538]"], html[data-theme="terminal"] [class*="bg-[#24173d]"] {
+      background-color: #040d08 !important;
+    }
+    html[data-theme="terminal"] [class*="border-purple-"] { border-color: rgba(16, 185, 129, 0.35) !important; }
+    html[data-theme="terminal"] [class*="text-purple-"] { color: #6ee7b7 !important; }
+    html[data-theme="terminal"] [class*="text-cyan-"] { color: #34d399 !important; }
+
+    /* 4. Sakura Sunset (Warm Synthwave Crimson / Rose / Gold) */
+    html[data-theme="synthwave"] {
+      --bg-cosmic: #1b0b1e;
+      --bg-topbar: #2c102f;
+      --bg-panel: rgba(36, 13, 39, 0.90);
+      --border-cyan: #fb7185;
+      --border-purple: #db2777;
+      --text-main: #fff1f2;
+      --text-dim: #fbcfe8;
+    }
+    html[data-theme="synthwave"] .qt-menubar { background: #210924; border-bottom-color: #701a75; color: #fbcfe8; }
+    html[data-theme="synthwave"] .qt-toolbar { background: linear-gradient(180deg, #36113b 0%, #250b29 100%); border-bottom-color: #86198f; }
+    html[data-theme="synthwave"] .qt-tab-btn { background: #3b1340; border-color: #9d174d; color: #fce7f3; }
+    html[data-theme="synthwave"] .qt-tab-btn:hover { border-color: #fb7185; color: #ffffff; }
+    html[data-theme="synthwave"] .qt-tab-btn.active, html[data-theme="synthwave"] .qt-orange-btn {
+      background: linear-gradient(180deg, #f43f5e 0%, #be123c 100%);
+      border-color: #fda4af;
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.45);
+    }
+    html[data-theme="synthwave"] .qt-cyan-card { border-color: #fb7185; box-shadow: 0 0 16px rgba(251, 113, 133, 0.18); }
+    html[data-theme="synthwave"] .qt-purple-inner { background: rgba(24, 7, 27, 0.88); border-color: #be185d; }
+    html[data-theme="synthwave"] .qt-action-btn, html[data-theme="synthwave"] .qt-theme-select { background: #280c2c; border-color: #fb7185; color: #fff1f2; }
+    html[data-theme="synthwave"] .qt-theme-select option { background: #280c2c; color: #fff1f2; }
+    html[data-theme="synthwave"] .scash-pixel-badge { background: linear-gradient(135deg, #ec4899, #f43f5e); border-color: #fbcfe8; }
+    html[data-theme="synthwave"] [class*="bg-[#140b23]"], html[data-theme="synthwave"] [class*="bg-[#120a1f]"],
+    html[data-theme="synthwave"] [class*="bg-[#160d26]"], html[data-theme="synthwave"] [class*="bg-[#24193a]"],
+    html[data-theme="synthwave"] [class*="bg-[#211538]"], html[data-theme="synthwave"] [class*="bg-[#24173d]"] {
+      background-color: #19071c !important;
+    }
+    html[data-theme="synthwave"] [class*="border-purple-"] { border-color: rgba(219, 39, 119, 0.45) !important; }
+    html[data-theme="synthwave"] [class*="text-purple-"] { color: #f9a8d4 !important; }
+    html[data-theme="synthwave"] [class*="text-cyan-"] { color: #fda4af !important; }
+
+    /* 5. Daylight Crisp (Clean High-Contrast Light Mode) */
+    html[data-theme="daylight"] {
+      --bg-cosmic: #f1f5f9;
+      --bg-topbar: #ffffff;
+      --bg-panel: #ffffff;
+      --border-cyan: #0284c7;
+      --border-purple: #cbd5e1;
+      --text-main: #0f172a;
+      --text-dim: #475569;
+    }
+    html[data-theme="daylight"] .qt-menubar { background: #e2e8f0; border-bottom-color: #cbd5e1; color: #334155; }
+    html[data-theme="daylight"] .qt-toolbar { background: #ffffff; border-bottom-color: #cbd5e1; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06); }
+    html[data-theme="daylight"] .qt-tab-btn { background: #f8fafc; border-color: #cbd5e1; color: #334155; }
+    html[data-theme="daylight"] .qt-tab-btn:hover { border-color: #0284c7; color: #0f172a; }
+    html[data-theme="daylight"] .qt-tab-btn.active, html[data-theme="daylight"] .qt-orange-btn {
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      border-color: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+    }
+    html[data-theme="daylight"] .qt-cyan-card { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
+    html[data-theme="daylight"] .qt-purple-inner { background: #f8fafc; border-color: #cbd5e1; box-shadow: none; }
+    html[data-theme="daylight"] .qt-action-btn, html[data-theme="daylight"] .qt-theme-select { background: #ffffff; border-color: #94a3b8; color: #0f172a; box-shadow: none; }
+    html[data-theme="daylight"] .qt-theme-select option { background: #ffffff; color: #0f172a; }
+    html[data-theme="daylight"] .scash-pixel-badge { background: #7c3aed; border-color: #6d28d9; color: #ffffff !important; box-shadow: none; }
+    html[data-theme="daylight"] [class*="bg-[#140b23]"], html[data-theme="daylight"] [class*="bg-[#120a1f]"],
+    html[data-theme="daylight"] [class*="bg-[#160d26]"], html[data-theme="daylight"] [class*="bg-[#24193a]"],
+    html[data-theme="daylight"] [class*="bg-[#211538]"], html[data-theme="daylight"] [class*="bg-[#24173d]"],
+    html[data-theme="daylight"] [class*="bg-purple-950"] {
+      background-color: #f8fafc !important;
+    }
+    html[data-theme="daylight"] [class*="border-purple-"] { border-color: #cbd5e1 !important; }
+    html[data-theme="daylight"] .text-white { color: #0f172a !important; }
+    html[data-theme="daylight"] [class*="text-purple-"] { color: #475569 !important; }
+    html[data-theme="daylight"] [class*="text-cyan-"] { color: #0369a1 !important; }
+    html[data-theme="daylight"] [class*="text-emerald-300"] { color: #047857 !important; }
+    html[data-theme="daylight"] [class*="text-amber-300"] { color: #b45309 !important; }
+    html[data-theme="daylight"] [class*="text-rose-300"] { color: #be123c !important; }
+  </style>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('scash_ui_theme') || 'kawaii';
+        document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="selection:bg-cyan-400 selection:text-slate-950">
+  <!-- Live Scash Core 30.4 Node Sync Banner -->
+  <div id="scashNodeSyncBanner" style="display:none;background:linear-gradient(90deg,#1f1147,#2b1963);border-bottom:2px solid #4deeea;color:#ffffff;padding:10px 18px;text-align:center;font-size:13px;box-shadow:0 0 14px rgba(77,238,234,0.35);position:sticky;top:0;z-index:9999;">
+    <span style="color:#4deeea;font-weight:bold;">&#9889; Local Scash Core 30.4 Node Syncing:</span>
+    <span id="scashNodeSyncText">Connecting to Scash peers on :8343...</span>
+    <span style="color:#ffd166;margin-left:8px;">(Save your scash1... wallet address below &mdash; mining starts automatically once synced!)</span>
+  </div>
+
+  <canvas id="starfieldCanvas"></canvas>
+
+  <div class="app-layer min-h-screen flex flex-col justify-between">
+    <div>
+      <!-- Top Qt Window Menu Bar -->
+      <div class="qt-menubar px-3 py-1.5 flex items-center justify-between select-none">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 font-semibold text-purple-200">
+            <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.5)</span>
+          </div>
+          <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
+            <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
+            <button id="menuNodeWinBtn" class="hover:text-cyan-300 font-medium">Node window</button>
+            <button id="menuHelpBtn" class="hover:text-white">Live Graphs</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
+            &#9203; CONNECTING TO LOCAL NODE...
+          </span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.5</span>
+        </div>
+      </div>
+
+      <!-- QtKawaii Main Navigation Bar -->
+      <header class="qt-toolbar px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <nav class="flex flex-wrap items-center gap-2" aria-label="Main Navigation">
+          <button type="button" data-tab="overview" class="qt-tab-btn active">
+            <span>&#9733; Overview</span>
+          </button>
+          <button type="button" data-tab="payouts" class="qt-tab-btn">
+            <span>PPLNS Payouts</span>
+          </button>
+          <button type="button" data-tab="graphs" class="qt-tab-btn">
+            <span>Live Hashrate Graph</span>
+          </button>
+          <button type="button" data-tab="setup" class="qt-tab-btn">
+            <span>Help &amp; Extra PCs</span>
+          </button>
+        </nav>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <label for="themeSelector" class="sr-only">Theme</label>
+          <select id="themeSelector" class="qt-theme-select" title="Switch Dashboard Theme (QtKawaii is default)">
+            <option value="kawaii">&#10024; Theme: QtKawaii (Default)</option>
+            <option value="midnight">&#127769; Theme: Midnight Pro</option>
+            <option value="terminal">&#8383; Theme: Cypherpunk</option>
+            <option value="synthwave">&#127749; Theme: Sakura Sunset</option>
+            <option value="daylight">&#9728;&#65039; Theme: Daylight Crisp</option>
+          </select>
+          <button type="button" id="refreshNowBtn" class="qt-action-btn text-xs py-1.5 px-3">
+            <span>&#8635; Refresh</span>
+          </button>
+          <button type="button" id="toggleNodeWindowBtn" class="qt-action-btn text-xs py-1.5 px-3">
+            <span>Node window</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="max-w-[1400px] mx-auto px-4 pt-4 pb-8">
+
+        <!-- ==================== TAB 1: OVERVIEW (100% REAL TELEMETRY) ==================== -->
+        <section id="tab-overview" class="tab-panel">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+            <!-- Left Column (Live Pool Telemetry +Mascot + Real XMRig Controller) -->
+            <div class="lg:col-span-6 flex flex-col gap-4">
+
+              <!-- Card 1: Real Scash Node & P2Pool Telemetry -->
+              <div class="qt-cyan-card p-4 sm:p-5">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2.5">
+                    <h2 class="text-sm font-semibold text-purple-100 tracking-wide">Live Node &amp; P2Pool Status <span class="text-[11px] text-emerald-300 font-normal">(0% Pool Fee)</span></h2>
+                    <span class="scash-pixel-badge text-[10px] text-white font-pixel">Scash</span>
+                  </div>
+                  <span id="minerStateBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 font-medium">
+                    &#9203; Probing :8345...
+                  </span>
+                </div>
+
+                <div class="space-y-2 text-xs sm:text-sm">
+                  <div class="flex items-center justify-between py-1">
+                    <span class="text-purple-200/80">Scash Blockchain Height:</span>
+                    <span id="chainHeightRowText" class="font-mono-code font-semibold text-white">&mdash;</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1">
+                    <span class="text-purple-200/80">Current Scash Block Reward:</span>
+                    <span id="blockRewardRowText" class="font-mono-code font-semibold text-purple-200">50.00000000 SCASH</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1 border-b border-purple-400/25 pb-2">
+                    <span class="text-purple-200/80">Your Current PPLNS Payout Weight:</span>
+                    <span id="myCurrentPayoutText" class="font-mono-code font-semibold text-cyan-300">0.00000000 SCASH</span>
+                  </div>
+                  <div class="flex items-center justify-between pt-1.5">
+                    <span class="text-purple-200 font-medium">Connected Network Peers:</span>
+                    <span id="connectedPeersRowText" class="font-mono-code font-bold text-sm text-emerald-300">Scash Core: 0 &bull; P2Pool: 0</span>
+                  </div>
+                </div>
+
+                <!-- 4 Live Mini KPI Cards (with 10s / 60s / 30m Averages for Miner & Pool!) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-purple-500/25 text-xs">
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">Local Miner Hashrate</div>
+                      <div id="kpiLocalHashrate" class="font-mono-code font-bold text-cyan-300 text-sm mt-0.5">0 H/s</div>
+                    </div>
+                    <div class="mt-1.5 pt-1 border-t border-purple-500/25 space-y-0.5 font-mono-code text-[10px]">
+                      <div class="flex justify-between"><span class="text-purple-300/70">10s:</span><span id="kpiLocal10s" class="text-cyan-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">60s:</span><span id="kpiLocal60s" class="text-cyan-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">30m:</span><span id="kpiLocal30m" class="text-cyan-200">0 H/s</span></div>
+                    </div>
+                    <div id="kpiLocalSub" class="text-[10px] text-purple-300/75 mt-1 truncate">Miner Idle</div>
+                  </div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">P2Pool Hashrate</div>
+                      <div id="kpiPoolHashrate" class="font-mono-code font-bold text-purple-200 text-sm mt-0.5">0 H/s</div>
+                    </div>
+                    <div class="mt-1.5 pt-1 border-t border-purple-500/25 space-y-0.5 font-mono-code text-[10px]">
+                      <div class="flex justify-between"><span class="text-purple-300/70">10s:</span><span id="kpiPool10s" class="text-purple-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">60s:</span><span id="kpiPool60s" class="text-purple-200">0 H/s</span></div>
+                      <div class="flex justify-between"><span class="text-purple-300/70">30m:</span><span id="kpiPool30m" class="text-purple-200">0 H/s</span></div>
+                    </div>
+                    <div id="kpiPoolMiners" class="text-[10px] text-purple-300/75 mt-1 truncate">0 Active Miners</div>
+                  </div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">Local Node Shares</div>
+                      <div id="kpiNodeShares" class="font-mono-code font-bold text-amber-300 text-sm mt-0.5">0 Total</div>
+                    </div>
+                    <div id="kpiNodeSharesSub" class="text-[10px] text-purple-300/75 mt-1">0 Orphan &bull; 0 Dead</div>
+                  </div>
+                  <div class="bg-[#140b23]/90 border border-purple-500/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="text-[11px] text-purple-300/75">Network Diff</div>
+                      <div id="kpiNetDiff" class="font-mono-code font-bold text-emerald-300 text-sm mt-0.5">&mdash;</div>
+                    </div>
+                    <div id="kpiShareDiffSub" class="text-[10px] text-purple-300/75 mt-1">Share Diff: &mdash;</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- v0.3.5 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Box A: Miner SCASH Mined (7d / 30d / All-Time) -->
+                <div class="qt-cyan-card p-4 flex flex-col justify-between">
+                  <div class="flex items-center justify-between gap-2 mb-2.5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-300">Your SCASH Mined</h3>
+                    <span id="kpiMinerBlocksBadge" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">0 Blocks Paid</span>
+                  </div>
+                  <div class="space-y-1.5 text-xs font-mono-code">
+                    <div class="flex items-center justify-between bg-[#140b23]/90 border border-purple-500/35 rounded-lg px-2.5 py-1.5">
+                      <span class="font-sans text-[11px] text-purple-200/85">Last 7 Days</span>
+                      <div class="text-right">
+                        <span id="kpiMinerMined7d" class="font-bold text-emerald-300">0.0000 SCASH</span>
+                        <span id="kpiMinerMined7dUsd" class="text-[10px] text-purple-300/80 ml-1"></span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between bg-[#140b23]/90 border border-purple-500/35 rounded-lg px-2.5 py-1.5">
+                      <span class="font-sans text-[11px] text-purple-200/85">Last 30 Days</span>
+                      <div class="text-right">
+                        <span id="kpiMinerMined30d" class="font-bold text-cyan-300">0.0000 SCASH</span>
+                        <span id="kpiMinerMined30dUsd" class="text-[10px] text-purple-300/80 ml-1"></span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between bg-[#140b23]/90 border border-cyan-400/45 rounded-lg px-2.5 py-1.5">
+                      <span class="font-sans text-[11px] font-semibold text-purple-100">All-Time</span>
+                      <div class="text-right">
+                        <span id="kpiMinerMinedAll" class="font-bold text-amber-300">0.0000 SCASH</span>
+                        <span id="kpiMinerMinedAllUsd" class="text-[10px] text-purple-300/80 ml-1"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="kpiMinerMinedNote" class="text-[10px] text-purple-300/75 mt-2 truncate">Verified directly from on-chain P2Pool coinbase payouts</div>
+                </div>
+
+                <!-- Box B: Pool Total Blocks Found Together (All-Time) -->
+                <div class="qt-cyan-card p-4 flex flex-col justify-between">
+                  <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-300">Pool Blocks Found (All-Time)</h3>
+                    <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/50 text-amber-300">P2Pool Total</span>
+                  </div>
+                  <div class="my-2.5 bg-[#140b23]/90 border border-amber-400/45 rounded-xl p-3 text-center">
+                    <div class="font-mono-code text-2xl font-extrabold text-amber-300 tracking-tight" id="kpiPoolBlocksAllTime">0</div>
+                    <div class="text-[11px] text-purple-200 mt-0.5">Total Scash Blocks Solved Together (<span id="kpiPoolScashAllTime" class="font-mono-code text-emerald-300">0 SCASH</span>)</div>
+                  </div>
+                  <div class="flex items-center justify-between text-[10.5px] font-mono-code text-purple-200/90 pt-1 border-t border-purple-500/25">
+                    <span>7d: <strong id="kpiPoolBlocks7d" class="text-cyan-300">0</strong> &bull; 30d: <strong id="kpiPoolBlocks30d" class="text-purple-200">0</strong></span>
+                    <span id="kpiPoolLastBlockSub" class="text-purple-300/80 truncate">Scanning chain...</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mascot + Real Built-in XMRig (rx/scash) Controller -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                <div class="sm:col-span-5 flex flex-col items-center relative">
+                  <img
+                    src="data:image/webp;base64,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"
+                    alt="Scash QtKawaii Mascot"
+                    class="w-56 max-w-full h-auto rounded-xl select-none pointer-events-none"
+                  />
+                  <div id="mascotSpeechBubble" class="mt-1.5 px-3 py-1.5 rounded-full bg-[#24173d]/95 border border-[#4deeea]/70 text-[11px] text-cyan-200 shadow-lg text-center">
+                    Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (0% Pool Fee &bull; 100% PPLNS)
+                  </div>
+                </div>
+
+                <!-- Real Built-in XMRig Control Card (Zero Fake Simulation Buttons!) -->
+                <div class="sm:col-span-7 qt-cyan-card p-4 flex flex-col justify-between gap-3">
+                  <div>
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-300">Built-in XMRig (rx/scash) CPU Miner</h3>
+                      <span id="minerProcBadge" class="text-[11px] font-mono-code text-purple-300">Stopped</span>
+                    </div>
+                    <p class="text-[11px] text-purple-200/80 mt-1">
+                      Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet address below and click <strong>Start</strong>! Automatically turns on <span class="text-cyan-300">MSR + HugePages</span> CPU speed boost.
+                    </p>
+                  </div>
+
+                  <div class="space-y-2.5 text-xs">
+                    <div>
+                      <label for="quickWalletInput" class="block text-[11px] text-purple-200 mb-1">Your Scash Wallet Address (starts with <span class="font-mono-code text-cyan-300">scash1...</span>):</label>
+                      <input
+                        id="quickWalletInput"
+                        type="text"
+                        placeholder="Paste scash1... receive address from Scash Wallet"
+                        value=""
+                        class="w-full bg-[#120a1f] border border-purple-500/70 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 font-mono-code text-[11px] text-white focus:outline-none"
+                      />
+                      <div id="walletValidationMsg" class="text-[10px] text-purple-300/80 mt-1">Enter your Scash Wallet receive address to save it locally.</div>
+                    </div>
+
+                    <div>
+                      <div class="flex items-center justify-between text-[11px] mb-1">
+                        <label for="cpuThreadSlider" class="text-purple-200">CPU Threads (<span id="threadCountLabel" class="font-mono-code text-cyan-300">Auto</span>):</label>
+                        <span id="workerNameBadge" class="font-mono-code text-purple-300">kawaii_rig01</span>
+                      </div>
+                      <input
+                        id="cpuThreadSlider"
+                        type="range"
+                        min="1"
+                        max="32"
+                        value="32"
+                        class="w-full accent-orange-500 cursor-pointer"
+                      />
+                      <div class="text-[10px] text-purple-300/75 mt-0.5">Tip: Leave full right for automatic optimal threads, or slide left anytime while gaming or browsing.</div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] bg-[#140b23] px-2.5 py-1.5 rounded-lg border border-purple-500/30">
+                      <span class="text-purple-200">Extra Memory Speed Boost (<span class="text-cyan-300">HugePages</span>)</span>
+                      <input id="largePagesToggle" type="checkbox" checked class="accent-cyan-400 w-3.5 h-3.5 cursor-pointer" />
+                    </div>
+                    <div id="msrStatusNote" class="hidden text-[10px] text-amber-200/90 bg-amber-500/10 border border-amber-400/30 rounded-lg px-2.5 py-1.5 leading-snug"></div>
+                  </div>
+
+                  <div class="flex flex-col gap-2 pt-1">
+                    <button type="button" id="toggleMinerBtn" class="qt-orange-btn w-full py-2 text-xs">
+                      <span id="toggleMinerBtnText">&#9654; Start Built-in XMRig (rx/scash)</span>
+                    </button>
+                    <div class="qt-purple-inner p-2">
+                      <div class="text-[10px] text-purple-300/80 mb-1 flex justify-between">
+                        <span>Live XMRig Worker Log:</span>
+                        <span id="xmrigAcceptedLabel" class="font-mono-code text-emerald-300">Accepted: 0</span>
+                      </div>
+                      <pre id="xmrigLiveLogPre" class="font-mono-code text-[10px] text-cyan-200/90 max-h-24 overflow-y-auto whitespace-pre-wrap">Miner idle. Paste your scash1... address and click Start.</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Liquidity-Weighted SCASH Price Tracker + Real Solved Blocks & Sharechain Stream -->
+            <div class="lg:col-span-6 flex flex-col gap-4">
+
+              <!-- Box C: Liquidity-Weighted SCASH Price Tracker with Exchange Hyperlinks -->
+              <div class="qt-cyan-card p-4 sm:p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h2 class="text-sm font-semibold text-purple-100">SCASH Price Tracker</h2>
+                      <span class="text-[10px] font-mono-code px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/50 text-emerald-300">Liquidity-Weighted Avg</span>
+                    </div>
+                    <p class="text-[11px] text-purple-300/80 mt-0.5">Live USD average weighted by active orderbook depth &amp; 24h exchange liquidity</p>
+                  </div>
+                  <div class="text-right">
+                    <div id="kpiScashWeightedPrice" class="font-mono-code text-lg font-extrabold text-emerald-300">&mdash;</div>
+                    <div id="kpiBlockUsdValue" class="font-mono-code text-[10.5px] text-cyan-300">50 SCASH Block: &mdash;</div>
+                  </div>
+                </div>
+
+                <div id="exchangeMarketsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <a href="https://www.ourbit.com/exchange/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+                    <div>
+                      <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">Ourbit &#8599;</div>
+                      <div class="text-[10px] text-purple-300/80 font-mono-code">SCASH/USDT</div>
+                    </div>
+                    <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
+                  </a>
+                  <a href="https://nonkyc.io/market/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+                    <div>
+                      <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">NonKYC &#8599;</div>
+                      <div class="text-[10px] text-purple-300/80 font-mono-code">SCASH/USDT</div>
+                    </div>
+                    <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
+                  </a>
+                  <a href="https://trade.nestex.one/spot/SCASH" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+                    <div>
+                      <div class="font-semibold text-cyan-300 underline decoration-cyan-400/60">NestEx &#8599;</div>
+                      <div class="text-[10px] text-purple-300/80 font-mono-code">SCASH/USDT</div>
+                    </div>
+                    <div class="text-right font-mono-code text-[11px] text-purple-200">Loading...</div>
+                  </a>
+                </div>
+
+                <div class="mt-2.5 pt-2 border-t border-purple-500/25 flex flex-wrap items-center justify-between gap-2 text-[11px] text-purple-300/85">
+                  <div class="flex flex-wrap items-center gap-2.5">
+                    <span>Exchanges &amp; Trackers:</span>
+                    <a href="https://www.ourbit.com/exchange/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">Ourbit</a>
+                    <span>&bull;</span>
+                    <a href="https://nonkyc.io/market/SCASH_USDT" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">NonKYC</a>
+                    <span>&bull;</span>
+                    <a href="https://trade.nestex.one/spot/SCASH" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">NestEx</a>
+                    <span>&bull;</span>
+                    <a href="https://www.coingecko.com/en/coins/satoshi-cash-network" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">CoinGecko</a>
+                  </div>
+                  <span id="kpiTotalLiquiditySub" class="font-mono-code text-[10.5px] text-purple-300/80">24h Vol: &mdash;</span>
+                </div>
+              </div>
+
+              <div class="qt-cyan-card p-4 sm:p-5 flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <h2 class="text-sm font-semibold text-purple-100">Live P2Pool Blocks &amp; Sharechain Activity</h2>
+                    <p class="text-[11px] text-purple-300/80">Blocks found in the last 24h &amp; active sharechain &mdash; 0% pool fee, 100% to miners</p>
+                  </div>
+                  <span id="poolUptimeBadge" class="text-[11px] font-mono-code px-2.5 py-0.5 rounded bg-[#24193a] border border-purple-500/40 text-purple-200">
+                    Uptime: &mdash;
+                  </span>
+                </div>
+
+                <div class="qt-purple-inner p-3 flex-1 min-h-[410px] max-h-[520px] overflow-y-auto space-y-2.5" id="liveActivityContainer">
+                  <div class="text-center py-12 text-xs text-purple-300/75">Connecting to local Scash P2Pool node on 127.0.0.1:8345...</div>
+                </div>
+
+                <div class="mt-3 pt-2.5 border-t border-purple-500/25 flex flex-wrap items-center justify-between gap-2 text-xs text-purple-300">
+                  <div class="truncate max-w-[60%]">
+                    Tip Block Hash: <span id="bestBlockHashText" class="font-mono-code text-cyan-300">&mdash;</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span>Height: <strong id="currentBlockHeightText" class="font-mono-code text-white">&mdash;</strong></span>
+                    <span>P2Pool P2P: <strong class="font-mono-code text-cyan-300">:8344</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== TAB 2: REAL PPLNS PAYOUTS ==================== -->
+        <section id="tab-payouts" class="tab-panel hidden">
+          <div class="qt-cyan-card p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-base font-bold text-white">Live PPLNS Sharechain Payouts (<span id="payoutHeaderReward">50.00000000</span> SCASH Block Reward)</h2>
+                <p class="text-xs text-purple-200/80">
+                  Finding shares earns your spot on this payout list! Whenever the pool solves a 50 SCASH block, <strong>100%</strong> is sent immediately to miners here based on shares from the last 24 hours (<strong>0% pool fee</strong>).
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <input
+                  id="payoutSearchInput"
+                  type="text"
+                  placeholder="Filter by scash1 address..."
+                  class="bg-[#120a1f] border border-cyan-400/70 rounded-lg px-3 py-1.5 text-xs font-mono-code text-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div class="qt-purple-inner overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-purple-500/40 text-purple-200 bg-[#211538]">
+                    <th class="py-2.5 px-3 font-semibold">Rank</th>
+                    <th class="py-2.5 px-3 font-semibold">Scash Miner Address (Bech32 / P2WPKH)</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">Local Stratum Hashrate</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">Payout Share %</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">Est. Next Block Payout (SCASH)</th>
+                  </tr>
+                </thead>
+                <tbody id="payoutsTableBody" class="divide-y divide-purple-500/20 font-mono-code">
+                  <tr><td colspan="5" class="py-8 text-center text-purple-300/75 font-sans">Loading live /current_payouts from local P2Pool node...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 3: LIVE HASHRATE GRAPH ==================== -->
+        <section id="tab-graphs" class="tab-panel hidden">
+          <div class="qt-cyan-card p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-base font-bold text-white">Real-Time Local &amp; P2Pool RandomX Hashrate (H/s)</h2>
+                <p class="text-xs text-purple-300/80">Recorded live every 3 seconds from <code class="font-mono-code text-cyan-300">/miner_status</code>, <code class="font-mono-code text-cyan-300">/local_stats</code>, and <code class="font-mono-code text-cyan-300">/global_stats</code></p>
+              </div>
+            </div>
+            <div class="qt-purple-inner p-3">
+              <div class="relative h-80 w-full">
+                <canvas id="hashrateChartCanvas"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 4: BEGINNER HELP & EXTRA HOME PCS ==================== -->
+        <section id="tab-setup" class="tab-panel hidden space-y-5">
+          <div class="qt-cyan-card p-5 space-y-3">
+            <h2 class="text-base font-bold text-white">Quick Beginner Guide &amp; Common Questions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">1. How and when do I get paid?</div>
+                <p class="text-purple-200/85 leading-relaxed">While mining, you earn <strong>Shares</strong> (proof of your CPU's work over the last 24 hours). Whenever anyone on P2Pool solves a full <strong>50 SCASH</strong> block, the Scash blockchain immediately pays <strong>100%</strong> directly into active miners' wallets (<strong>0% pool fee</strong>). Nothing is held back on a server!</p>
+              </div>
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">2. How do I get maximum CPU mining speed?</div>
+                <p class="text-purple-200/85 leading-relaxed">Click <strong>Yes</strong> on the Windows Administrator prompt when starting <code class="font-mono-code text-purple-200">Start-Scash-P2Pool.exe</code> for HugePages + MSR tuning. If Windows 11 logs <code class="font-mono-code">cannot set MSR</code>, Windows Security &rarr; Device Security &rarr; Core Isolation &rarr; <strong>Memory Integrity</strong> (or Hyper-V) is blocking Ring-0 MSR writes.</p>
+              </div>
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">3. Using Scash Wallet on the same PC?</div>
+                <p class="text-purple-200/85 leading-relaxed">P2Pool automatically finds your saved Scash Wallet blockchain in <code class="font-mono-code text-purple-200">AppData\Local\Scash</code> so you don't download blocks twice! If Scash Wallet was already open before your first run, restart Scash Wallet once (or close it before starting P2Pool) so they share smoothly.</p>
+              </div>
+              <div class="qt-purple-inner p-3.5 space-y-1">
+                <div class="font-semibold text-cyan-300">4. How do I stop mining cleanly?</div>
+                <p class="text-purple-200/85 leading-relaxed">Click <strong>Stop Built-in XMRig Miner</strong> on the Overview tab to pause just the CPU miner, or simply close the black terminal window (<code class="font-mono-code">X</code> button) to shut down the node, pool, and miner all at once with nothing left running in Task Manager.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div class="lg:col-span-5 qt-cyan-card p-5 space-y-4">
+              <h2 class="text-base font-bold text-white">Connect Extra LAN Rigs to Your Local P2Pool</h2>
+              <p class="text-xs text-purple-200/85 leading-relaxed">
+                Your local P2Pool Stratum server listens on <code class="font-mono-code text-cyan-300">stratum+tcp://127.0.0.1:8345</code> (or your PC's LAN IP on port <code class="font-mono-code text-cyan-300">8345</code>). Use your <code class="font-mono-code text-purple-200">scash1...</code> address as the username!
+              </p>
+              <div class="space-y-3 text-xs">
+                <div>
+                  <label for="setupMinerSoftware" class="block text-purple-200 font-medium mb-1">Miner Software</label>
+                  <select id="setupMinerSoftware" class="w-full bg-[#120a1f] border border-cyan-400/70 rounded-lg px-3 py-2 text-xs text-white font-mono-code">
+                    <option value="xmrigcc">XMRigCC (Algo: rx/scash)</option>
+                    <option value="cpuminer-scash">cpuminer-scash (Algo: randomx)</option>
+                    <option value="srbminer">SRBMiner-Multi (Algo: randomscash)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="setupWorkerName" class="block text-purple-200 font-medium mb-1">Worker Rig Name</label>
+                  <input id="setupWorkerName" type="text" value="kawaii_rig01" class="w-full bg-[#120a1f] border border-purple-500/70 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono-code" />
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-7 qt-cyan-card p-5 space-y-4">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-semibold text-white">External CPU Miner Command (Stratum :8345)</span>
+                  <button type="button" id="copyMinerCliBtn" class="qt-action-btn py-1 px-2.5 text-[11px]">Copy Command</button>
+                </div>
+                <pre id="cmdMinerCli" class="qt-purple-inner p-3 text-[11px] font-mono-code text-emerald-300 overflow-x-auto"></pre>
+              </div>
+
+              <div class="space-y-1.5">
+                <div class="text-xs font-semibold text-white">Active Scash Mainnet Seed Peers Configured in <code class="font-mono-code text-cyan-300">scash.conf</code> (:8343)</div>
+                <pre id="configuredPeersPre" class="qt-purple-inner p-3 text-[11px] font-mono-code text-purple-200 max-h-48 overflow-y-auto">Loading /nodes_list...</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- Floating Qt Node Window Modal (100% Real Node + P2Pool Telemetry) -->
+    <div id="nodeWindowModal" class="fixed bottom-10 right-6 z-50 w-[94vw] max-w-[560px] qt-node-window hidden">
+      <div class="qt-node-titlebar flex items-center justify-between select-none">
+        <div class="flex items-center gap-2 text-xs font-semibold text-purple-100">
+          <span class="w-3 h-3 rounded-full bg-purple-400 inline-block"></span>
+          <span>Node window &mdash; Live Scash Core 30.4 + P2Pool</span>
+        </div>
+        <button type="button" id="closeNodeWindowBtn" class="text-gray-300 hover:text-white px-1.5 text-sm leading-none">&#10005;</button>
+      </div>
+
+      <div class="px-3 pt-2 bg-[#252525] flex items-center gap-1 border-b border-[#444]">
+        <button type="button" data-nodetab="info" class="qt-node-tab active">Information</button>
+        <button type="button" data-nodetab="peers" id="nodePeersTabBtn" class="qt-node-tab">P2Pool Peers (0)</button>
+        <button type="button" data-nodetab="console" class="qt-node-tab">Raw JSON API</button>
+      </div>
+
+      <div id="nodetab-info" class="node-subpanel p-4 text-xs space-y-2.5 font-sans">
+        <div class="font-bold text-gray-200">General</div>
+        <div class="grid grid-cols-12 gap-1 text-[11.5px]">
+          <div class="col-span-5 text-gray-400">User Agent</div>
+          <div id="nodeWinSubversion" class="col-span-7 font-mono-code text-gray-100">&mdash;</div>
+          <div class="col-span-5 text-gray-400">P2Pool Version</div>
+          <div id="nodeWinP2PoolVer" class="col-span-7 font-mono-code text-cyan-300">&mdash;</div>
+          <div class="col-span-5 text-gray-400">Datadir</div>
+          <div id="nodeWinDatadir" class="col-span-7 font-mono-code text-gray-300 break-all">&mdash;</div>
+        </div>
+
+        <div class="font-bold text-gray-200 pt-1">Network</div>
+        <div class="grid grid-cols-12 gap-1 text-[11.5px]">
+          <div class="col-span-5 text-gray-400">Chain</div>
+          <div id="nodeWinChain" class="col-span-7 font-mono-code text-cyan-300">scash</div>
+          <div class="col-span-5 text-gray-400">Connections</div>
+          <div id="nodeWinConns" class="col-span-7 font-mono-code text-gray-100">&mdash;</div>
+          <div class="col-span-5 text-gray-400">Local Ports</div>
+          <div class="col-span-7 font-mono-code text-gray-200">Scash P2P :8343 | RPC :8342 | Pool :8344 | Stratum :8345</div>
+        </div>
+
+        <div class="font-bold text-gray-200 pt-1">Blockchain &amp; Mempool</div>
+        <div class="grid grid-cols-12 gap-1 text-[11.5px]">
+          <div class="col-span-5 text-gray-400">Current block height</div>
+          <div id="nodeWinBlockHeight" class="col-span-7 font-mono-code text-gray-100">&mdash;</div>
+          <div class="col-span-5 text-gray-400">Memory Pool</div>
+          <div id="nodeWinMempool" class="col-span-7 font-mono-code text-gray-200">&mdash;</div>
+        </div>
+      </div>
+
+      <div id="nodetab-peers" class="node-subpanel hidden p-4 text-xs">
+        <div id="nodePeersListContainer" class="space-y-1.5 font-mono-code text-[11px] max-h-56 overflow-y-auto text-gray-300">
+          No P2Pool peers connected on :8344 yet.
+        </div>
+      </div>
+
+      <div id="nodetab-console" class="node-subpanel hidden p-4 text-xs space-y-2">
+        <div class="flex items-center gap-2">
+          <select id="apiEndpointSelect" class="bg-[#1e1e1e] border border-cyan-400/60 rounded px-2 py-1 text-xs font-mono-code text-cyan-300 flex-1">
+            <option value="/node_sync_status">GET /node_sync_status</option>
+            <option value="/miner_status">GET /miner_status</option>
+            <option value="/local_stats">GET /local_stats</option>
+            <option value="/global_stats">GET /global_stats</option>
+            <option value="/current_payouts">GET /current_payouts</option>
+            <option value="/recent_blocks">GET /recent_blocks</option>
+            <option value="/pool_telemetry">GET /pool_telemetry</option>
+          </select>
+          <button type="button" id="runApiQueryBtn" class="qt-action-btn py-1 px-3 text-xs">Fetch Live</button>
+        </div>
+        <pre id="apiConsoleOutput" class="bg-[#1a1a1a] border border-[#444] rounded p-2.5 font-mono-code text-[11px] text-emerald-300 max-h-52 overflow-y-auto">Click "Fetch Live" to inspect raw JSON from your local node.</pre>
+      </div>
+    </div>
+
+    <div id="kawaiiToast" class="fixed top-16 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-[#24173d] border-2 border-[#4deeea] text-xs text-white shadow-2xl flex items-center gap-2.5">
+      <span class="text-cyan-300 font-bold">&#9733;</span>
+      <span id="kawaiiToastText">Saved!</span>
+    </div>
+
+    <footer class="qt-menubar px-4 py-2 flex flex-wrap items-center justify-between text-[11px] text-purple-300/85 select-none">
+      <div class="flex items-center gap-3">
+        <span>Repository: <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-mono-code">ScashNetworkCommunity/Scash-peer-to-peer-mining-pool</a></span>
+        <span>&bull;</span>
+        <span>Publisher: <strong class="text-cyan-300">magicalgirlsunite</strong></span>
+      </div>
+      <div class="flex items-center gap-3 font-mono-code">
+        <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
+        <span>v0.3.5 (Core 30.4)</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+        const live = {
+      online: false,
+      nodeSync: null,
+      miner: null,
+      localStats: null,
+      globalStats: null,
+      payouts: {},
+      telemetry: null,
+      recentBlocks: [],
+      peerAddrs: [],
+      walletEditedByUser: false,
+      threadsEditedByUser: false,
+      chartHistoryLabels: [],
+      chartLocalHs: [],
+      chartPoolHs: []
+    };
+
+    function fmtHashrate(hs) {
+      const n = Number(hs) || 0;
+      if (n <= 0) return '0 H/s';
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MH/s';
+      if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KH/s';
+      return n.toFixed(1) + ' H/s';
+    }
+
+    function fmtUsdPrice(p) {
+      const n = Number(p);
+      if (!Number.isFinite(n) || n <= 0) return '—';
+      if (n >= 1) return '$' + n.toFixed(4);
+      if (n >= 0.01) return '$' + n.toFixed(5);
+      return '$' + n.toFixed(6);
+    }
+
+    function fmtUsdCompact(v) {
+      const n = Number(v) || 0;
+      if (n <= 0) return '$0';
+      if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+      if (n >= 1e3) return '$' + (n / 1e3).toFixed(2) + 'K';
+      return '$' + n.toFixed(2);
+    }
+
+    function escHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    function fmtUptime(sec) {
+      const s = Math.max(0, Math.floor(Number(sec) || 0));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${r}s`;
+      return `${r}s`;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('kawaiiToast');
+      const tx = document.getElementById('kawaiiToastText');
+      if (!t || !tx) return;
+      tx.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.classList.add('hidden'), 2800);
+    }
+
+    async function fetchJsonOrNull(url) {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return await r.json();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function fetchTextOrNull(url) {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return await r.text();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    let hashrateChart = null;
+    function initChart() {
+      const ctx = document.getElementById('hashrateChartCanvas');
+      if (!ctx || typeof Chart === 'undefined') return;
+      hashrateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Local Miner (H/s)',
+              data: [],
+              borderColor: '#4deeea',
+              backgroundColor: 'rgba(77, 238, 234, 0.15)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'P2Pool Sharechain (H/s)',
+              data: [],
+              borderColor: '#c77dff',
+              backgroundColor: 'rgba(199, 125, 255, 0.1)',
+              fill: false,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#e6ddf8', font: { family: 'Inter', size: 11 } } } },
+          scales: {
+            x: { ticks: { color: '#b5a6d4' }, grid: { color: 'rgba(138, 79, 255, 0.15)' } },
+            y: { beginAtZero: true, ticks: { color: '#b5a6d4' }, grid: { color: 'rgba(138, 79, 255, 0.15)' } }
+          }
+        }
+      });
+    }
+
+    function computeLocalHashrateHs() {
+      const xmrigHs = (live.miner && live.miner.running) ? (Number(live.miner.hashrate_hs) || 0) : 0;
+      let stratumHs = 0;
+      if (live.localStats && live.localStats.miner_hash_rates) {
+        for (const v of Object.values(live.localStats.miner_hash_rates)) {
+          stratumHs += Number(v) || 0;
+        }
+      }
+      return Math.max(xmrigHs, stratumHs);
+    }
+
+    function renderAllLive() {
+      const topBadge = document.getElementById('apiConnectionBadge');
+      const stateBadge = document.getElementById('minerStateBadge');
+      const syncBanner = document.getElementById('scashNodeSyncBanner');
+      const syncText = document.getElementById('scashNodeSyncText');
+      const footerStatus = document.getElementById('footerSyncStatus');
+      const bubble = document.getElementById('mascotSpeechBubble');
+
+      if (!live.online) {
+        topBadge.className = 'px-2.5 py-0.5 rounded-full bg-rose-950/90 border border-rose-400 text-rose-300 font-mono-code text-[11px]';
+        topBadge.textContent = '● OFFLINE — START P2POOL LAUNCHER';
+        stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/60 text-rose-300 font-medium';
+        stateBadge.textContent = '● Server Disconnected';
+        syncBanner.style.display = 'none';
+        footerStatus.className = 'text-rose-300';
+        footerStatus.textContent = '● Local P2Pool Offline (127.0.0.1:8345 unreachable)';
+        if (bubble) bubble.textContent = 'Local P2Pool server is offline. Launch Start-Scash-P2Pool to connect!';
+        document.getElementById('kpiLocalHashrate').textContent = '0 H/s';
+        document.getElementById('kpiLocal10s').textContent = '0 H/s';
+        document.getElementById('kpiLocal60s').textContent = '0 H/s';
+        document.getElementById('kpiLocal30m').textContent = '0 H/s';
+        document.getElementById('kpiLocalSub').textContent = 'Offline';
+        document.getElementById('kpiPoolHashrate').textContent = '0 H/s';
+        document.getElementById('kpiPool10s').textContent = '0 H/s';
+        document.getElementById('kpiPool60s').textContent = '0 H/s';
+        document.getElementById('kpiPool30m').textContent = '0 H/s';
+        document.getElementById('kpiPoolMiners').textContent = '0 Active Miners';
+        document.getElementById('liveActivityContainer').innerHTML =
+          '<div class="text-center py-12 px-4 text-xs text-rose-300">Disconnected from <code class="font-mono-code">127.0.0.1:8345</code>. Start <code class="font-mono-code">Start-Scash-P2Pool-Windows.bat</code> or <code class="font-mono-code">Start-Scash-P2Pool.exe</code> to view live node telemetry.</div>';
+        return;
+      }
+
+      const ns = live.nodeSync || {};
+      const ls = live.localStats;
+      const gs = live.globalStats;
+      const ms = live.miner || {};
+      const isSyncing = Boolean(ns.syncing);
+
+      // Populate saved wallet & thread controls once without overwriting user typing
+      const wInput = document.getElementById('quickWalletInput');
+      if (!live.walletEditedByUser && ms.wallet && wInput && !wInput.value) {
+        wInput.value = ms.wallet;
+      }
+      if (!live.threadsEditedByUser) {
+        const slider = document.getElementById('cpuThreadSlider');
+        const maxT = Math.max(2, Number(ms.max_threads || 16));
+        if (slider) {
+          slider.max = String(maxT);
+          slider.value = ms.custom_threads ? String(Math.min(maxT, Number(ms.threads || maxT))) : String(maxT);
+        }
+        document.getElementById('threadCountLabel').textContent = ms.custom_threads
+          ? `${ms.threads} threads`
+          : (ms.running && ms.threads ? `${ms.threads} threads • Auto` : `${maxT} threads (Auto)`);
+      } else if (ms.running && !ms.custom_threads && ms.threads) {
+        const slider = document.getElementById('cpuThreadSlider');
+        if (slider && Number(slider.value) >= Number(slider.max || 16)) {
+          document.getElementById('threadCountLabel').textContent = `${ms.threads} threads • Auto`;
+        }
+      }
+      const msrNoteEl = document.getElementById('msrStatusNote');
+      if (msrNoteEl) {
+        if (ms.running && ms.msr_active === false) {
+          const hpOk = ms.hugepages_active === true ? 'HugePages 100% is active! ' : '';
+          msrNoteEl.textContent = ms.msr_blocked_reason === 'driver_blocked'
+            ? `${hpOk}WinRing0 MSR driver could not start — run as Administrator or turn off Windows Vulnerable Driver Blocklist / Core Isolation if you want MSR tuning.`
+            : `${hpOk}Windows Core Isolation (Memory Integrity) or Hyper-V is blocking Ring-0 MSR register writes on this PC (normal on Windows 11 unless Memory Integrity is turned off).`;
+          msrNoteEl.classList.remove('hidden');
+        } else {
+          msrNoteEl.classList.add('hidden');
+        }
+      }
+
+      // Miner button & log box
+      const btnText = document.getElementById('toggleMinerBtnText');
+      const procBadge = document.getElementById('minerProcBadge');
+      if (ms.running) {
+        btnText.textContent = '⏹ Stop Built-in XMRig Miner';
+        procBadge.textContent = `Running (PID ${ms.pid || 'active'})`;
+        procBadge.className = 'text-[11px] font-mono-code text-emerald-300';
+      } else {
+        btnText.textContent = ns.syncing ? '⏳ Queue Auto-Mine After Sync' : '▶ Start Built-in XMRig (rx/scash)';
+        procBadge.textContent = ms.has_binary === false ? 'NodeOnly (External Miner)' : 'Idle';
+        procBadge.className = 'text-[11px] font-mono-code text-purple-300';
+      }
+      document.getElementById('xmrigAcceptedLabel').textContent = `Accepted: ${ms.accepted_shares || 0}`;
+      if (Array.isArray(ms.logs) && ms.logs.length > 0) {
+        document.getElementById('xmrigLiveLogPre').textContent = ms.logs.slice(-10).join('\n');
+      }
+
+      const blks = Number(ns.blocks || 0);
+      const hdrs = Number(ns.headers || 0);
+      const scashPeers = Number(ns.connections || 0);
+      const lsPeers = ls && ls.peers ? (Number(ls.peers.incoming || 0) + Number(ls.peers.outgoing || 0)) : 0;
+      const meshPeers = live.mesh ? Number(live.mesh.connected_peers || 0) : 0;
+      const addrPeers = Array.isArray(live.peerAddrs) ? live.peerAddrs.length : 0;
+      const p2pPeers = Math.max(lsPeers, meshPeers, addrPeers);
+
+      document.getElementById('chainHeightRowText').textContent =
+        hdrs > 0 ? `#${blks.toLocaleString()} / #${hdrs.toLocaleString()}` : (blks > 0 ? `#${blks.toLocaleString()}` : 'Loading block index...');
+      document.getElementById('currentBlockHeightText').textContent = blks > 0 ? blks.toLocaleString() : '—';
+      document.getElementById('bestBlockHashText').textContent =
+        ns.bestblockhash ? `${ns.bestblockhash.slice(0, 16)}...${ns.bestblockhash.slice(-8)}` : '—';
+      document.getElementById('connectedPeersRowText').textContent =
+        `Scash Core: ${scashPeers} • P2Pool: ${p2pPeers}`;
+
+      if (isSyncing) {
+        syncBanner.style.display = 'block';
+        const stMsg = ns.status_text || `Block ${blks.toLocaleString()} / ${hdrs.toLocaleString()} (${ns.progress_pct || 0}%) • Peers: ${scashPeers}`;
+        syncText.textContent = stMsg;
+        topBadge.className = 'px-2.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-400 text-amber-300 font-mono-code text-[11px]';
+        topBadge.textContent = '⚡ SCASH CORE 30.4 SYNCING';
+        stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 font-medium';
+        stateBadge.textContent = '⚡ Syncing Local Blockchain';
+        footerStatus.className = 'text-amber-300';
+        footerStatus.textContent = `⚡ Scash Core Syncing: ${stMsg}`;
+        if (bubble) bubble.textContent = 'Hold tight! Scash Core 30.4 is verifying local blocks before P2Pool opens Stratum :8345.';
+      } else {
+        syncBanner.style.display = 'none';
+        const localHs = computeLocalHashrateHs();
+        if (ms.running) {
+          topBadge.className = 'px-2.5 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-400 text-emerald-300 font-mono-code text-[11px]';
+          topBadge.textContent = `● XMRIG MINING (${fmtHashrate(localHs)})`;
+          stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-medium';
+          stateBadge.textContent = '● Hashing rx/scash on :8345';
+        } else {
+          topBadge.className = 'px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-cyan-400/70 text-cyan-300 font-mono-code text-[11px]';
+          topBadge.textContent = '● LIVE P2POOL NODE (:8344 / :8345)';
+          stateBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 font-medium';
+          stateBadge.textContent = '● P2Pool Stratum Ready (:8345)';
+        }
+        if (bubble) {
+          bubble.innerHTML = ms.running
+            ? '&#10024; Hashing <span class="font-mono-code text-cyan-300">rx/scash</span> on :8345! (0% Pool Fee &bull; 100% PPLNS)'
+            : 'Paste your <span class="font-mono-code text-purple-200">scash1...</span> wallet to mine! (0% Pool Fee &bull; 100% PPLNS)';
+        }
+        footerStatus.className = 'text-emerald-300';
+        footerStatus.textContent = `● Scash Block #${blks.toLocaleString()} • P2Pool Sharechain Ready`;
+      }
+
+      // KPIs & Payouts (100% Real!)
+      const localHs = computeLocalHashrateHs();
+      const poolHs = gs ? (Number(gs.pool_hash_rate) || 0) : 0;
+      const effPoolHs = Math.max(poolHs, localHs);
+      const shTotalPre = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
+      const rawPayoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) >= 0.00001);
+      const savedW = (wInput?.value || ms.wallet || '').trim().toLowerCase();
+      const payoutEntries = (
+        shTotalPre === 0 &&
+        poolHs <= 0 &&
+        rawPayoutEntries.length === 1 &&
+        (!savedW || rawPayoutEntries[0][0].toLowerCase() !== savedW)
+      ) ? [] : rawPayoutEntries;
+      const minerPayoutEntries = payoutEntries;
+      const activeStratumWorkers = ls && ls.miner_hash_rates ? Object.keys(ls.miner_hash_rates).length : 0;
+      const activeMinerCount = Math.max(minerPayoutEntries.length, activeStratumWorkers, ms.running ? 1 : 0);
+
+      const blockReward = ls && ls.block_value ? Number(ls.block_value) : 50.0;
+      document.getElementById('blockRewardRowText').textContent = blockReward.toFixed(8) + ' SCASH';
+      document.getElementById('payoutHeaderReward').textContent = blockReward.toFixed(8);
+
+      const userWallet = (wInput?.value || ms.wallet || '').trim();
+      const payoutMapActive = Object.fromEntries(payoutEntries);
+      const myPayout = userWallet && payoutMapActive[userWallet] ? Number(payoutMapActive[userWallet]) : 0.0;
+      document.getElementById('myCurrentPayoutText').textContent = myPayout.toFixed(8) + ' SCASH';
+
+      const tel = live.telemetry || {};
+      const hrTel = tel.hashrates || {};
+      const lgTel = tel.ledger || {};
+      const mkTel = tel.market || {};
+
+      const loc10 = Math.max(Number(ms.hashrate_10s_hs || 0), Number(hrTel.local_10s_hs || 0), localHs);
+      const loc60 = Math.max(Number(ms.hashrate_60s_hs || 0), Number(hrTel.local_60s_hs || 0), (ms.running || activeStratumWorkers > 0) ? 0 : 0);
+      const loc30m = Math.max(Number(ms.hashrate_30m_hs || 0), Number(hrTel.local_30m_hs || 0));
+
+      const pool10 = Math.max(Number(hrTel.pool_10s_hs || 0), effPoolHs, loc10);
+      const pool60 = Math.max(Number(hrTel.pool_60s_hs || 0), loc60 > 0 ? loc60 : effPoolHs);
+      const pool30m = Math.max(Number(hrTel.pool_30m_hs || 0), loc30m > 0 ? loc30m : effPoolHs);
+
+      document.getElementById('kpiLocalHashrate').textContent = fmtHashrate(localHs);
+      document.getElementById('kpiLocal10s').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? loc10 : 0);
+      document.getElementById('kpiLocal60s').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? (loc60 || loc10) : 0);
+      document.getElementById('kpiLocal30m').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? (loc30m || loc60 || loc10) : 0);
+      const msrTag = ms.msr_active === true ? ' • MSR ON' : (ms.hugepages_active === true ? ' • HugePages' : '');
+      document.getElementById('kpiLocalSub').textContent = ms.running ? `${ms.threads || 1} Threads${msrTag}` : (activeStratumWorkers > 0 ? `${activeStratumWorkers} Stratum Worker(s)` : 'Miner Idle');
+
+      document.getElementById('kpiPoolHashrate').textContent = fmtHashrate(effPoolHs);
+      document.getElementById('kpiPool10s').textContent = fmtHashrate(effPoolHs > 0 ? pool10 : Number(hrTel.pool_10s_hs || 0));
+      document.getElementById('kpiPool60s').textContent = fmtHashrate(effPoolHs > 0 ? pool60 : Number(hrTel.pool_60s_hs || 0));
+      document.getElementById('kpiPool30m').textContent = fmtHashrate(effPoolHs > 0 ? pool30m : Number(hrTel.pool_30m_hs || 0));
+      document.getElementById('kpiPoolMiners').textContent = `${activeMinerCount} Active Miner${activeMinerCount === 1 ? '' : 's'}`;
+
+      // Render Miner SCASH Mined (7d / 30d / All-Time) + USD equivalents
+      const wPrice = Number(mkTel.weighted_price_usd || 0);
+      const m7 = Number(lgTel.miner_scash_7d || 0);
+      const m30 = Number(lgTel.miner_scash_30d || 0);
+      const mAll = Number(lgTel.miner_scash_all_time || 0);
+      const mPaidBlks = Number(lgTel.miner_blocks_paid || 0);
+      document.getElementById('kpiMinerMined7d').textContent = `${m7.toFixed(4)} SCASH`;
+      document.getElementById('kpiMinerMined30d').textContent = `${m30.toFixed(4)} SCASH`;
+      document.getElementById('kpiMinerMinedAll').textContent = `${mAll.toFixed(4)} SCASH`;
+      document.getElementById('kpiMinerMined7dUsd').textContent = (wPrice > 0 && m7 > 0) ? `(${fmtUsdCompact(m7 * wPrice)})` : '';
+      document.getElementById('kpiMinerMined30dUsd').textContent = (wPrice > 0 && m30 > 0) ? `(${fmtUsdCompact(m30 * wPrice)})` : '';
+      document.getElementById('kpiMinerMinedAllUsd').textContent = (wPrice > 0 && mAll > 0) ? `(${fmtUsdCompact(mAll * wPrice)})` : '';
+      document.getElementById('kpiMinerBlocksBadge').textContent = `${mPaidBlks} Block${mPaidBlks === 1 ? '' : 's'} Paid`;
+      document.getElementById('kpiMinerMinedNote').textContent = userWallet
+        ? `On-chain P2Pool payouts for ${userWallet.slice(0, 12)}...${userWallet.slice(-6)}`
+        : 'Paste your scash1... wallet to view your 7d / 30d / all-time SCASH mined';
+
+      // Render Pool Total Blocks Found Together (All-Time)
+      const rbCount = Array.isArray(live.recentBlocks) ? live.recentBlocks.length : 0;
+      const pAllBlks = Math.max(Number(lgTel.pool_blocks_all_time || 0), rbCount);
+      const p7Blks = Math.max(Number(lgTel.pool_blocks_7d || 0), rbCount);
+      const p30Blks = Math.max(Number(lgTel.pool_blocks_30d || 0), rbCount);
+      const pScashAll = Number(lgTel.pool_scash_all_time || (pAllBlks * blockReward));
+      document.getElementById('kpiPoolBlocksAllTime').textContent = pAllBlks.toLocaleString();
+      document.getElementById('kpiPoolScashAllTime').textContent = `${pScashAll.toFixed(2)} SCASH`;
+      document.getElementById('kpiPoolBlocks7d').textContent = p7Blks.toLocaleString();
+      document.getElementById('kpiPoolBlocks30d').textContent = p30Blks.toLocaleString();
+      if (lgTel.last_block_height) {
+        document.getElementById('kpiPoolLastBlockSub').textContent = `Latest: #${Number(lgTel.last_block_height).toLocaleString()}`;
+      } else if (lgTel.backfill_scanning) {
+        document.getElementById('kpiPoolLastBlockSub').textContent = 'Scanning local blocks...';
+      } else {
+        document.getElementById('kpiPoolLastBlockSub').textContent = pAllBlks > 0 ? `${pAllBlks} Solved` : '0 Solved Yet';
+      }
+
+      // Render Liquidity-Weighted SCASH Price Tracker & Exchange Hyperlinks
+      if (wPrice > 0) {
+        document.getElementById('kpiScashWeightedPrice').textContent = fmtUsdPrice(wPrice);
+        document.getElementById('kpiBlockUsdValue').textContent = `50 SCASH Block: ~$${(wPrice * blockReward).toFixed(2)}`;
+      } else {
+        document.getElementById('kpiScashWeightedPrice').textContent = 'Fetching...';
+        document.getElementById('kpiBlockUsdValue').textContent = '50 SCASH Block: —';
+      }
+      const totVol = Number(mkTel.total_volume_24h_usd || 0);
+      const totLiq = Number(mkTel.total_liquidity_usd || 0);
+      document.getElementById('kpiTotalLiquiditySub').textContent = totVol > 0
+        ? `24h Vol: ${fmtUsdCompact(totVol)} • Weight Liq: ${fmtUsdCompact(totLiq)}`
+        : 'Live CEX + DEX Markets';
+
+      const exBox = document.getElementById('exchangeMarketsContainer');
+      if (exBox && Array.isArray(mkTel.exchanges) && mkTel.exchanges.length > 0) {
+        exBox.innerHTML = mkTel.exchanges.map(ex => {
+          const exUrl = escHtml(ex.url || 'https://www.coingecko.com/en/coins/satoshi-cash-network');
+          const exName = escHtml(ex.name || 'Exchange');
+          const exPair = escHtml(ex.pair || 'SCASH/USDT');
+          const hasP = Number(ex.price_usd || 0) > 0;
+          const pTxt = hasP ? fmtUsdPrice(ex.price_usd) : 'Live Market ↗';
+          const subRight = hasP
+            ? `${Number(ex.weight_pct || 0).toFixed(1)}% wt • Vol ${fmtUsdCompact(ex.volume_24h_usd)}`
+            : 'Open exchange book';
+          return `
+            <a href="${exUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-[#140b23]/90 border border-purple-500/40 hover:border-cyan-400 transition">
+              <div class="min-w-0 pr-2">
+                <div class="font-semibold text-cyan-300 hover:underline truncate">${exName} &#8599;</div>
+                <div class="text-[10px] text-purple-300/80 font-mono-code truncate">${exPair}</div>
+              </div>
+              <div class="text-right shrink-0 font-mono-code">
+                <div class="text-xs font-bold ${hasP ? 'text-emerald-300' : 'text-purple-200'}">${pTxt}</div>
+                <div class="text-[10px] text-purple-300/80">${subRight}</div>
+              </div>
+            </a>
+          `;
+        }).join('');
+      }
+
+      const shTotal = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
+      const shOrph = ls && ls.shares ? Number(ls.shares.orphan || 0) : 0;
+      const shDead = ls && ls.shares ? Number(ls.shares.dead || 0) : 0;
+      document.getElementById('kpiNodeShares').textContent = `${shTotal} Total`;
+      document.getElementById('kpiNodeSharesSub').textContent = `${shOrph} Orphan • ${shDead} Dead`;
+
+      const netDiff = (gs && gs.network_block_difficulty) ? Number(gs.network_block_difficulty) : ((ns && ns.difficulty !== undefined && Number(ns.difficulty) > 0) ? Number(ns.difficulty) : null);
+      const minDiff = (gs && gs.min_difficulty) ? Number(gs.min_difficulty) : null;
+      document.getElementById('kpiNetDiff').textContent = netDiff !== null ? netDiff.toFixed(4) : '—';
+      if (minDiff !== null && minDiff > 0) {
+        const expH = minDiff * 4294967296;
+        const fmtExpH = expH >= 1e6 ? (expH / 1e6).toFixed(2) + 'M H' : (expH >= 1e3 ? (expH / 1e3).toFixed(2) + 'K H' : Math.max(1, Math.round(expH)) + ' H');
+        document.getElementById('kpiShareDiffSub').textContent = `Share Target: ~${fmtExpH}`;
+      } else {
+        document.getElementById('kpiShareDiffSub').textContent = ms.running ? 'Share Target: Auto Vardiff' : 'Share Target: —';
+      }
+
+      document.getElementById('poolUptimeBadge').textContent = ls && ls.uptime ? `Uptime: ${fmtUptime(ls.uptime)}` : 'Uptime: —';
+
+      renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries, p2pPeers);
+      renderRealPayoutsTable(payoutEntries, ls, userWallet, isSyncing);
+      renderNodeWindow(ns, ls, p2pPeers);
+      renderExternalMinerCmd();
+
+      // Update live chart
+      if (hashrateChart && !isSyncing) {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        live.chartHistoryLabels.push(nowStr);
+        live.chartLocalHs.push(localHs);
+        live.chartPoolHs.push(effPoolHs);
+        if (live.chartHistoryLabels.length > 30) {
+          live.chartHistoryLabels.shift();
+          live.chartLocalHs.shift();
+          live.chartPoolHs.shift();
+        }
+        hashrateChart.data.labels = live.chartHistoryLabels;
+        hashrateChart.data.datasets[0].data = live.chartLocalHs;
+        hashrateChart.data.datasets[1].data = live.chartPoolHs;
+        hashrateChart.update('none');
+      }
+    }
+
+    function renderLiveActivity(isSyncing, ns, ls, ms, payoutEntries, p2pPeers = 0) {
+      const box = document.getElementById('liveActivityContainer');
+      if (!box) return;
+      const items = [];
+
+      if (isSyncing) {
+        items.push(`
+          <div class="p-3.5 rounded-lg bg-[#160d26]/90 border border-amber-400/50">
+            <div class="text-xs font-semibold text-amber-300">&#9889; Local Scash Core 30.4 Node Warming Up / Syncing</div>
+            <div class="text-[11px] text-purple-200 mt-1 font-mono-code">${ns.status_text || 'Loading block index...'}</div>
+            <div class="text-[11px] text-purple-300/80 mt-1.5">Once local Scash sync reaches 100%, P2Pool automatically opens the sharechain (:8344) and Stratum (:8345).</div>
+          </div>
+        `);
+        box.innerHTML = items.join('');
+        return;
+      }
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      const blocks = (Array.isArray(live.recentBlocks) ? live.recentBlocks : [])
+        .filter(b => b && Number(b.ts || 0) > 0 && (nowSec - Number(b.ts)) <= 86400);
+      for (const b of blocks.slice(0, 15)) {
+        const dt = b.ts ? new Date(b.ts * 1000).toLocaleString() : 'Solved Block';
+        items.push(`
+          <div class="flex items-start justify-between gap-3 p-3 rounded-lg bg-[#160d26]/90 border border-amber-400/60">
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-amber-300">&#9733; Scash Block #${b.number} Solved by P2Pool!</div>
+              <div class="text-[11px] text-purple-200 mt-0.5">${dt}</div>
+              <div class="font-mono-code text-[10px] text-cyan-300 truncate mt-0.5">Block Hash: ${b.hash || ''}</div>
+            </div>
+            <div class="text-right shrink-0 font-mono-code text-xs text-amber-300 font-bold">BLOCK FOUND</div>
+          </div>
+        `);
+      }
+
+      if (ls && ls.shares && Number(ls.shares.total || 0) > 0) {
+        items.push(`
+          <div class="p-3 rounded-lg bg-[#160d26]/90 border border-cyan-400/50 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-semibold text-cyan-300">&#10003; Verified Local P2Pool Shares Found</div>
+              <div class="text-[11px] text-purple-200 mt-0.5 font-mono-code">Total: ${ls.shares.total} | Orphan: ${ls.shares.orphan || 0} | Dead: ${ls.shares.dead || 0}</div>
+            </div>
+            <span class="font-mono-code text-xs ${p2pPeers > 0 ? 'text-emerald-300' : 'text-amber-300'}">${p2pPeers > 0 ? `P2P MESH (${p2pPeers} PEER${p2pPeers === 1 ? '' : 'S'})` : 'AUTO-SEARCHING PEERS (:8344)'}</span>
+          </div>
+        `);
+      }
+
+      if (payoutEntries.length > 0) {
+        for (const [addr, amt] of payoutEntries.slice(0, 8)) {
+          items.push(`
+            <div class="p-2.5 rounded-lg bg-[#160d26]/90 border border-purple-500/35 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-[11px] text-purple-300">Active Sharechain Miner Payout</div>
+                <div class="font-mono-code text-xs text-white truncate">${addr}</div>
+              </div>
+              <div class="font-mono-code text-xs text-emerald-300 font-semibold shrink-0">+${Number(amt).toFixed(8)} SCASH</div>
+            </div>
+          `);
+        }
+      }
+
+      if (items.length === 0) {
+        items.push(`
+          <div class="p-5 rounded-lg bg-[#160d26]/80 border border-purple-500/30 text-center space-y-2">
+            <div class="text-xs font-semibold text-cyan-300">P2Pool Node Online &mdash; 0 Shares Mined Yet</div>
+            <div class="text-[11px] text-purple-200/85 leading-relaxed">
+              Your local Scash Core 30.4 node (Block <strong class="font-mono-code text-white">#${Number(ns.blocks || 0).toLocaleString()}</strong>) and P2Pool Stratum (<code class="font-mono-code text-cyan-300">127.0.0.1:8345</code>) are synced and ready.<br/>
+              Paste your <code class="font-mono-code text-purple-200">scash1...</code> address on the left and click <strong>Start Built-in XMRig</strong> to mine the first real share!
+            </div>
+          </div>
+        `);
+      }
+      box.innerHTML = items.join('');
+    }
+
+    function renderRealPayoutsTable(payoutEntries, ls, userWallet, isSyncing) {
+      const tbody = document.getElementById('payoutsTableBody');
+      if (!tbody) return;
+      if (isSyncing) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-amber-300 font-sans">Waiting for local Scash Core 30.4 node to finish syncing before starting P2Pool sharechain...</td></tr>';
+        return;
+      }
+      const q = (document.getElementById('payoutSearchInput')?.value || '').trim().toLowerCase();
+      const hrMap = (ls && ls.miner_hash_rates) ? ls.miner_hash_rates : {};
+      const totalPayout = payoutEntries.reduce((acc, [, v]) => acc + (Number(v) || 0), 0);
+
+      const rows = payoutEntries
+        .map(([addr, amt]) => ({
+          address: addr,
+          amount: Number(amt) || 0,
+          hs: Number(hrMap[addr] || 0),
+          pct: totalPayout > 0 ? ((Number(amt) || 0) / totalPayout) * 100 : 0,
+          isMe: Boolean(userWallet && addr.toLowerCase() === userWallet.toLowerCase())
+        }))
+        .filter(r => !q || r.address.toLowerCase().includes(q))
+        .sort((a, b) => b.amount - a.amount);
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-purple-300/80 font-sans">No shares in the current PPLNS window yet (0 active miners on sharechain). Start mining on :8345 to earn the first share!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((r, i) => `
+        <tr class="${r.isMe ? 'bg-purple-900/55 border-l-4 border-l-[#4deeea]' : 'hover:bg-purple-950/40'}">
+          <td class="py-2.5 px-3 text-purple-300">#${i + 1}</td>
+          <td class="py-2.5 px-3 text-white">
+            ${r.address}
+            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
+          </td>
+          <td class="py-2.5 px-3 text-right text-cyan-300">${fmtHashrate(r.hs)}</td>
+          <td class="py-2.5 px-3 text-right text-amber-300">${r.pct.toFixed(2)}%</td>
+          <td class="py-2.5 px-3 text-right font-bold text-emerald-300">+${r.amount.toFixed(8)} SCASH</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderNodeWindow(ns, ls, p2pPeers = 0) {
+      document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.5-scash-kawaii');
+      document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
+      document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
+      document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
+      document.getElementById('nodeWinBlockHeight').textContent = ns.blocks !== undefined ? String(ns.blocks) : '—';
+      document.getElementById('nodeWinMempool').textContent =
+        ns.mempool_txs !== undefined ? `${ns.mempool_txs} txns (${((ns.mempool_bytes || 0) / 1024).toFixed(2)} KB)` : '—';
+
+      const peersBtn = document.getElementById('nodePeersTabBtn');
+      if (peersBtn) peersBtn.textContent = `P2Pool Peers (${live.peerAddrs.length})`;
+      const peersBox = document.getElementById('nodePeersListContainer');
+      if (peersBox) {
+        if (live.peerAddrs.length === 0) {
+          peersBox.textContent = '0 P2Pool sharechain peers connected yet — AutoMesh is actively scanning LAN UDP/TCP :8344, UPnP & Scash network peers...';
+        } else {
+          peersBox.innerHTML = live.peerAddrs.map(p => `<div class="py-1 border-b border-[#3a3a3a] text-cyan-300">${p}</div>`).join('');
+        }
+      }
+    }
+
+    function renderExternalMinerCmd() {
+      const sw = document.getElementById('setupMinerSoftware')?.value || 'xmrigcc';
+      const wk = (document.getElementById('setupWorkerName')?.value || 'kawaii_rig01').trim();
+      const w = (document.getElementById('quickWalletInput')?.value || live.miner?.wallet || '<YOUR_SCASH1_ADDRESS>').trim();
+      const t = document.getElementById('cpuThreadSlider')?.value || '4';
+      const user = `${w}.${wk}`;
+      let cmd = '';
+      if (sw === 'xmrigcc') {
+        cmd = `xmrigMiner --daemonized --cc-disabled -a rx/scash -o 127.0.0.1:8345 -u ${user} -p x`;
+      } else if (sw === 'cpuminer-scash') {
+        cmd = `minerd -a randomx -o stratum+tcp://127.0.0.1:8345 -u ${user} -p x --threads=${t}`;
+      } else {
+        cmd = `SRBMiner-MULTI --algorithm randomscash --pool 127.0.0.1:8345 --wallet ${user} --cpu-threads ${t}`;
+      }
+      const el = document.getElementById('cmdMinerCli');
+      if (el) el.textContent = cmd;
+    }
+
+    async function pollAllLiveEndpoints() {
+      const [ns, ms] = await Promise.all([
+        fetchJsonOrNull('/node_sync_status'),
+        fetchJsonOrNull('/miner_status')
+      ]);
+
+      if (!ns && !ms) {
+        live.online = false;
+        live.nodeSync = null;
+        live.localStats = null;
+        renderAllLive();
+        return;
+      }
+
+      live.online = true;
+      live.nodeSync = ns || {};
+      live.miner = ms || {};
+
+      const wQuery = encodeURIComponent((document.getElementById('quickWalletInput')?.value || (ms && ms.wallet) || '').trim());
+
+      if (ns && ns.syncing) {
+        live.localStats = null;
+        live.globalStats = null;
+        live.payouts = {};
+        live.recentBlocks = [];
+        live.peerAddrs = [];
+        const syncTel = await fetchJsonOrNull(`/pool_telemetry?wallet=${wQuery}`);
+        if (syncTel) live.telemetry = syncTel;
+        renderAllLive();
+        return;
+      }
+
+      const [ls, gs, pay, rb, peersTxt, meshSt, telData] = await Promise.all([
+        fetchJsonOrNull('/local_stats'),
+        fetchJsonOrNull('/global_stats'),
+        fetchJsonOrNull('/current_payouts'),
+        fetchJsonOrNull('/recent_blocks'),
+        fetchTextOrNull('/peer_addresses'),
+        fetchJsonOrNull('/mesh_status'),
+        fetchJsonOrNull(`/pool_telemetry?wallet=${wQuery}`)
+      ]);
+
+      if (telData) live.telemetry = telData;
+      if (meshSt) live.mesh = meshSt;
+      if (ls && !ls.syncing) live.localStats = ls;
+      if (gs) live.globalStats = gs;
+      live.payouts = pay || {};
+      // Keep Live P2Pool Blocks & Sharechain Activity strictly limited to blocks <= 24h (86400s) old!
+      // Older historical blocks remain counted in Pool Blocks Found (All-Time) & Miner SCASH Mined (7d/30d/All-Time).
+      const cutoff24h = Math.floor(Date.now() / 1000) - 86400;
+      const mergedBlocksMap = new Map();
+      for (const b of (Array.isArray(rb) ? rb : [])) {
+        if (b && b.number !== undefined && Number(b.ts || 0) >= cutoff24h) {
+          mergedBlocksMap.set(Number(b.number), b);
+        }
+      }
+      if (telData && telData.ledger && Array.isArray(telData.ledger.recent_blocks)) {
+        for (const lb of telData.ledger.recent_blocks) {
+          if (lb && lb.number !== undefined && Number(lb.ts || 0) >= cutoff24h && !mergedBlocksMap.has(Number(lb.number))) {
+            mergedBlocksMap.set(Number(lb.number), lb);
+          }
+        }
+      }
+      live.recentBlocks = Array.from(mergedBlocksMap.values()).sort((a, b) => Number(b.number || 0) - Number(a.number || 0));
+      if (peersTxt) {
+        const cleaned = peersTxt.replace(/"/g, '').trim();
+        live.peerAddrs = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+      } else {
+        live.peerAddrs = [];
+      }
+      renderAllLive();
+    }
+
+    const THEME_CONFIGS = {
+      kawaii:    { stars: ['#4deeea', '#ff70a6', '#c77dff', '#ffd166', '#ffffff'], showStars: true,  c1: '#4deeea', c2: '#c77dff', tick: '#b5a6d4', grid: 'rgba(138, 79, 255, 0.15)', leg: '#e6ddf8' },
+      midnight:  { stars: [],                                                      showStars: false, c1: '#38bdf8', c2: '#818cf8', tick: '#94a3b8', grid: 'rgba(148, 163, 184, 0.14)', leg: '#e2e8f0' },
+      terminal:  { stars: ['#10b981', '#34d399', '#059669', '#fbbf24'],            showStars: true,  c1: '#10b981', c2: '#fbbf24', tick: '#6ee7b7', grid: 'rgba(16, 185, 129, 0.16)',  leg: '#ecfdf5' },
+      synthwave: { stars: ['#fb7185', '#f472b6', '#fbbf24', '#fda4af', '#fff1f2'], showStars: true,  c1: '#fb7185', c2: '#fbbf24', tick: '#fbcfe8', grid: 'rgba(244, 63, 94, 0.18)',   leg: '#fff1f2' },
+      daylight:  { stars: [],                                                      showStars: false, c1: '#0284c7', c2: '#7c3aed', tick: '#475569', grid: 'rgba(15, 23, 42, 0.09)',    leg: '#0f172a' }
+    };
+
+    function applyTheme(themeName) {
+      const key = THEME_CONFIGS[themeName] ? themeName : 'kawaii';
+      document.documentElement.setAttribute('data-theme', key);
+      try { localStorage.setItem('scash_ui_theme', key); } catch (e) {}
+      const sel = document.getElementById('themeSelector');
+      if (sel && sel.value !== key) sel.value = key;
+      const cfg = THEME_CONFIGS[key];
+      const sc = document.getElementById('starfieldCanvas');
+      if (sc) sc.style.display = cfg.showStars ? 'block' : 'none';
+      if (typeof window._rebuildStars === 'function') window._rebuildStars();
+      if (hashrateChart) {
+        hashrateChart.data.datasets[0].borderColor = cfg.c1;
+        hashrateChart.data.datasets[1].borderColor = cfg.c2;
+        hashrateChart.options.plugins.legend.labels.color = cfg.leg;
+        hashrateChart.options.scales.x.ticks.color = cfg.tick;
+        hashrateChart.options.scales.y.ticks.color = cfg.tick;
+        hashrateChart.options.scales.x.grid.color = cfg.grid;
+        hashrateChart.options.scales.y.grid.color = cfg.grid;
+        hashrateChart.update('none');
+      }
+    }
+
+    function initStarfield() {
+      const canvas = document.getElementById('starfieldCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let stars = [];
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const curTheme = document.documentElement.getAttribute('data-theme') || 'kawaii';
+        const cfg = THEME_CONFIGS[curTheme] || THEME_CONFIGS.kawaii;
+        if (!cfg.showStars || !cfg.stars.length) {
+          stars = [];
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+        const count = Math.min(100, Math.floor((canvas.width * canvas.height) / 13000));
+        const palette = cfg.stars;
+        stars = Array.from({ length: count }, () => ({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.8 + 0.6,
+          color: palette[Math.floor(Math.random() * palette.length)],
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.015 + Math.random() * 0.02,
+          sparkle: Math.random() < 0.22
+        }));
+      }
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const s of stars) {
+          s.phase += s.speed;
+          ctx.save();
+          ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(s.phase));
+          ctx.fillStyle = s.color;
+          if (s.sparkle) {
+            const sz = s.r * 2.3;
+            ctx.beginPath();
+            ctx.moveTo(s.x, s.y - sz);
+            ctx.lineTo(s.x + sz * 0.32, s.y - sz * 0.32);
+            ctx.lineTo(s.x + sz, s.y);
+            ctx.lineTo(s.x + sz * 0.32, s.y + sz * 0.32);
+            ctx.lineTo(s.x, s.y + sz);
+            ctx.lineTo(s.x - sz * 0.32, s.y + sz * 0.32);
+            ctx.lineTo(s.x - sz, s.y);
+            ctx.lineTo(s.x - sz * 0.32, s.y - sz * 0.32);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillRect(s.x, s.y, s.r * 1.5, s.r * 1.5);
+          }
+          ctx.restore();
+        }
+        requestAnimationFrame(draw);
+      }
+      window._rebuildStars = resize;
+      window.addEventListener('resize', resize);
+      resize();
+      draw();
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initStarfield();
+      initChart();
+
+      // Load configured seed peers once
+      const nodesData = await fetchJsonOrNull('/nodes_list');
+      if (nodesData && Array.isArray(nodesData.addnodes)) {
+        document.getElementById('configuredPeersPre').textContent = nodesData.addnodes.map(n => `addnode=${n}`).join('\n');
+      }
+
+      document.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-tab');
+          document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${target}`));
+          if (target === 'graphs' && hashrateChart) setTimeout(() => hashrateChart.resize(), 40);
+        });
+      });
+
+      document.getElementById('menuSettingsBtn')?.addEventListener('click', () => document.querySelector('[data-tab="setup"]')?.click());
+      document.getElementById('menuHelpBtn')?.addEventListener('click', () => document.querySelector('[data-tab="graphs"]')?.click());
+      document.getElementById('refreshNowBtn')?.addEventListener('click', () => { pollAllLiveEndpoints(); showToast('Refreshed live telemetry'); });
+
+      const wInput = document.getElementById('quickWalletInput');
+      wInput?.addEventListener('input', e => {
+        live.walletEditedByUser = true;
+        const val = e.target.value.trim();
+        const msg = document.getElementById('walletValidationMsg');
+        if (val.toLowerCase().startsWith('scash1') && val.length >= 26) {
+          msg.textContent = '✓ Valid Scash Bech32 Mainnet Address';
+          msg.className = 'text-[10px] text-emerald-300 mt-1';
+        } else if (!val) {
+          msg.textContent = 'Enter your Scash Wallet receive address to save it locally.';
+          msg.className = 'text-[10px] text-purple-300/80 mt-1';
+        } else {
+          msg.textContent = '⚠ Address must start with scash1... (Bech32)';
+          msg.className = 'text-[10px] text-amber-300 mt-1';
+        }
+        renderExternalMinerCmd();
+        clearTimeout(window._walletTelTimer);
+        window._walletTelTimer = setTimeout(() => pollAllLiveEndpoints(), 350);
+      });
+
+      const initialTheme = (() => { try { return localStorage.getItem('scash_ui_theme') || 'kawaii'; } catch (_) { return 'kawaii'; } })();
+      applyTheme(initialTheme);
+      document.getElementById('themeSelector')?.addEventListener('change', e => {
+        applyTheme(e.target.value);
+      });
+
+      document.getElementById('cpuThreadSlider')?.addEventListener('input', e => {
+        live.threadsEditedByUser = true;
+        const maxV = Number(e.target.max || 32);
+        const curV = Number(e.target.value || maxV);
+        document.getElementById('threadCountLabel').textContent = curV >= maxV
+          ? `${maxV} threads (Auto)`
+          : `${curV} threads`;
+        renderExternalMinerCmd();
+      });
+
+      document.getElementById('setupMinerSoftware')?.addEventListener('change', renderExternalMinerCmd);
+      document.getElementById('setupWorkerName')?.addEventListener('input', renderExternalMinerCmd);
+      document.getElementById('payoutSearchInput')?.addEventListener('input', () => {
+        renderAllLive();
+      });
+
+      document.getElementById('copyMinerCliBtn')?.addEventListener('click', () => {
+        const txt = document.getElementById('cmdMinerCli')?.textContent || '';
+        navigator.clipboard?.writeText(txt);
+        showToast('Copied Stratum miner command!');
+      });
+
+      document.getElementById('toggleMinerBtn')?.addEventListener('click', async () => {
+        if (live.miner && live.miner.running) {
+          await fetchJsonOrNull('/miner_stop');
+          showToast('Stopped local XMRig miner');
+          await pollAllLiveEndpoints();
+          return;
+        }
+        const wallet = (wInput?.value || '').trim();
+        if (!wallet.toLowerCase().startsWith('scash1') || wallet.length < 26) {
+          showToast('Paste your real scash1... wallet address first!');
+          wInput?.focus();
+          return;
+        }
+        const sliderEl = document.getElementById('cpuThreadSlider');
+        const maxSlider = Number(sliderEl?.max || 32);
+        const curSlider = Number(sliderEl?.value || maxSlider);
+        const threadsVal = curSlider >= maxSlider ? 'auto' : String(curSlider);
+        const worker = (document.getElementById('setupWorkerName')?.value || 'kawaii_rig01').trim();
+        const lp = document.getElementById('largePagesToggle')?.checked ? '1' : '0';
+        const thParam = live.threadsEditedByUser ? `&threads=${encodeURIComponent(threadsVal)}` : '&threads=auto';
+        const res = await fetchJsonOrNull(`/miner_start?wallet=${encodeURIComponent(wallet)}${thParam}&worker=${encodeURIComponent(worker)}&large_pages=${lp}`);
+        if (res && res.ok === false && res.error) {
+          showToast(res.error);
+        } else if (res && res.notice) {
+          showToast(res.notice);
+        } else if (res && res.queued_after_sync) {
+          showToast('Saved wallet! XMRig will start automatically when Scash node sync hits 100%.');
+        } else {
+          showToast('Launched Built-in XMRig (rx/scash) on 127.0.0.1:8345!');
+        }
+        await pollAllLiveEndpoints();
+      });
+
+      const nodeModal = document.getElementById('nodeWindowModal');
+      document.getElementById('toggleNodeWindowBtn')?.addEventListener('click', () => nodeModal?.classList.toggle('hidden'));
+      document.getElementById('menuNodeWinBtn')?.addEventListener('click', () => nodeModal?.classList.remove('hidden'));
+      document.getElementById('closeNodeWindowBtn')?.addEventListener('click', () => nodeModal?.classList.add('hidden'));
+
+      document.querySelectorAll('[data-nodetab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const t = btn.getAttribute('data-nodetab');
+          document.querySelectorAll('[data-nodetab]').forEach(b => b.classList.toggle('active', b === btn));
+          document.querySelectorAll('.node-subpanel').forEach(p => p.classList.toggle('hidden', p.id !== `nodetab-${t}`));
+        });
+      });
+
+      document.getElementById('runApiQueryBtn')?.addEventListener('click', async () => {
+        const ep = document.getElementById('apiEndpointSelect')?.value || '/local_stats';
+        const out = document.getElementById('apiConsoleOutput');
+        try {
+          const r = await fetch(ep, { cache: 'no-store' });
+          const txt = await r.text();
+          try {
+            out.textContent = JSON.stringify(JSON.parse(txt), null, 2);
+          } catch (_) {
+            out.textContent = txt;
+          }
+        } catch (err) {
+          out.textContent = 'Error: Local P2Pool server on 127.0.0.1:8345 is unreachable (' + err + ')';
+        }
+      });
+
+      await pollAllLiveEndpoints();
+      setInterval(pollAllLiveEndpoints, 3000);
+    });
+  </script>
+</body>
+</html>

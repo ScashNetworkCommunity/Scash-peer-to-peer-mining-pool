@@ -1,0 +1,22 @@
+# ============================================================================
+# Scash Core 30.4.0 Example Configuration (scash.conf)
+# NOTE FOR BEGINNERS: You do NOT need to copy or edit this file!
+# Start-Scash-P2Pool automatically configures scash.conf for you.
+# ============================================================================
+chain=scash
+server=1
+listen=1
+maxconnections=64
+rpcuser=scashminer
+rpcpassword=change_this_password
+rpcallowip=127.0.0.1
+
+[scash]
+rpcport=8342
+rpcbind=127.0.0.1
+port=8343
+dnsseed=1
+addnode=seed.scash.one:8343
+addnode=scash.tv:8343
+addnode=scash.pool-pay.com:8343
+addnode=satoshicash.cedric-crispin.com:8343

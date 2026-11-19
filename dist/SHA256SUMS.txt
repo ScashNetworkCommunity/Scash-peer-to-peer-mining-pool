@@ -1,0 +1,2 @@
+f61f6d9778368b5dc0c48d82b606fcda5f15451595f0229ad4e1a3c97f7add8c  Scash-P2Pool-v0.1.0-beta.1-Windows-x64.zip
+6d588eb7c0d582cb608583eba3f7c4dedb3ba2014b1bc2e8af1ed844880c4bd1  Scash-P2Pool-v0.1.0-beta.1-Linux-x64.tar.gz
