@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.3)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.4)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -145,7 +145,169 @@
       padding: 3px 9px;
       letter-spacing: 1px;
     }
+    .qt-theme-select {
+      background: #1a1029;
+      color: #f3eefc;
+      border: 1.5px solid var(--border-cyan);
+      border-radius: 8px;
+      padding: 5.5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(77, 238, 234, 0.18);
+      cursor: pointer;
+      outline: none;
+    }
+    .qt-theme-select option { background: #1a1029; color: #f3eefc; }
+
+    /* ==================== SWITCHABLE THEMES (QtKawaii = Default) ==================== */
+    /* 2. Midnight Pro (Clean Institutional Slate/Sky Dark) */
+    html[data-theme="midnight"] {
+      --bg-cosmic: #0b1120;
+      --bg-topbar: #0f172a;
+      --bg-panel: rgba(15, 23, 42, 0.94);
+      --border-cyan: #38bdf8;
+      --border-purple: #334155;
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+    }
+    html[data-theme="midnight"] .qt-menubar { background: #090e1a; border-bottom-color: #1e293b; color: #94a3b8; }
+    html[data-theme="midnight"] .qt-toolbar { background: linear-gradient(180deg, #111827 0%, #0f172a 100%); border-bottom-color: #1e293b; }
+    html[data-theme="midnight"] .qt-tab-btn { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+    html[data-theme="midnight"] .qt-tab-btn:hover { border-color: #38bdf8; color: #ffffff; }
+    html[data-theme="midnight"] .qt-tab-btn.active, html[data-theme="midnight"] .qt-orange-btn {
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      border-color: #7dd3fc;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+    html[data-theme="midnight"] .qt-cyan-card { border-color: rgba(56, 189, 248, 0.45); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+    html[data-theme="midnight"] .qt-purple-inner { background: #090f1d; border-color: #1e293b; box-shadow: none; }
+    html[data-theme="midnight"] .qt-action-btn, html[data-theme="midnight"] .qt-theme-select { background: #0f172a; border-color: #38bdf8; color: #f1f5f9; box-shadow: none; }
+    html[data-theme="midnight"] .qt-theme-select option { background: #0f172a; color: #f1f5f9; }
+    html[data-theme="midnight"] .scash-pixel-badge { background: linear-gradient(135deg, #0284c7, #2563eb); border-color: #7dd3fc; box-shadow: none; }
+    html[data-theme="midnight"] [class*="bg-[#140b23]"], html[data-theme="midnight"] [class*="bg-[#120a1f]"],
+    html[data-theme="midnight"] [class*="bg-[#160d26]"], html[data-theme="midnight"] [class*="bg-[#24193a]"],
+    html[data-theme="midnight"] [class*="bg-[#211538]"], html[data-theme="midnight"] [class*="bg-[#24173d]"] {
+      background-color: #0b1324 !important;
+    }
+    html[data-theme="midnight"] [class*="border-purple-"] { border-color: rgba(51, 65, 85, 0.85) !important; }
+    html[data-theme="midnight"] [class*="text-purple-"] { color: #94a3b8 !important; }
+
+    /* 3. Cypherpunk Terminal (Matrix Emerald / Phosphor Obsidian) */
+    html[data-theme="terminal"] {
+      --bg-cosmic: #050b07;
+      --bg-topbar: #08140d;
+      --bg-panel: rgba(7, 18, 12, 0.94);
+      --border-cyan: #10b981;
+      --border-purple: #065f46;
+      --text-main: #ecfdf5;
+      --text-dim: #6ee7b7;
+    }
+    html[data-theme="terminal"] body { font-family: 'JetBrains Mono', monospace; }
+    html[data-theme="terminal"] .qt-menubar { background: #040906; border-bottom-color: #064e3b; color: #6ee7b7; }
+    html[data-theme="terminal"] .qt-toolbar { background: linear-gradient(180deg, #091910 0%, #06110b 100%); border-bottom-color: #065f46; }
+    html[data-theme="terminal"] .qt-tab-btn { background: #091910; border-color: #065f46; color: #a7f3d0; }
+    html[data-theme="terminal"] .qt-tab-btn:hover { border-color: #34d399; color: #ffffff; }
+    html[data-theme="terminal"] .qt-tab-btn.active, html[data-theme="terminal"] .qt-orange-btn {
+      background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+      border-color: #6ee7b7;
+      color: #022c22;
+      font-weight: 700;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+    }
+    html[data-theme="terminal"] .qt-cyan-card { border-color: #10b981; box-shadow: 0 0 16px rgba(16, 185, 129, 0.14); }
+    html[data-theme="terminal"] .qt-purple-inner { background: #030805; border-color: #065f46; box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.08); }
+    html[data-theme="terminal"] .qt-action-btn, html[data-theme="terminal"] .qt-theme-select { background: #06120b; border-color: #10b981; color: #a7f3d0; }
+    html[data-theme="terminal"] .qt-theme-select option { background: #06120b; color: #a7f3d0; }
+    html[data-theme="terminal"] .scash-pixel-badge { background: #065f46; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.45); }
+    html[data-theme="terminal"] [class*="bg-[#140b23]"], html[data-theme="terminal"] [class*="bg-[#120a1f]"],
+    html[data-theme="terminal"] [class*="bg-[#160d26]"], html[data-theme="terminal"] [class*="bg-[#24193a]"],
+    html[data-theme="terminal"] [class*="bg-[#211538]"], html[data-theme="terminal"] [class*="bg-[#24173d]"] {
+      background-color: #040d08 !important;
+    }
+    html[data-theme="terminal"] [class*="border-purple-"] { border-color: rgba(16, 185, 129, 0.35) !important; }
+    html[data-theme="terminal"] [class*="text-purple-"] { color: #6ee7b7 !important; }
+    html[data-theme="terminal"] [class*="text-cyan-"] { color: #34d399 !important; }
+
+    /* 4. Sakura Sunset (Warm Synthwave Crimson / Rose / Gold) */
+    html[data-theme="synthwave"] {
+      --bg-cosmic: #1b0b1e;
+      --bg-topbar: #2c102f;
+      --bg-panel: rgba(36, 13, 39, 0.90);
+      --border-cyan: #fb7185;
+      --border-purple: #db2777;
+      --text-main: #fff1f2;
+      --text-dim: #fbcfe8;
+    }
+    html[data-theme="synthwave"] .qt-menubar { background: #210924; border-bottom-color: #701a75; color: #fbcfe8; }
+    html[data-theme="synthwave"] .qt-toolbar { background: linear-gradient(180deg, #36113b 0%, #250b29 100%); border-bottom-color: #86198f; }
+    html[data-theme="synthwave"] .qt-tab-btn { background: #3b1340; border-color: #9d174d; color: #fce7f3; }
+    html[data-theme="synthwave"] .qt-tab-btn:hover { border-color: #fb7185; color: #ffffff; }
+    html[data-theme="synthwave"] .qt-tab-btn.active, html[data-theme="synthwave"] .qt-orange-btn {
+      background: linear-gradient(180deg, #f43f5e 0%, #be123c 100%);
+      border-color: #fda4af;
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.45);
+    }
+    html[data-theme="synthwave"] .qt-cyan-card { border-color: #fb7185; box-shadow: 0 0 16px rgba(251, 113, 133, 0.18); }
+    html[data-theme="synthwave"] .qt-purple-inner { background: rgba(24, 7, 27, 0.88); border-color: #be185d; }
+    html[data-theme="synthwave"] .qt-action-btn, html[data-theme="synthwave"] .qt-theme-select { background: #280c2c; border-color: #fb7185; color: #fff1f2; }
+    html[data-theme="synthwave"] .qt-theme-select option { background: #280c2c; color: #fff1f2; }
+    html[data-theme="synthwave"] .scash-pixel-badge { background: linear-gradient(135deg, #ec4899, #f43f5e); border-color: #fbcfe8; }
+    html[data-theme="synthwave"] [class*="bg-[#140b23]"], html[data-theme="synthwave"] [class*="bg-[#120a1f]"],
+    html[data-theme="synthwave"] [class*="bg-[#160d26]"], html[data-theme="synthwave"] [class*="bg-[#24193a]"],
+    html[data-theme="synthwave"] [class*="bg-[#211538]"], html[data-theme="synthwave"] [class*="bg-[#24173d]"] {
+      background-color: #19071c !important;
+    }
+    html[data-theme="synthwave"] [class*="border-purple-"] { border-color: rgba(219, 39, 119, 0.45) !important; }
+    html[data-theme="synthwave"] [class*="text-purple-"] { color: #f9a8d4 !important; }
+    html[data-theme="synthwave"] [class*="text-cyan-"] { color: #fda4af !important; }
+
+    /* 5. Daylight Crisp (Clean High-Contrast Light Mode) */
+    html[data-theme="daylight"] {
+      --bg-cosmic: #f1f5f9;
+      --bg-topbar: #ffffff;
+      --bg-panel: #ffffff;
+      --border-cyan: #0284c7;
+      --border-purple: #cbd5e1;
+      --text-main: #0f172a;
+      --text-dim: #475569;
+    }
+    html[data-theme="daylight"] .qt-menubar { background: #e2e8f0; border-bottom-color: #cbd5e1; color: #334155; }
+    html[data-theme="daylight"] .qt-toolbar { background: #ffffff; border-bottom-color: #cbd5e1; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06); }
+    html[data-theme="daylight"] .qt-tab-btn { background: #f8fafc; border-color: #cbd5e1; color: #334155; }
+    html[data-theme="daylight"] .qt-tab-btn:hover { border-color: #0284c7; color: #0f172a; }
+    html[data-theme="daylight"] .qt-tab-btn.active, html[data-theme="daylight"] .qt-orange-btn {
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      border-color: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+    }
+    html[data-theme="daylight"] .qt-cyan-card { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
+    html[data-theme="daylight"] .qt-purple-inner { background: #f8fafc; border-color: #cbd5e1; box-shadow: none; }
+    html[data-theme="daylight"] .qt-action-btn, html[data-theme="daylight"] .qt-theme-select { background: #ffffff; border-color: #94a3b8; color: #0f172a; box-shadow: none; }
+    html[data-theme="daylight"] .qt-theme-select option { background: #ffffff; color: #0f172a; }
+    html[data-theme="daylight"] .scash-pixel-badge { background: #7c3aed; border-color: #6d28d9; color: #ffffff !important; box-shadow: none; }
+    html[data-theme="daylight"] [class*="bg-[#140b23]"], html[data-theme="daylight"] [class*="bg-[#120a1f]"],
+    html[data-theme="daylight"] [class*="bg-[#160d26]"], html[data-theme="daylight"] [class*="bg-[#24193a]"],
+    html[data-theme="daylight"] [class*="bg-[#211538]"], html[data-theme="daylight"] [class*="bg-[#24173d]"],
+    html[data-theme="daylight"] [class*="bg-purple-950"] {
+      background-color: #f8fafc !important;
+    }
+    html[data-theme="daylight"] [class*="border-purple-"] { border-color: #cbd5e1 !important; }
+    html[data-theme="daylight"] .text-white { color: #0f172a !important; }
+    html[data-theme="daylight"] [class*="text-purple-"] { color: #475569 !important; }
+    html[data-theme="daylight"] [class*="text-cyan-"] { color: #0369a1 !important; }
+    html[data-theme="daylight"] [class*="text-emerald-300"] { color: #047857 !important; }
+    html[data-theme="daylight"] [class*="text-amber-300"] { color: #b45309 !important; }
+    html[data-theme="daylight"] [class*="text-rose-300"] { color: #be123c !important; }
   </style>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('scash_ui_theme') || 'kawaii';
+        document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="selection:bg-cyan-400 selection:text-slate-950">
   <!-- Live Scash Core 30.4 Node Sync Banner -->
@@ -164,7 +326,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.3)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.4)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -176,7 +338,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.3</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.4</span>
         </div>
       </div>
 
@@ -197,7 +359,15 @@
           </button>
         </nav>
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <label for="themeSelector" class="sr-only">Theme</label>
+          <select id="themeSelector" class="qt-theme-select" title="Switch Dashboard Theme (QtKawaii is default)">
+            <option value="kawaii">&#10024; Theme: QtKawaii (Default)</option>
+            <option value="midnight">&#127769; Theme: Midnight Pro</option>
+            <option value="terminal">&#8383; Theme: Cypherpunk</option>
+            <option value="synthwave">&#127749; Theme: Sakura Sunset</option>
+            <option value="daylight">&#9728;&#65039; Theme: Daylight Crisp</option>
+          </select>
           <button type="button" id="refreshNowBtn" class="qt-action-btn text-xs py-1.5 px-3">
             <span>&#8635; Refresh</span>
           </button>
@@ -291,7 +461,7 @@
                 </div>
               </div>
 
-              <!-- v0.3.3 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
+              <!-- v0.3.4 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- Box A: Miner SCASH Mined (7d / 30d / All-Time) -->
                 <div class="qt-cyan-card p-4 flex flex-col justify-between">
@@ -381,19 +551,22 @@
                     </div>
 
                     <div>
-                      <div class="flex justify-between text-[11px] mb-1">
-                        <label for="cpuThreadSlider" class="text-purple-200">CPU Threads (<span id="threadCountLabel" class="font-mono-code text-cyan-300">4</span> threads):</label>
-                        <span id="workerNameBadge" class="font-mono-code text-purple-300">kawaii_rig01</span>
+                      <div class="flex items-center justify-between text-[11px] mb-1 gap-2">
+                        <label for="cpuThreadSlider" class="text-purple-200">CPU Speed (<span id="threadCountLabel" class="font-mono-code text-cyan-300">Auto &bull; Full XMRig Speed</span>):</label>
+                        <div class="flex items-center gap-1.5">
+                          <button type="button" id="resetAutoThreadsBtn" class="px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/50 text-[10px] font-mono-code text-cyan-300 hover:bg-cyan-500/25" title="Use 100% optimal XMRig L2/L3 cache autoconfig">Auto Max</button>
+                          <span id="workerNameBadge" class="font-mono-code text-purple-300">kawaii_rig01</span>
+                        </div>
                       </div>
                       <input
                         id="cpuThreadSlider"
                         type="range"
                         min="1"
                         max="32"
-                        value="4"
+                        value="32"
                         class="w-full accent-orange-500 cursor-pointer"
                       />
-                      <div class="text-[10px] text-purple-300/75 mt-0.5">Tip: Lower this slider anytime if you want your PC extra light while browsing or gaming.</div>
+                      <div class="text-[10px] text-purple-300/75 mt-0.5">Full right = <strong>Auto Max</strong> (same L2/L3 cache + MSR speed as standalone XMRig). Slide left anytime to lighten CPU use.</div>
                     </div>
 
                     <div class="flex items-center justify-between text-[11px] bg-[#140b23] px-2.5 py-1.5 rounded-lg border border-purple-500/30">
@@ -710,7 +883,7 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.3.3 (Core 30.4)</span>
+        <span>v0.3.4 (Core 30.4)</span>
       </div>
     </footer>
   </div>
@@ -894,13 +1067,16 @@
       if (!live.walletEditedByUser && ms.wallet && wInput && !wInput.value) {
         wInput.value = ms.wallet;
       }
-      if (!live.threadsEditedByUser && ms.threads) {
+      if (!live.threadsEditedByUser) {
         const slider = document.getElementById('cpuThreadSlider');
+        const maxT = Math.max(2, Number(ms.max_threads || 16));
         if (slider) {
-          if (ms.max_threads) slider.max = String(Math.max(4, ms.max_threads));
-          slider.value = String(ms.threads);
+          slider.max = String(maxT);
+          slider.value = ms.custom_threads ? String(Math.min(maxT, Number(ms.threads || maxT))) : String(maxT);
         }
-        document.getElementById('threadCountLabel').textContent = String(ms.threads);
+        document.getElementById('threadCountLabel').textContent = ms.custom_threads
+          ? `${ms.threads} / ${maxT} threads`
+          : `Auto (${ms.threads || maxT}t Full XMRig Speed)`;
       }
 
       // Miner button & log box
@@ -1256,7 +1432,7 @@
 
     function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.3-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.4-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
@@ -1367,6 +1543,36 @@
       renderAllLive();
     }
 
+    const THEME_CONFIGS = {
+      kawaii:    { stars: ['#4deeea', '#ff70a6', '#c77dff', '#ffd166', '#ffffff'], showStars: true,  c1: '#4deeea', c2: '#c77dff', tick: '#b5a6d4', grid: 'rgba(138, 79, 255, 0.15)', leg: '#e6ddf8' },
+      midnight:  { stars: [],                                                      showStars: false, c1: '#38bdf8', c2: '#818cf8', tick: '#94a3b8', grid: 'rgba(148, 163, 184, 0.14)', leg: '#e2e8f0' },
+      terminal:  { stars: ['#10b981', '#34d399', '#059669', '#fbbf24'],            showStars: true,  c1: '#10b981', c2: '#fbbf24', tick: '#6ee7b7', grid: 'rgba(16, 185, 129, 0.16)',  leg: '#ecfdf5' },
+      synthwave: { stars: ['#fb7185', '#f472b6', '#fbbf24', '#fda4af', '#fff1f2'], showStars: true,  c1: '#fb7185', c2: '#fbbf24', tick: '#fbcfe8', grid: 'rgba(244, 63, 94, 0.18)',   leg: '#fff1f2' },
+      daylight:  { stars: [],                                                      showStars: false, c1: '#0284c7', c2: '#7c3aed', tick: '#475569', grid: 'rgba(15, 23, 42, 0.09)',    leg: '#0f172a' }
+    };
+
+    function applyTheme(themeName) {
+      const key = THEME_CONFIGS[themeName] ? themeName : 'kawaii';
+      document.documentElement.setAttribute('data-theme', key);
+      try { localStorage.setItem('scash_ui_theme', key); } catch (e) {}
+      const sel = document.getElementById('themeSelector');
+      if (sel && sel.value !== key) sel.value = key;
+      const cfg = THEME_CONFIGS[key];
+      const sc = document.getElementById('starfieldCanvas');
+      if (sc) sc.style.display = cfg.showStars ? 'block' : 'none';
+      if (typeof window._rebuildStars === 'function') window._rebuildStars();
+      if (hashrateChart) {
+        hashrateChart.data.datasets[0].borderColor = cfg.c1;
+        hashrateChart.data.datasets[1].borderColor = cfg.c2;
+        hashrateChart.options.plugins.legend.labels.color = cfg.leg;
+        hashrateChart.options.scales.x.ticks.color = cfg.tick;
+        hashrateChart.options.scales.y.ticks.color = cfg.tick;
+        hashrateChart.options.scales.x.grid.color = cfg.grid;
+        hashrateChart.options.scales.y.grid.color = cfg.grid;
+        hashrateChart.update('none');
+      }
+    }
+
     function initStarfield() {
       const canvas = document.getElementById('starfieldCanvas');
       if (!canvas) return;
@@ -1375,8 +1581,15 @@
       function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        const curTheme = document.documentElement.getAttribute('data-theme') || 'kawaii';
+        const cfg = THEME_CONFIGS[curTheme] || THEME_CONFIGS.kawaii;
+        if (!cfg.showStars || !cfg.stars.length) {
+          stars = [];
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
         const count = Math.min(100, Math.floor((canvas.width * canvas.height) / 13000));
-        const palette = ['#4deeea', '#ff70a6', '#c77dff', '#ffd166', '#ffffff'];
+        const palette = cfg.stars;
         stars = Array.from({ length: count }, () => ({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
@@ -1414,6 +1627,7 @@
         }
         requestAnimationFrame(draw);
       }
+      window._rebuildStars = resize;
       window.addEventListener('resize', resize);
       resize();
       draw();
@@ -1462,10 +1676,31 @@
         window._walletTelTimer = setTimeout(() => pollAllLiveEndpoints(), 350);
       });
 
+      const initialTheme = (() => { try { return localStorage.getItem('scash_ui_theme') || 'kawaii'; } catch (_) { return 'kawaii'; } })();
+      applyTheme(initialTheme);
+      document.getElementById('themeSelector')?.addEventListener('change', e => {
+        applyTheme(e.target.value);
+      });
+
       document.getElementById('cpuThreadSlider')?.addEventListener('input', e => {
         live.threadsEditedByUser = true;
-        document.getElementById('threadCountLabel').textContent = e.target.value;
+        const maxV = Number(e.target.max || 32);
+        const curV = Number(e.target.value || maxV);
+        document.getElementById('threadCountLabel').textContent = curV >= maxV
+          ? 'Auto • Full XMRig Speed'
+          : `${curV} / ${maxV} threads`;
         renderExternalMinerCmd();
+      });
+
+      document.getElementById('resetAutoThreadsBtn')?.addEventListener('click', () => {
+        const slider = document.getElementById('cpuThreadSlider');
+        if (slider) {
+          slider.value = slider.max;
+          live.threadsEditedByUser = true;
+          document.getElementById('threadCountLabel').textContent = 'Auto • Full XMRig Speed';
+          renderExternalMinerCmd();
+          showToast('Set to Auto Max (100% Optimal XMRig L2/L3 Cache Speed)');
+        }
       });
 
       document.getElementById('setupMinerSoftware')?.addEventListener('change', renderExternalMinerCmd);
@@ -1493,10 +1728,13 @@
           wInput?.focus();
           return;
         }
-        const threads = document.getElementById('cpuThreadSlider')?.value || '4';
+        const sliderEl = document.getElementById('cpuThreadSlider');
+        const maxSlider = Number(sliderEl?.max || 32);
+        const curSlider = Number(sliderEl?.value || maxSlider);
+        const threadsVal = curSlider >= maxSlider ? 'auto' : String(curSlider);
         const worker = (document.getElementById('setupWorkerName')?.value || 'kawaii_rig01').trim();
         const lp = document.getElementById('largePagesToggle')?.checked ? '1' : '0';
-        const thParam = live.threadsEditedByUser ? `&threads=${encodeURIComponent(threads)}` : '';
+        const thParam = live.threadsEditedByUser ? `&threads=${encodeURIComponent(threadsVal)}` : '&threads=auto';
         const res = await fetchJsonOrNull(`/miner_start?wallet=${encodeURIComponent(wallet)}${thParam}&worker=${encodeURIComponent(worker)}&large_pages=${lp}`);
         if (res && res.ok === false && res.error) {
           showToast(res.error);

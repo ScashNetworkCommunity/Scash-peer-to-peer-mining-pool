@@ -362,7 +362,6 @@ class Node(object):
         
         self.set_best_share()
 
-
 # --- Scash Clean Peer Disconnect Filter ---
 try:
     from twisted.internet import error as _scash_tw_err

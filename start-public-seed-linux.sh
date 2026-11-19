@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 1-Command Headless Public Bootstrap Seed Node Launcher for Scash P2Pool (v0.3.3)
+# 1-Command Headless Public Bootstrap Seed Node Launcher for Scash P2Pool (v0.3.4)
 # Usage:
 #   ./start-public-seed-linux.sh              # Starts in background -> seed-p2pool.log
 #   ./start-public-seed-linux.sh --foreground # Runs in foreground (for systemd)
@@ -16,7 +16,7 @@ else
 fi
 
 echo "=================================================================="
-echo " Scash P2Pool v0.3.3 — Public Bootstrap & Mesh Seed Node (:8344)"
+echo " Scash P2Pool v0.3.4 — Public Bootstrap & Mesh Seed Node (:8344)"
 echo " Reminder: Open inbound TCP 8344 & UDP 8344 on firewall/router:"
 echo "   sudo ufw allow 8344/tcp && sudo ufw allow 8344/udp"
 echo " (Keep port 8345 private on 127.0.0.1 or behind read-only Apache!)"

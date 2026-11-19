@@ -1,5 +1,5 @@
 """
-Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.3.3).
+Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.3.4).
 Manages local xmrigDaemon + xmrigMiner (rx/scash, built with -DWITH_MSR=ON,
 -DWITH_ASM=ON, WinRing0x64.sys, HugePages, and hwloc physical-core affinity)
 connecting strictly to 127.0.0.1:8345 and reports 100% real live process status,
@@ -36,6 +36,55 @@ _TOTAL_ACC_RE = re.compile(r"Total accepted:\s*(\d+)", re.IGNORECASE)
 _HTTP_API_RE = re.compile(r"HTTP API\s+127\.0\.0\.1:(\d+)", re.IGNORECASE)
 
 
+def _enable_os_hugepages_privilege(enable=True):
+    """Enables Windows SeLockMemoryPrivilege on current token (for 2MB HugePages) or Linux vm.nr_hugepages when root."""
+    if not enable:
+        return
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class LUID(ctypes.Structure):
+                _fields_ = [("LowPart", wintypes.DWORD), ("HighPart", wintypes.LONG)]
+
+            class LUID_AND_ATTRIBUTES(ctypes.Structure):
+                _fields_ = [("Luid", LUID), ("Attributes", wintypes.DWORD)]
+
+            class TOKEN_PRIVILEGES(ctypes.Structure):
+                _fields_ = [("PrivilegeCount", wintypes.DWORD), ("Privileges", LUID_AND_ATTRIBUTES * 1)]
+
+            advapi32 = ctypes.windll.advapi32
+            kernel32 = ctypes.windll.kernel32
+            TOKEN_ADJUST_PRIVILEGES = 0x0020
+            TOKEN_QUERY = 0x0008
+            SE_PRIVILEGE_ENABLED = 0x00000002
+
+            h_token = wintypes.HANDLE()
+            if advapi32.OpenProcessToken(kernel32.GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ctypes.byref(h_token)):
+                try:
+                    luid = LUID()
+                    if advapi32.LookupPrivilegeValueW(None, u"SeLockMemoryPrivilege", ctypes.byref(luid)):
+                        tp = TOKEN_PRIVILEGES()
+                        tp.PrivilegeCount = 1
+                        tp.Privileges[0].Luid = luid
+                        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED
+                        advapi32.AdjustTokenPrivileges(h_token, False, ctypes.byref(tp), 0, None, None)
+                finally:
+                    kernel32.CloseHandle(h_token)
+        except Exception:
+            pass
+    elif platform.system() == "Linux":
+        try:
+            if hasattr(os, "geteuid") and os.geteuid() == 0 and os.path.isfile("/proc/sys/vm/nr_hugepages"):
+                cur_hp = int(open("/proc/sys/vm/nr_hugepages", "r").read().strip() or "0")
+                if cur_hp < 1280:
+                    with open("/proc/sys/vm/nr_hugepages", "w") as hf:
+                        hf.write("1280\n")
+        except Exception:
+            pass
+
+
 class LocalMinerController(object):
     def __init__(self, stratum_host="127.0.0.1", stratum_port=8345):
         self.stratum_host = stratum_host
@@ -43,7 +92,8 @@ class LocalMinerController(object):
         self.process = None
         self.wallet = ""
         self.worker = "kawaii_rig01"
-        self.threads = max(1, (multiprocessing.cpu_count() or 4) // 2)
+        self.max_cpu_threads = max(1, int(multiprocessing.cpu_count() or 8))
+        self.threads = self.max_cpu_threads
         self.custom_threads = False
         self.active_threads = self.threads
         self.large_pages = True
@@ -67,8 +117,16 @@ class LocalMinerController(object):
                 w = (data.get("wallet") or "").strip()
                 self.wallet = w
                 self.worker = (data.get("worker") or "kawaii_rig01").strip()
-                self.threads = max(1, int(data.get("threads", self.threads)))
-                self.custom_threads = bool(data.get("custom_threads", False))
+                # Migrate pre-v0.3.4 configs where cpu_count()//2 accidentally locked -t 8 custom_threads!
+                if data.get("xmrig_autoconfig_v2"):
+                    self.custom_threads = bool(data.get("custom_threads", False))
+                    if self.custom_threads:
+                        self.threads = max(1, min(self.max_cpu_threads, int(data.get("threads", self.max_cpu_threads))))
+                    else:
+                        self.threads = self.max_cpu_threads
+                else:
+                    self.custom_threads = False
+                    self.threads = self.max_cpu_threads
                 self.active_threads = self.threads
                 self.large_pages = bool(data.get("large_pages", True))
             except Exception:
@@ -80,14 +138,24 @@ class LocalMinerController(object):
         if wallet is not None:
             self.wallet = wallet.strip()
         if threads is not None and str(threads).strip() != "":
-            try:
-                t_val = int(threads)
-                if t_val > 0:
-                    self.threads = t_val
-                    self.active_threads = t_val
-                    self.custom_threads = True
-            except Exception:
-                pass
+            t_raw = str(threads).strip().lower()
+            if t_raw in ("auto", "max", "default", "0", "-1"):
+                self.custom_threads = False
+                self.threads = self.max_cpu_threads
+                self.active_threads = self.max_cpu_threads
+            else:
+                try:
+                    t_val = int(t_raw)
+                    if t_val >= self.max_cpu_threads:
+                        self.custom_threads = False
+                        self.threads = self.max_cpu_threads
+                        self.active_threads = self.max_cpu_threads
+                    elif t_val > 0:
+                        self.threads = t_val
+                        self.active_threads = t_val
+                        self.custom_threads = True
+                except Exception:
+                    pass
         if worker:
             self.worker = worker.strip()
         if large_pages is not None:
@@ -100,6 +168,7 @@ class LocalMinerController(object):
             "worker": self.worker,
             "threads": self.threads,
             "custom_threads": self.custom_threads,
+            "xmrig_autoconfig_v2": True,
             "large_pages": self.large_pages,
             "updated_at": int(time.time()),
         }
@@ -119,13 +188,27 @@ class LocalMinerController(object):
         # matching L2/L3 cache (instead of pinning onto SMT hyperthreads of half the CPU),
         # while enabling Ring0 MSR prefetcher tuning (rdmsr/wrmsr via WinRing0x64.sys or /dev/cpu/*/msr)
         # and 2MB/1GB HugePages + JIT HugePages + x86-64 assembly!
+        hint_pct = 100
+        if self.custom_threads and self.max_cpu_threads > 0:
+            hint_pct = max(5, min(99, int(round(100.0 * float(self.threads) / float(self.max_cpu_threads)))))
+        cpu_cfg = {
+            "enabled": True,
+            "huge-pages": bool(self.large_pages),
+            "huge-pages-jit": bool(self.large_pages),
+            "hw-aes": None,
+            "priority": None if self.custom_threads else 2,
+            "memory-pool": bool(self.large_pages),
+            "yield": bool(self.custom_threads),
+            "asm": True,
+            "max-threads-hint": int(hint_pct),
+        }
         cfg = {
             "autosave": False,
             "cc-client": {
                 "enabled": False,
             },
             "randomx": {
-                "init": int(self.threads) if self.custom_threads else -1,
+                "init": -1,
                 "init-avx2": -1,
                 "mode": "auto",
                 "1gb-pages": bool(self.large_pages and not is_win),
@@ -135,16 +218,7 @@ class LocalMinerController(object):
                 "numa": True,
                 "scratchpad_prefetch_mode": 1,
             },
-            "cpu": {
-                "enabled": True,
-                "huge-pages": bool(self.large_pages),
-                "huge-pages-jit": bool(self.large_pages),
-                "hw-aes": None,
-                "priority": None,
-                "memory-pool": False,
-                "yield": True,
-                "asm": True,
-            },
+            "cpu": cpu_cfg,
             "http": {
                 "enabled": True,
                 "host": "127.0.0.1",
@@ -380,12 +454,16 @@ class LocalMinerController(object):
                 "--http-host=127.0.0.1",
                 "--http-port=8346",
             ])
-            if self.custom_threads:
-                cmd.extend(["-t", str(self.threads)])
+            if self.custom_threads and self.max_cpu_threads > 0:
+                hint_cli = max(5, min(99, int(round(100.0 * float(self.threads) / float(self.max_cpu_threads)))))
+                cmd.append("--cpu-max-threads-hint=%d" % hint_cli)
+            else:
+                cmd.append("--cpu-no-yield")
 
         kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT, "cwd": bin_dir}
         if platform.system() == "Windows":
             kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
+        _enable_os_hugepages_privilege(self.large_pages)
         try:
             with self.lock:
                 self.hashrate_hs = 0.0
@@ -395,7 +473,7 @@ class LocalMinerController(object):
             self.msr_active = None
             self.hugepages_active = None
             self.process = subprocess.Popen(cmd, **kwargs)
-            mode_desc = ("%d threads" % self.threads) if self.custom_threads else "hwloc auto physical cores + MSR"
+            mode_desc = ("hint %d%% (~%d threads, hwloc pinned)" % (max(5, min(99, int(round(100.0 * float(self.threads) / float(self.max_cpu_threads))))), self.threads)) if self.custom_threads else "100% Auto Optimal L2/L3 Cache + MSR + HugePages"
             self._append_log("[Miner] Launched %s (%s) -> 127.0.0.1:%d" % (os.path.basename(binary), mode_desc, self.stratum_port))
             t = threading.Thread(target=self._reader_thread, args=(self.process,))
             t.daemon = True

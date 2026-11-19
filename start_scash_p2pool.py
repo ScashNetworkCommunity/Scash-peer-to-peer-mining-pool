@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.3.3).
+Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.3.4).
 Publisher: magicalgirlsunite | Community: ScashNetworkCommunity
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 - Wraps stdout/stderr safely on PyPy 2.7 so Unicode strings from Scash Core 30.4.0
@@ -139,7 +139,7 @@ KAWAII_ANSI_HIRES_ZB64 = (
     "AHgRHkR+Tn8JdkVdV6VNXa+9zbEptNIZZaLd7DfffeZ++1qr6q+uqr7/zcl6u75nx18A8+XAP8"
     "7PzVtn+0z7/6w//46g+///c/3+Cff/rOz83z//Cde1/MP37n5/hRMFdvrik+v1z6L9lar9bFq4"
     "vx+Vf//L/Gxy54Oll0zz/97Mnrzy+P3eOXL59dPrh8cXf3ysFfH3wBH3z3r9/81ydfPnn69PJb"
-    "88g/8t+7vPV/tvvvl/zw5au7izePwiNDhx18rbf6+h6+5zWW5+xk5mpNuXr3fH71GMf/2hP5v5"
+    "88g/Ct+7vPV/tvvvl/zw5au7izePwiNDhx18rbf6+h6+5zWW5+xk5mpNuXr3fH71GMf/2hP5v5"
     "ePf3v36rdP77687CcZH7W/2lVzen7wVf6yfZNfvHzy6peXHxQf4tucRbyEN6+evPnN87c4SX9h"
     "7f/wl8LbXLnAxdviiKa/ik8ef4hncUdnUS8T/721BU5rSzx8sD+/0Hn/2+Xo1Tzgfa73btvfue"
     "KZ9XH/+u824pv9878fuiH5Zvbw2Vwk/QP9K//8+7M/4xfbYsvXAHv29+pcz9mxtNjaneVrTM/X"
@@ -382,13 +382,13 @@ KAWAII_ANSI_HIRES_ZB64 = (
     "iK3JbaHvfJkHZg5R3niR2VJ77Q1HuX/ZPsy+3ndf6SgHwO9L2428dk/c8wZkn+P5O9gq5cr8Ut"
     "6fdfTBA1dsCjjArftWg837AVYcoGR6mIM/OANEOXl9i/0ejrLaIR2pXkhVAZQWN+H0wPGQbV1f"
     "8HDJ2awfUdrzVzfkKegAuarD1q2nxt3jR2x7Hf9OELcVH/jUugmHY+RJUVFEPnzkVk0H3UX15P"
-    "v1LKzFxxmUmBNS0oN5qx1lxKrANRLqw3Dh2/3npIL7IHz2bcCX/1/9+Rd8Mf8PUYdl6g=="
+    "v1LKzFxxmUmBNS0oN5qx1lxKrANRLqw3Dh2/3npIL7IHz2bcCX/1/9+Rd8Mf8PN0tl6w=="
 )
 KAWAII_ANSI_BANNER_ZB64 = (
     "eNrlXMuOXcd1necXNDmTABIMNk+9q3RGMuEkQiKJIW1kIGTQoBtkI2y2QLYkG8hA8NgDDwhDAT"
     "IIgiAf4c/hl3ivXc9d595LUqbEBiQ1H/ewTj33XnvtR90PvjRx01sIm8ZfjN0sPmuzKfqrunr1"
     "8o+vXn73s/n50wdfrld/98FrN+UPH3zJj+y6mXXz7mop76iUNqXdpp27evXn/6mPtTW5L6evHj"
-    "46f/Fkua/vX18/Xe4sX11cPNf47c5XePDhv9788/m355eXyzfrmTkzHy3Tf7vJXd27fn6xmPXM"
+    "46f/Fkua/vX18/Xe4sX11cPNf47c5XePDhv9788/m355eXyzfrmTmzHy3Tf7vJXd27fn6xmPXM"
     "nq1LmZec6lstyWDym4tXva91U2vcjG6rpNXVX7TKvyxffHPx/JvLi2+XXR/1Cf1GYwZ/dXBHbp"
     "6f33x9tXwcjXVv0kfZPLS3bzFmxLB0Rm69+vz6txfLg/v3uA99vA+lIvpR0R1c/JdLPs1/Xw7s"
     "3hvseD8ZRb+HxB3P7f7756SB//em4jqKusGzdj7lwfzKn7/LP7UZKWrYLAT4u+nN3nb6qYe8oq"
@@ -473,11 +473,11 @@ KAWAII_ANSI_BANNER_ZB64 = (
     "3uJiVqrWv1Ct9RFy4j9jXqXmvh8ndNCDIQHXQwhl5AHeWKFH8NzlCwkWN8UkmL+omKFdoHWdKs"
     "2atr5YN8V2r2LnMlezp+ACurbhIHIO7uJVMMRyWCzH/AYfzUTy8lRbFgroiQpXdQo9qPY69XrQ"
     "L/PDMp29XOS7XLANlijnl3J/YI9vU6tXO9VmBW3En1OQBj0w9Frpfv9bt6vv8bsPDlz+n7zL7n"
-    "TfkrHS2tlQ=="
+    "TfkrbPStlg=="
 )
 
 KAWAII_ASCII_FALLBACK = """+------------------------------------------------------------------------------+
-| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.3.3)          Core 30.4.0 |
+| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.3.4)          Core 30.4.0 |
 | [ > Overview ]  [ Stratum :8345 ]  [ P2Pool :8344 ]  [ Scash RPC :8342 ]     |
 +------------------------------------------------------------------------------+
 |  * SCASH PEER-TO-PEER MINING POOL (Sovereign Node + Sharechain + CPU Miner)  |
@@ -1151,7 +1151,7 @@ def make_sync_handler(sync_state, ctrl):
                 self._send_json({
                     "ok": True,
                     "syncing": True,
-                    "version": "0.3.3",
+                    "version": "0.3.4",
                     "hashrates": {
                         "local_live_hs": 0.0, "local_10s_hs": 0.0, "local_60s_hs": 0.0, "local_30m_hs": 0.0,
                         "pool_live_hs": 0.0, "pool_10s_hs": 0.0, "pool_60s_hs": 0.0, "pool_30m_hs": 0.0,

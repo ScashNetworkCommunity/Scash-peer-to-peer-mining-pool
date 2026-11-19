@@ -24,6 +24,8 @@ _rx_cache = None
 _rx_vm = None
 _rx_active_flags = 0
 _rx_current_epoch = None
+_rx_memo = {}
+_rx_memo_order = []
 _rx_load_errors = []
 _rx_found_file_on_disk = False
 
@@ -209,6 +211,9 @@ def calculate_scash_hash_and_cm_bytes(header_bytes):
     header_112 = pack_header_for_randomx(header_bytes)
     ntime = struct.unpack('<I', header_112[68:72])[0]
     with _rx_lock:
+        cached = _rx_memo.get(header_112)
+        if cached is not None:
+            return cached
         lib, vm = _get_vm_for_timestamp(ntime)
         if lib is not None and vm is not None:
             hdr_buf = ctypes.create_string_buffer(header_112, 112)
@@ -216,7 +221,13 @@ def calculate_scash_hash_and_cm_bytes(header_bytes):
             rx_cm = ctypes.create_string_buffer(32)
             lib.randomx_calculate_hash(vm, hdr_buf, 112, rx_hash)
             lib.randomx_calculate_commitment(hdr_buf, 112, rx_hash, rx_cm)
-            return rx_hash.raw, rx_cm.raw
+            res_pair = (rx_hash.raw, rx_cm.raw)
+            _rx_memo[header_112] = res_pair
+            _rx_memo_order.append(header_112)
+            if len(_rx_memo_order) > 128:
+                old_k = _rx_memo_order.pop(0)
+                _rx_memo.pop(old_k, None)
+            return res_pair
 
     if _rx_found_file_on_disk or os.environ.get('SCASH_REQUIRE_NATIVE_RANDOMX') == '1':
         detail = '; '.join(_rx_load_errors) if _rx_load_errors else 'librandomx.so / randomx.dll missing or VM init failed'

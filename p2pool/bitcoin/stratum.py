@@ -1,4 +1,5 @@
 import json
+import time
 import os
 import random
 import struct
@@ -27,6 +28,7 @@ class StratumRPCMiningProvider(object):
         self._last_notify_sig = None
         self._last_sent_diff = None
         self._last_xmrig_sig = None
+        self._last_xmrig_push_ts = 0.0
         self._diag_logged = False
         self.watch_id = self.wb.new_work_event.watch(self._on_new_work)
 
@@ -61,25 +63,29 @@ class StratumRPCMiningProvider(object):
         x, got_response = self.wb.get_work(*self.wb.preprocess_request('' if self.username is None else self.username))
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
         eff_target = x.get('target', x['share_target'])
-        min_hashes = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 4096
-        max_eff_target = (2**256) // min_hashes - 1
+        min_hashes = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 45000
+        # Never make eff_target harder than x['share_target'] so 100% of real P2Pool shares are ALWAYS submitted,
+        # while avoiding sub-second pseudoshare floods that steal CPU/L3 cache from XMRig!
+        max_eff_target = max(int(x['share_target']), (2**256) // min_hashes - 1)
         if eff_target > max_eff_target:
             eff_target = max_eff_target
         target64 = min(0xffffffffffffffff, max(1, int(eff_target >> 192)))
 
-        xmrig_sig = (
+        now_mono = time.time()
+        # Core consensus work identity: new Scash block, new P2Pool tip share (in coinb2 tail), or >20% target shift
+        core_sig = (
             x['previous_block'],
-            x['coinb1'],
-            x['coinb2'],
-            tuple(x['merkle_link']['branch']),
+            x['coinb2'][-44:],
             x['version'],
             bits_int,
-            x['timestamp'],
-            target64,
         )
-        if not force and self._last_xmrig_sig == xmrig_sig:
-            return None
-        self._last_xmrig_sig = xmrig_sig
+        if not force and self._last_xmrig_sig is not None:
+            prev_core, prev_t64 = self._last_xmrig_sig
+            t_ratio = float(max(target64, prev_t64)) / float(max(1, min(target64, prev_t64)))
+            if prev_core == core_sig and t_ratio < 1.25 and (now_mono - self._last_xmrig_push_ts) < 25.0:
+                return None
+        self._last_xmrig_sig = (core_sig, target64)
+        self._last_xmrig_push_ts = now_mono
 
         jobid = "%016x" % random.randrange(2**64)
         coinb_nonce = struct.pack('<Q', random.randrange(2**64))[:self.wb.COINBASE_NONCE_LENGTH]
@@ -133,7 +139,7 @@ class StratumRPCMiningProvider(object):
 
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
         eff_target = x.get('target', x['share_target'])
-        expected_hashes = max((1024.0 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 4096.0), float(2**256) / max(1.0, float(eff_target)))
+        expected_hashes = max((1024.0 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 32768.0), float(2**256) / max(1.0, float(max(int(x['share_target']), eff_target))))
         scash_diff = expected_hashes / 65536.0
 
         notify_sig = (
@@ -199,8 +205,8 @@ class StratumRPCMiningProvider(object):
         new_packed_gentx = x['coinb1'] + coinb_nonce + x['coinb2']
         merkle_root = bitcoin_data.check_merkle_link(bitcoin_data.hash256(new_packed_gentx), x['merkle_link'])
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
-        _mh = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 4096
-        eff_target = min((2**256) // _mh - 1, x.get('target', x['share_target']))
+        _mh = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 32768
+        eff_target = min(max(int(x['share_target']), (2**256) // _mh - 1), x.get('target', x['share_target']))
 
         ntime_padded = ntime.strip()
         if len(ntime_padded) % 2 != 0:
