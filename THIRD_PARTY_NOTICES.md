@@ -1,6 +1,6 @@
-# Third-Party Open-Source Notices
+# Third-Party Open-Source Notices & Contributors
 
-Scash P2Pool (`magicalgirlsunite` / `ScashNetworkCommunity`) builds upon the following open-source projects:
+Scash P2Pool (maintained by [`@iscpuminingreal`](https://github.com/iscpuminingreal) / `magicalgirlsunite` & [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity), alongside all upstream contributors) builds upon the following open-source projects:
 
 - **Scash Core (`Scash 2.3.0 / Mid-World Core 30.4.0`)**: [`ScashNetworkCommunity/scash`](https://github.com/ScashNetworkCommunity/scash) — MIT License.
 - **P2Pool**: [`forrestv/p2pool`](https://github.com/forrestv/p2pool) — GPLv3 License.
