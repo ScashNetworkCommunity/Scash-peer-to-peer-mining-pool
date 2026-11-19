@@ -98,4 +98,3 @@ If you'd like to verify your `.zip` matches `SHA256SUMS.txt` on the Releases pag
 ```powershell
 Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.5-win64.zip -Algorithm SHA256
 ```
-
