@@ -16,7 +16,7 @@ PERSIST = False
 WORKER_PORT = 8345
 import os as _os
 BOOTSTRAP_ADDRS = [] if _os.environ.get('SCASH_CI_ISOLATED_MESH') == '1' else (
-    'p2pool.magicalgirlsunite.moe magicalgirlsunite.moe seed.scash.one scash.tv '
+    'magicalgirlsunite.moe scash.tv '
     'scash.pool-pay.com satoshicash.cedric-crispin.com pool.rplant.xyz '
     '5.59.96.54 5.128.87.126 5.186.40.82 144.76.17.34 198.199.73.40 88.190.223.96 209.141.46.154'
 ).split()
