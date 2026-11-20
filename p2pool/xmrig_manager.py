@@ -1,5 +1,5 @@
 """
-Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.3.5).
+Local CPU Miner Controller for Scash P2Pool (QtKawaii Edition v0.3.6).
 Manages local xmrigDaemon + xmrigMiner (rx/scash, built with -DWITH_MSR=ON,
 -DWITH_ASM=ON, WinRing0x64.sys, HugePages, and hwloc physical-core affinity)
 connecting strictly to 127.0.0.1:8345 and reports 100% real live process status,
@@ -232,9 +232,9 @@ class LocalMinerController(object):
             "huge-pages": bool(self.large_pages),
             "huge-pages-jit": bool(self.large_pages),
             "hw-aes": None,
-            "priority": None if self.custom_threads else 2,
+            "priority": None,
             "memory-pool": bool(self.large_pages),
-            "yield": bool(self.custom_threads),
+            "yield": True,
             "asm": True,
             "max-threads-hint": 100,
         }
@@ -498,12 +498,10 @@ class LocalMinerController(object):
             ])
             if self.custom_threads:
                 cmd.extend(["-t", str(self.threads)])
-            else:
-                cmd.append("--cpu-no-yield")
 
         kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT, "cwd": bin_dir}
         if platform.system() == "Windows":
-            kwargs["creationflags"] = 0x08000020  # CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS (XMRig then elevates to priority:2 ABOVE_NORMAL)
+            kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW (XMRig worker threads default to friendly priority so P2Pool reactor never lags)
         _enable_os_hugepages_privilege(self.large_pages)
         repaired_wr0 = _repair_stale_windows_winring0_service(bin_dir)
         try:

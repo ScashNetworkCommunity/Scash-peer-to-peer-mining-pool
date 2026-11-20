@@ -594,7 +594,7 @@ try:
         return _node_status_cache['data']
 
 
-    # --- v0.3.5 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
+    # --- v0.3.6 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
     import binascii as _w_binascii
     from p2pool.bitcoin import bech32_scash as _w_b32
 
@@ -766,6 +766,7 @@ try:
         'chain': '',
         'min_scanned_height': None,
         'max_scanned_height': None,
+        'last_tip_hash': '',
         'blocks': {},
         'scanning': False,
         'last_scan_ts': 0.0,
@@ -996,22 +997,29 @@ try:
                 with _ledger_lock:
                     _ledger_state['min_scanned_height'] = low_start
                     _ledger_state['max_scanned_height'] = tip_h
+                    _ledger_state['last_tip_hash'] = str(bc.get('bestblockhash') or '').strip().lower()
                     min_s = low_start
                     max_s = tip_h
                 dirty = True
             else:
-                # Re-verify 6-block tail + scan any newly mined blocks at chain tip
-                fwd_start = max(floor_h, int(max_s) - 6)
-                if tip_h >= fwd_start:
-                    cur = fwd_start
-                    while cur <= tip_h:
-                        top_c = min(tip_h, cur + batch_sz - 1)
-                        _scan_height_slice(port, u, pw, list(range(cur, top_c + 1)), share_hashes)
-                        with _ledger_lock:
-                            if _ledger_state['max_scanned_height'] is None or top_c > _ledger_state['max_scanned_height']:
-                                _ledger_state['max_scanned_height'] = top_c
-                        cur = top_c + 1
-                        dirty = True
+                tip_bh = str(bc.get('bestblockhash') or '').strip().lower()
+                with _ledger_lock:
+                    prev_tip_bh = _ledger_state.get('last_tip_hash') or ''
+                # Only re-scan 6-block tail over RPC when Scash chain tip height or bestblockhash actually changed!
+                if tip_h != int(max_s) or (tip_bh and tip_bh != prev_tip_bh):
+                    fwd_start = max(floor_h, int(max_s) - 6)
+                    if tip_h >= fwd_start:
+                        cur = fwd_start
+                        while cur <= tip_h:
+                            top_c = min(tip_h, cur + batch_sz - 1)
+                            _scan_height_slice(port, u, pw, list(range(cur, top_c + 1)), share_hashes)
+                            with _ledger_lock:
+                                if _ledger_state['max_scanned_height'] is None or top_c > _ledger_state['max_scanned_height']:
+                                    _ledger_state['max_scanned_height'] = top_c
+                            cur = top_c + 1
+                            dirty = True
+                    with _ledger_lock:
+                        _ledger_state['last_tip_hash'] = tip_bh
 
             # Backfill older history down to floor_h in bounded chunks
             backfilled = 0
@@ -1164,7 +1172,7 @@ try:
     def _http_get_json_wan(url, timeout=4.5):
         req = _w_ureq.Request(url, headers={
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.5; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         raw = _scash_open_url(req, timeout=timeout, is_local=url.startswith('http://127.0.0.1'))
         return _w_json.loads(raw.decode('utf-8', 'replace'))
@@ -1541,6 +1549,415 @@ try:
             _mt.start()
         return cur
 
+    # --- Multi-Explorer Health Cycling & Automatic Failover (v0.3.6) ---
+    def _get_scash_explorer_defs():
+        e1_base = 'https://explorer.scash.network'
+        e2_base = 'https://scash.tv'
+        if os.environ.get('SCASH_EXPLORER_TEST_URLS') == '1':
+            e1_base = (os.environ.get('SCASH_EXPLORER_1_BASE') or e1_base).rstrip('/')
+            e2_base = (os.environ.get('SCASH_EXPLORER_2_BASE') or e2_base).rstrip('/')
+        return [
+            {
+                'key': 'scash_network',
+                'name': 'explorer.scash.network',
+                'short': 'scash.network',
+                'home_url': e1_base + '/',
+                'probe_url': e1_base + '/',
+                'block_tpl': e1_base + '/block/{id}/20/1',
+                'address_tpl': e1_base + '/address/{id}/20/1',
+                'is_public': True,
+            },
+            {
+                'key': 'scash_tv',
+                'name': 'scash.tv',
+                'short': 'scash.tv',
+                'home_url': e2_base + '/',
+                'probe_url': e2_base + '/',
+                'block_tpl': e2_base + '/block/{id}',
+                'address_tpl': e2_base + '/address/{id}',
+                'is_public': True,
+            },
+            {
+                'key': 'local_node',
+                'name': 'Local Scash Node',
+                'short': 'Local Coinbase',
+                'home_url': '/local_explorer',
+                'probe_url': '',
+                'block_tpl': '/local_explorer?block={id}',
+                'address_tpl': '/local_explorer?address={id}',
+                'is_public': False,
+            },
+        ]
+
+    _explorer_lock = _w_threading.Lock()
+    _explorer_cache = {
+        'ts': 0.0,
+        'probing': False,
+        'data': None,
+    }
+
+    def _build_default_explorer_snapshot():
+        defs = _get_scash_explorer_defs()
+        items = []
+        for d in defs:
+            items.append({
+                'key': d['key'],
+                'name': d['name'],
+                'short': d['short'],
+                'home_url': d['home_url'],
+                'block_tpl': d['block_tpl'],
+                'address_tpl': d['address_tpl'],
+                'online': True if not d['is_public'] else None,
+            })
+        return {
+            'active_key': defs[0]['key'],
+            'active_name': defs[0]['name'],
+            'active_url': defs[0]['home_url'],
+            'checked_at': 0,
+            'items': items,
+        }
+
+    def _check_single_explorer_url(probe_url, timeout=3.2):
+        if not probe_url:
+            return True
+        try:
+            req = _w_ureq.Request(probe_url, headers={
+                'Accept': 'text/html,application/json,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            })
+            raw = _scash_open_url(req, timeout=timeout, is_local=probe_url.startswith('http://127.0.0.1'))
+            if not raw or len(raw) < 16:
+                return False
+            sample = raw[:4096].decode('utf-8', 'replace').lower()
+            for bad_sig in ('502 bad gateway', '503 service temporarily unavailable', '504 gateway time-out', 'error code 52', 'origin is unreachable'):
+                if bad_sig in sample:
+                    return False
+            return True
+        except Exception:
+            return False
+
+    def _probe_scash_explorers_once(timeout=3.2):
+        if os.environ.get('SCASH_CI_ISOLATED_MESH') == '1' and os.environ.get('SCASH_EXPLORER_TEST_URLS') != '1':
+            snap = _build_default_explorer_snapshot()
+            with _explorer_lock:
+                _explorer_cache['data'] = snap
+                _explorer_cache['ts'] = _w_time.time()
+            return snap
+        with _explorer_lock:
+            if _explorer_cache['probing'] and _explorer_cache['data'] is not None:
+                return _explorer_cache['data']
+            _explorer_cache['probing'] = True
+        try:
+            defs = _get_scash_explorer_defs()
+            items = []
+            chosen = None
+            for d in defs:
+                ok = True if not d['is_public'] else _check_single_explorer_url(d['probe_url'], timeout=timeout)
+                entry = {
+                    'key': d['key'],
+                    'name': d['name'],
+                    'short': d['short'],
+                    'home_url': d['home_url'],
+                    'block_tpl': d['block_tpl'],
+                    'address_tpl': d['address_tpl'],
+                    'online': bool(ok),
+                }
+                items.append(entry)
+                if ok and chosen is None:
+                    chosen = entry
+            if chosen is None:
+                chosen = items[-1]
+            snap = {
+                'active_key': chosen['key'],
+                'active_name': chosen['name'],
+                'active_url': chosen['home_url'],
+                'checked_at': int(_w_time.time()),
+                'items': items,
+            }
+            with _explorer_lock:
+                _explorer_cache['data'] = snap
+                _explorer_cache['ts'] = _w_time.time()
+            return snap
+        finally:
+            with _explorer_lock:
+                _explorer_cache['probing'] = False
+
+    def _get_cached_explorers():
+        now_t = _w_time.time()
+        with _explorer_lock:
+            cur = _explorer_cache['data']
+            age = now_t - float(_explorer_cache['ts'] or 0.0)
+            busy = bool(_explorer_cache['probing'])
+        if cur is None:
+            cur = _build_default_explorer_snapshot()
+        if age >= 90.0 and not busy:
+            _et = _w_threading.Thread(target=_probe_scash_explorers_once)
+            _et.daemon = True
+            _et.start()
+        return cur
+
+    def _html_esc(val):
+        s = str(val if val is not None else '')
+        return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
+
+    def _resolve_block_hash_and_obj(raw_block_id):
+        bid = str(raw_block_id or '').strip().lower()
+        if not bid:
+            return '', None
+        bhash = ''
+        bobj = None
+        if len(bid) < 64 and bid.isdigit():
+            h_int = int(bid)
+            with _ledger_lock:
+                rec = _ledger_state['blocks'].get(str(h_int))
+                if rec and rec.get('hash'):
+                    bhash = str(rec.get('hash')).strip().lower()
+            try:
+                _, port, u, pw = _get_rpc_conn_params()
+                if not bhash:
+                    r_h = _scashd_rpc_batch(port, u, pw, [('getblockhash', [h_int])], timeout=3.0)
+                    if r_h and isinstance(r_h[0], (str, type(u''))):
+                        bhash = str(r_h[0]).strip().lower()
+                if bhash:
+                    r_b = _scashd_rpc_batch(port, u, pw, [('getblock', [bhash, 2])], timeout=4.0)
+                    if r_b and isinstance(r_b[0], dict):
+                        bobj = r_b[0]
+            except Exception:
+                pass
+        else:
+            clean_hex = ''.join(ch for ch in bid if ch in '0123456789abcdef')
+            if len(clean_hex) == 64:
+                bhash = clean_hex
+                try:
+                    _, port, u, pw = _get_rpc_conn_params()
+                    r_b = _scashd_rpc_batch(port, u, pw, [('getblock', [bhash, 2])], timeout=4.0)
+                    if r_b and isinstance(r_b[0], dict):
+                        bobj = r_b[0]
+                except Exception:
+                    pass
+        return bhash, bobj
+
+    def _cycle_and_pick_explorer_url(kind, raw_target, prefer_key=''):
+        k_norm = 'address' if str(kind or '').strip().lower() == 'address' else 'block'
+        raw_s = str(raw_target or '').strip()
+        if k_norm == 'address':
+            try:
+                from p2pool.bitcoin import data as _bd_ex
+                clean_id = str(_bd_ex._strip_scash_worker_suffix(raw_s) or '').strip()
+            except Exception:
+                clean_id = raw_s.split('.')[0].strip()
+        else:
+            bhash, _ = _resolve_block_hash_and_obj(raw_s)
+            clean_id = bhash if bhash else raw_s
+
+        if not clean_id:
+            snap = _probe_scash_explorers_once(timeout=2.5)
+            return snap.get('active_url') or '/local_explorer'
+
+        defs = _get_scash_explorer_defs()
+        if prefer_key:
+            for d in defs:
+                if d['key'] == prefer_key:
+                    tpl = d['address_tpl'] if k_norm == 'address' else d['block_tpl']
+                    if d['is_public'] and k_norm == 'block' and len(clean_id) != 64:
+                        break
+                    return tpl.replace('{id}', clean_id)
+
+        # If a public block explorer requires a 64-hex block hash and we only have an unresolved height, use local_explorer
+        if k_norm == 'block' and len(clean_id) != 64:
+            return '/local_explorer?block=' + clean_id
+
+        now_t = _w_time.time()
+        with _explorer_lock:
+            cached = _explorer_cache['data']
+            cache_age = now_t - float(_explorer_cache['ts'] or 0.0)
+
+        if cached is not None and cache_age <= 45.0 and cached.get('checked_at'):
+            for it in (cached.get('items') or []):
+                if it.get('online'):
+                    tpl = it.get('address_tpl') if k_norm == 'address' else it.get('block_tpl')
+                    if tpl:
+                        return str(tpl).replace('{id}', clean_id)
+
+        snap = _probe_scash_explorers_once(timeout=2.5)
+        for it in (snap.get('items') or []):
+            if it.get('online'):
+                tpl = it.get('address_tpl') if k_norm == 'address' else it.get('block_tpl')
+                if tpl:
+                    return str(tpl).replace('{id}', clean_id)
+        return ('/local_explorer?address=' + clean_id) if k_norm == 'address' else ('/local_explorer?block=' + clean_id)
+
+    def _decode_vout_scash_address(vout):
+        if not isinstance(vout, dict):
+            return ''
+        spk = vout.get('scriptPubKey') or {}
+        a1 = spk.get('address')
+        if a1:
+            return str(a1).strip().lower()
+        for ax in (spk.get('addresses') or []):
+            if ax:
+                return str(ax).strip().lower()
+        spk_hex = str(spk.get('hex') or '').lower()
+        if len(spk_hex) == 44 and spk_hex.startswith('0014'):
+            try:
+                return str(_w_b32.encode_scash_address(_w_binascii.unhexlify(spk_hex[4:]), 'scash') or '').strip().lower()
+            except Exception:
+                pass
+        return ''
+
+    def _render_local_explorer_html(_wb_ref, block_q='', addr_q=''):
+        defs = _get_scash_explorer_defs()
+        e1_blk = defs[0]['block_tpl']
+        e2_blk = defs[1]['block_tpl']
+        e1_adr = defs[0]['address_tpl']
+        e2_adr = defs[1]['address_tpl']
+        parts = [
+            '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width,initial-scale=1">',
+            '<title>Scash P2Pool v0.3.6 — Local Full-Node Block &amp; Payout Explorer</title>',
+            '<style>',
+            'body{background:#120b1e;color:#f3ecff;font-family:Inter,system-ui,-apple-system,sans-serif;max-width:920px;margin:28px auto;padding:0 16px;line-height:1.55}',
+            '.card{background:#1b112c;border:1px solid rgba(77,238,234,0.45);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 10px 28px rgba(0,0,0,0.4)}',
+            'h1{font-size:18px;margin:0 0 6px;color:#4deeea}h2{font-size:14px;margin:0 0 10px;color:#ffd166;text-transform:uppercase;letter-spacing:0.04em}',
+            'code,.mono{font-family:JetBrains Mono,Consolas,monospace;font-size:12px}',
+            'a{color:#4deeea;text-decoration:none}a:hover{text-decoration:underline}',
+            'table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}th,td{padding:8px 10px;border-bottom:1px solid rgba(168,85,247,0.22);text-align:left}',
+            'th{color:#d8b4fe;background:#24163b}.amt{color:#34d399;font-weight:700;text-align:right}.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid rgba(77,238,234,0.5);background:#140b23;margin-right:6px}',
+            '</style></head><body>',
+            '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">',
+            '<div><h1>Scash P2Pool (v0.3.6) &mdash; Local Scash Core 30.4 Coinbase &amp; Payout Inspector</h1>',
+            '<div style="font-size:12px;color:#c4b5fd">100% trustless verification directly from your local <code>scashd</code> blockchain &amp; P2Pool ledger (built-in fallback when external web explorers are unreachable).</div></div>',
+            '<a class="pill" href="/static/">&larr; Back to Dashboard</a></div></div>',
+        ]
+        if block_q:
+            bhash, bobj = _resolve_block_hash_and_obj(block_q)
+            parts.append('<div class="card"><h2>On-Chain Block Inspection</h2>')
+            if bobj and isinstance(bobj, dict):
+                bh_s = _html_esc(bobj.get('hash') or bhash)
+                ht_i = int(bobj.get('height') or 0)
+                ts_i = int(bobj.get('time') or 0)
+                iso_t = _w_time.strftime('%Y-%m-%d %H:%M:%S UTC', _w_time.gmtime(ts_i)) if ts_i > 0 else '—'
+                conf_i = int(bobj.get('confirmations') or 0)
+                txs = bobj.get('tx') or []
+                cb_tx = txs[0] if (txs and isinstance(txs[0], dict)) else {}
+                parts.append('<div class="mono" style="font-size:12px;margin-bottom:10px">')
+                parts.append('<div><strong>Block Height:</strong> #%d (%d confirmations)</div>' % (ht_i, conf_i))
+                parts.append('<div><strong>Block Hash:</strong> %s</div>' % bh_s)
+                parts.append('<div><strong>Timestamp:</strong> %s</div>' % _html_esc(iso_t))
+                parts.append('<div style="margin-top:8px"><strong>External Explorers:</strong> ')
+                parts.append('<a class="pill" target="_blank" rel="noopener" href="%s">explorer.scash.network &#8599;</a>' % _html_esc(e1_blk.replace('{id}', str(bobj.get('hash') or bhash))))
+                parts.append('<a class="pill" target="_blank" rel="noopener" href="%s">scash.tv &#8599;</a></div></div>' % _html_esc(e2_blk.replace('{id}', str(bobj.get('hash') or bhash))))
+                parts.append('<h2>Coinbase Transaction (tx[0]) Direct Miner Payouts</h2>')
+                parts.append('<table><thead><tr><th>#</th><th>Recipient Wallet (scash1...)</th><th style="text-align:right">Payout (SCASH)</th></tr></thead><tbody>')
+                for idx, vo in enumerate(cb_tx.get('vout') or []):
+                    if not isinstance(vo, dict):
+                        continue
+                    val = float(vo.get('value') or 0.0)
+                    spk = vo.get('scriptPubKey') or {}
+                    ad = _decode_vout_scash_address(vo)
+                    if val <= 0.0 and str(spk.get('type') or '') == 'nulldata':
+                        continue
+                    ad_cell = ('<a class="mono" href="/local_explorer?address=%s">%s</a>' % (_html_esc(ad), _html_esc(ad))) if ad else ('<span class="mono" style="color:#a78bfa">%s</span>' % _html_esc(spk.get('type') or 'script'))
+                    parts.append('<tr><td class="mono">%d</td><td>%s</td><td class="mono amt">%.8f SCASH</td></tr>' % (idx, ad_cell, val))
+                parts.append('</tbody></table>')
+            else:
+                parts.append('<div class="mono">Block <strong>%s</strong> not found in local scashd yet (node may still be syncing).</div>' % _html_esc(block_q))
+                if len(bhash) == 64:
+                    parts.append('<div style="margin-top:8px"><a class="pill" target="_blank" rel="noopener" href="%s">Open on explorer.scash.network &#8599;</a><a class="pill" target="_blank" rel="noopener" href="%s">Open on scash.tv &#8599;</a></div>' % (_html_esc(e1_blk.replace('{id}', bhash)), _html_esc(e2_blk.replace('{id}', bhash))))
+            parts.append('</div>')
+
+        if addr_q:
+            try:
+                from p2pool.bitcoin import data as _bd_loc
+                clean_a = str(_bd_loc._strip_scash_worker_suffix(addr_q) or '').strip().lower()
+            except Exception:
+                clean_a = str(addr_q).strip().split('.')[0].lower()
+            lg_a = _summarize_ledger_stats(wallet_addr=clean_a)
+            with _ledger_lock:
+                all_recs = sorted(list(_ledger_state['blocks'].values()), key=lambda r: int(r.get('height') or 0), reverse=True)
+            paid_rows = []
+            for r in all_recs:
+                pmap = r.get('payouts') or {}
+                amt = float(pmap.get(clean_a) or 0.0)
+                if amt > 0.0:
+                    paid_rows.append((int(r.get('height') or 0), str(r.get('hash') or ''), int(r.get('ts') or 0), amt))
+            parts.append('<div class="card"><h2>On-Chain P2Pool Payout History for Wallet</h2>')
+            parts.append('<div class="mono" style="margin-bottom:10px"><div><strong>Wallet:</strong> %s</div>' % _html_esc(clean_a))
+            parts.append('<div><strong>7d:</strong> %.4f SCASH &bull; <strong>30d:</strong> %.4f SCASH &bull; <strong>All-Time:</strong> %.4f SCASH (%d blocks paid)</div>' % (
+                float(lg_a.get('miner_scash_7d') or 0.0),
+                float(lg_a.get('miner_scash_30d') or 0.0),
+                float(lg_a.get('miner_scash_all_time') or 0.0),
+                int(lg_a.get('miner_blocks_paid') or 0),
+            ))
+            parts.append('<div style="margin-top:8px"><strong>External Explorers:</strong> ')
+            parts.append('<a class="pill" target="_blank" rel="noopener" href="%s">explorer.scash.network &#8599;</a>' % _html_esc(e1_adr.replace('{id}', clean_a)))
+            parts.append('<a class="pill" target="_blank" rel="noopener" href="%s">scash.tv &#8599;</a></div></div>' % _html_esc(e2_adr.replace('{id}', clean_a)))
+            if paid_rows:
+                parts.append('<table><thead><tr><th>Block</th><th>Block Hash</th><th>Time (UTC)</th><th style="text-align:right">Your Coinbase Payout</th></tr></thead><tbody>')
+                for ht_i, bh_s, ts_i, amt_v in paid_rows[:100]:
+                    iso_t = _w_time.strftime('%Y-%m-%d %H:%M:%S', _w_time.gmtime(ts_i)) if ts_i > 0 else '—'
+                    short_h = (bh_s[:14] + '...' + bh_s[-8:]) if len(bh_s) >= 24 else bh_s
+                    parts.append('<tr><td class="mono"><a href="/local_explorer?block=%s">#%d</a></td><td class="mono"><a href="/explorer_go?type=block&amp;id=%s" target="_blank" rel="noopener">%s &#8599;</a></td><td class="mono">%s</td><td class="mono amt">+%.8f SCASH</td></tr>' % (
+                        _html_esc(bh_s or str(ht_i)), ht_i, _html_esc(bh_s or str(ht_i)), _html_esc(short_h), _html_esc(iso_t), amt_v
+                    ))
+                parts.append('</tbody></table>')
+            else:
+                parts.append('<div class="mono" style="color:#c4b5fd">No solved P2Pool coinbase payouts recorded for this address in local scanned blocks yet.</div>')
+            parts.append('</div>')
+
+        if not block_q and not addr_q:
+            lg_all = _summarize_ledger_stats()
+            parts.append('<div class="card"><h2>Recent Solved Scash P2Pool Blocks (Local Blockchain Ledger)</h2>')
+            rbs = lg_all.get('recent_blocks') or []
+            if rbs:
+                parts.append('<table><thead><tr><th>Block</th><th>Block Hash</th><th>Time (UTC)</th><th style="text-align:right">Reward</th></tr></thead><tbody>')
+                for b in rbs:
+                    bh_s = str(b.get('hash') or '')
+                    ht_i = int(b.get('number') or 0)
+                    ts_i = int(b.get('ts') or 0)
+                    iso_t = _w_time.strftime('%Y-%m-%d %H:%M:%S', _w_time.gmtime(ts_i)) if ts_i > 0 else '—'
+                    short_h = (bh_s[:16] + '...' + bh_s[-8:]) if len(bh_s) >= 26 else bh_s
+                    parts.append('<tr><td class="mono"><a href="/local_explorer?block=%s">#%d</a></td><td class="mono"><a href="/explorer_go?type=block&amp;id=%s" target="_blank" rel="noopener">%s &#8599;</a></td><td class="mono">%s</td><td class="mono amt">%.8f SCASH</td></tr>' % (
+                        _html_esc(bh_s or str(ht_i)), ht_i, _html_esc(bh_s or str(ht_i)), _html_esc(short_h), _html_esc(iso_t), float(b.get('reward') or 50.0)
+                    ))
+                parts.append('</tbody></table>')
+            else:
+                parts.append('<div class="mono">No P2Pool blocks recorded in local ledger yet.</div>')
+            parts.append('</div>')
+
+        parts.append('</body></html>')
+        return ''.join(parts)
+
+    class _ScashExplorerGoResource(_tw_resource.Resource):
+        isLeaf = True
+        def __init__(self, mode='go', wb_ref=None):
+            _tw_resource.Resource.__init__(self)
+            self.mode = mode
+            self.wb_ref = wb_ref
+        def render_GET(self, request):
+            def _arg(k):
+                vals = request.args.get(k, request.args.get(k.encode('utf-8'), [None]))
+                v = vals[0] if vals else None
+                return v.decode('utf-8', 'replace') if isinstance(v, bytes) else v
+            if self.mode == 'local':
+                request.setHeader('Content-Type', 'text/html; charset=utf-8')
+                request.setHeader('Cache-Control', 'no-store')
+                html_s = _render_local_explorer_html(
+                    self.wb_ref,
+                    block_q=_arg('block') or '',
+                    addr_q=_arg('address') or '',
+                )
+                return html_s if isinstance(html_s, bytes) else html_s.encode('utf-8')
+            kind = _arg('type') or ('address' if _arg('address') else 'block')
+            tid = _arg('id') or _arg('block') or _arg('address') or ''
+            pref = _arg('prefer') or ''
+            dest = _cycle_and_pick_explorer_url(kind, tid, prefer_key=pref)
+            request.setResponseCode(302)
+            request.setHeader('Location', dest.encode('utf-8') if isinstance(dest, type(u'')) and bytes is str else dest)
+            request.setHeader('Cache-Control', 'no-store')
+            body = '<html><body>Redirecting to working Scash explorer: <a href="%s">%s</a></body></html>' % (_html_esc(dest), _html_esc(dest))
+            return body if isinstance(body, bytes) else body.encode('utf-8')
+
     def _maybe_start_v032_telemetry_daemons(_wb_ref):
         if not _hr_sampler_started['active']:
             _hr_sampler_started['active'] = True
@@ -1576,6 +1993,7 @@ try:
             _lt.daemon = True
             _lt.start()
         _get_cached_scash_market()
+        _get_cached_explorers()
 
     def _build_pool_telemetry_payload(_wb_ref, wallet_param=None):
         w_eff = (wallet_param or _xmrig_mgr.GLOBAL_XMRIG.wallet or '').strip()
@@ -1583,16 +2001,20 @@ try:
         with _ledger_lock:
             uninitialized = (_ledger_state['max_scanned_height'] is None and not _ledger_state['scanning'])
         if uninitialized:
-            _sync_p2pool_ledger_once(_wb_ref, max_backfill_blocks=100)
+            _init_lt = _w_threading.Thread(target=_sync_p2pool_ledger_once, args=(_wb_ref, 100))
+            _init_lt.daemon = True
+            _init_lt.start()
         rates = _sample_hashrate_rings(_wb_ref)
         ledger = _summarize_ledger_stats(wallet_addr=w_eff)
         market = _get_cached_scash_market()
+        explorers = _get_cached_explorers()
         return {
             'ok': True,
-            'version': '0.3.5',
+            'version': '0.3.6',
             'hashrates': rates,
             'ledger': ledger,
             'market': market,
+            'explorers': explorers,
         }
 
     def _build_miningcore_pool_payload(_wb_ref):
@@ -1754,7 +2176,7 @@ try:
             'blockRefreshInterval': 1000,
             'poolFeePercent': 0.0,
             'address': '',
-            'addressInfoLink': 'https://scash.tv/',
+            'addressInfoLink': (_get_cached_explorers().get('active_url') if str(_get_cached_explorers().get('active_url') or '').startswith('http') else 'https://explorer.scash.network/'),
             'poolStats': {
                 'connectedMiners': int(miners_cnt),
                 'connectedWorkers': int(max(miners_cnt, workers_cnt)),
@@ -1838,7 +2260,7 @@ try:
             return False
 
         try:
-            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.5; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
             r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
             r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
             if r_obj:
@@ -1867,7 +2289,7 @@ try:
                 'Authorization': 'Bearer ' + tok,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.5; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             }
             req = _w_ureq.Request(url, data, hdrs)
             req.get_method = lambda: method
@@ -1967,7 +2389,7 @@ try:
             'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
         ):
             try:
-                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.5; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
                 txt = _scash_open_url(req, timeout=4.0, is_local=u.startswith('http://127.0.0.1')).decode('utf-8', 'replace')
                 obj = _w_json.loads(txt) or {}
                 if 'report_url' in obj:
@@ -2007,7 +2429,7 @@ try:
         except Exception:
             pass
         body = _w_json.dumps({
-            'version': '0.3.5',
+            'version': '0.3.6',
             'best_share_hash': best_hex,
             'chain_height': int(chain_h),
             'p2pool_peers': int(p2p_peers),
@@ -2015,7 +2437,7 @@ try:
         }).encode('utf-8')
         req = _w_ureq.Request(target_url, body, {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.5; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
         if not _community_reporter_started.get('logged'):
@@ -2169,6 +2591,8 @@ try:
         except Exception:
             pass
         _wr.putChild(b'pool_telemetry', _ScashMinerControlResource('telemetry', wb_ref=_wb_obj))
+        _wr.putChild(b'explorer_go', _ScashExplorerGoResource('go', wb_ref=_wb_obj))
+        _wr.putChild(b'local_explorer', _ScashExplorerGoResource('local', wb_ref=_wb_obj))
         _wr.putChild(b'miner_status', _ScashMinerControlResource('status'))
         _wr.putChild(b'miner_start', _ScashMinerControlResource('start', wb_ref=_wb_obj))
         _wr.putChild(b'miner_stop', _ScashMinerControlResource('stop'))

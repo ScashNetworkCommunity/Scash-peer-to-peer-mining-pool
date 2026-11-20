@@ -1,5 +1,5 @@
 ==============================================================================
-  SCASH P2POOL (QtKawaii Edition v0.3.5) - EASY QUICK START GUIDE
+  SCASH P2POOL (QtKawaii Edition v0.3.6) - EASY QUICK START GUIDE
   Publisher: magicalgirlsunite  |  0% Pool Fee (100% PPLNS Direct to Miners)
 ==============================================================================
 

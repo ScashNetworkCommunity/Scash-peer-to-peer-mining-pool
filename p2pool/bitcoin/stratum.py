@@ -1,5 +1,4 @@
 import json
-import time
 import os
 import random
 import struct
@@ -28,20 +27,46 @@ class StratumRPCMiningProvider(object):
         self._last_notify_sig = None
         self._last_sent_diff = None
         self._last_xmrig_sig = None
-        self._last_xmrig_push_ts = 0.0
         self._diag_logged = False
         self.watch_id = self.wb.new_work_event.watch(self._on_new_work)
 
     def _schedule_send_work(self, delay=0.0):
         if self._pending_send is not None and self._pending_send.active():
-            self._pending_send.cancel()
+            if delay == 0.0:
+                self._pending_send.cancel()
+            else:
+                return
         self._pending_send = reactor.callLater(delay, self._send_work)
 
     def _on_new_work(self):
         self._schedule_send_work(0.0)
 
+    def _get_aligned_work(self):
+        req_user = '' if self.username is None else self.username
+        pubkey_hash, desired_share_target, desired_pseudoshare_target = self.wb.preprocess_request(req_user)
+        min_hashes = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 8192
+        max_pseudo_target = (2**256) // min_hashes - 1
+        if desired_pseudoshare_target is None:
+            eff_pseudo = max_pseudo_target
+            try:
+                est_hr = self.wb._estimate_local_hash_rate()
+                if est_hr is not None and float(est_hr) > 0.0:
+                    # Target ~1 pseudoshare every 2.5s for fast multi-core rigs, floored at min_hashes (8192)
+                    auto_t = int(bitcoin_data.average_attempts_to_target(float(est_hr) * 2.5))
+                    if auto_t < eff_pseudo:
+                        eff_pseudo = auto_t
+            except Exception:
+                pass
+        else:
+            eff_pseudo = min(int(desired_pseudoshare_target), max_pseudo_target)
+        x, got_response = self.wb.get_work(pubkey_hash, desired_share_target, eff_pseudo)
+        # Ensure miner target is NEVER easier than x['share_target'] (`target` in p2pool/work.py)
+        raw_t = int(x.get('target', x['share_target']))
+        eff_target = min(raw_t, max_pseudo_target)
+        return x, got_response, eff_target
+
     def rpc_subscribe(self, *args):
-        self._schedule_send_work(0.08)
+        self._schedule_send_work(0.05)
         return [
             [
                 ["mining.set_difficulty", "ae6812eb4cd7735a302a8a9dd95cf71f"],
@@ -53,38 +78,33 @@ class StratumRPCMiningProvider(object):
 
     def rpc_authorize(self, username='', password='', *args):
         self.username = username
-        self._schedule_send_work(0.02)
+        self._schedule_send_work(0.01)
         return True
 
     def rpc_extranonce_subscribe(self, *args):
         return True
 
     def build_xmrig_job(self, force=False):
-        x, got_response = self.wb.get_work(*self.wb.preprocess_request('' if self.username is None else self.username))
+        x, got_response, eff_target = self._get_aligned_work()
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
-        eff_target = x.get('target', x['share_target'])
-        min_hashes = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 16384
-        max_eff_target = (2**256) // min_hashes - 1
-        if eff_target > max_eff_target:
-            eff_target = max_eff_target
         target64 = min(0xffffffffffffffff, max(1, int(eff_target >> 192)))
+        lp_times = getattr(self.wb.new_work_event, 'times', 0)
 
-        now_mono = time.time()
-        # Push immediately (0ms) on any new Scash block or new P2Pool sharechain tip (in coinb2),
-        # while coalescing timestamp-only / minor (<15%) vardiff wiggles within 12s so XMRig hashes uninterrupted!
-        core_sig = (
+        # CRITICAL: Include lp_times AND coinb1 (which holds all PPLNS outputs + best_share_hash ref_hash!)
+        # NEVER coalesce across new_work_event ticks, or p2pool/work.py marks shares DEAD ON ARRIVAL (on_time=False)!
+        xmrig_sig = (
+            lp_times,
             x['previous_block'],
+            x['coinb1'],
             x['coinb2'],
+            tuple(x['merkle_link']['branch']),
             x['version'],
             bits_int,
+            x['timestamp'],
         )
-        if not force and self._last_xmrig_sig is not None:
-            prev_core, prev_t64 = self._last_xmrig_sig
-            t_ratio = float(max(target64, prev_t64)) / float(max(1, min(target64, prev_t64)))
-            if prev_core == core_sig and t_ratio < 1.15 and (now_mono - self._last_xmrig_push_ts) < 12.0:
-                return None
-        self._last_xmrig_sig = (core_sig, target64)
-        self._last_xmrig_push_ts = now_mono
+        if not force and self._last_xmrig_sig == xmrig_sig:
+            return None
+        self._last_xmrig_sig = xmrig_sig
 
         jobid = "%016x" % random.randrange(2**64)
         coinb_nonce = struct.pack('<Q', random.randrange(2**64))[:self.wb.COINBASE_NONCE_LENGTH]
@@ -130,18 +150,19 @@ class StratumRPCMiningProvider(object):
             return
 
         try:
-            x, got_response = self.wb.get_work(*self.wb.preprocess_request('' if self.username is None else self.username))
+            x, got_response, eff_target = self._get_aligned_work()
         except Exception:
             log.err()
             self.transport.loseConnection()
             return
 
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
-        eff_target = x.get('target', x['share_target'])
         expected_hashes = max((1024.0 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 8192.0), float(2**256) / max(1.0, float(eff_target)))
         scash_diff = expected_hashes / 65536.0
+        lp_times = getattr(self.wb.new_work_event, 'times', 0)
 
         notify_sig = (
+            lp_times,
             x['previous_block'],
             x['coinb1'],
             x['coinb2'],
@@ -157,7 +178,7 @@ class StratumRPCMiningProvider(object):
         ):
             return
 
-        clean_jobs = (self._last_notify_sig is None) or (notify_sig[0] != self._last_notify_sig[0])
+        clean_jobs = True
         self._last_notify_sig = notify_sig
         self._last_sent_diff = scash_diff
 
@@ -185,14 +206,15 @@ class StratumRPCMiningProvider(object):
             ],
         }) + "\n"
         self.transport.write(diff_msg + notify_msg)
-        self.handler_map[jobid] = (x, got_response)
+        self.handler_map[jobid] = (x, got_response, eff_target)
 
     def rpc_submit(self, worker_name, job_id, extranonce2, ntime, nonce):
         if job_id not in self.handler_map:
-            print >>sys.stderr, "Couldn't link returned work's job id with its handler."
+            sys.stderr.write("Couldn't link returned work's job id with its handler.\n")
             return False
         entry = self.handler_map[job_id]
         x, got_response = entry[0], entry[1]
+        eff_target = entry[2] if len(entry) > 2 else min((2**256) // (1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 8192) - 1, x.get('target', x['share_target']))
         raw_en2 = extranonce2.decode('hex')
         if len(raw_en2) == self.extranonce2_size and (len(self.extranonce1_bin) + len(raw_en2)) == self.wb.COINBASE_NONCE_LENGTH:
             coinb_nonce = self.extranonce1_bin + raw_en2
@@ -204,8 +226,6 @@ class StratumRPCMiningProvider(object):
         new_packed_gentx = x['coinb1'] + coinb_nonce + x['coinb2']
         merkle_root = bitcoin_data.check_merkle_link(bitcoin_data.hash256(new_packed_gentx), x['merkle_link'])
         bits_int = x['bits'].bits if hasattr(x['bits'], 'bits') else int(x['bits'])
-        _mh = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 8192
-        eff_target = min((2**256) // _mh - 1, x.get('target', x['share_target']))
 
         ntime_padded = ntime.strip()
         if len(ntime_padded) % 2 != 0:
@@ -272,6 +292,7 @@ class StratumRPCMiningProvider(object):
 
     def submit_xmrig_share(self, job_id, nonce_hex, result_hex=''):
         if job_id not in self.handler_map:
+            self._schedule_send_work(0.0)
             return False, "Stale or unknown job_id"
         entry = self.handler_map[job_id]
         x, got_response, coinb_nonce, merkle_root, header_80_base = entry[0], entry[1], entry[2], entry[3], entry[4]
@@ -285,17 +306,15 @@ class StratumRPCMiningProvider(object):
         if rx_cm_a <= eff_target:
             nonce_int = pack.IntType(32).unpack(raw_nonce)
             rx_hash_int = rx_hash_a
-            rx_cm_best = rx_cm_a
         else:
             cand_b = header_80_base[:76] + raw_nonce[::-1]
             rx_hash_b, rx_cm_b = scash_randomx.calculate_rx_hash_and_cm_uint256(cand_b)
             if rx_cm_b <= eff_target:
                 nonce_int = pack.IntType(32).unpack(raw_nonce[::-1])
                 rx_hash_int = rx_hash_b
-                rx_cm_best = rx_cm_b
             else:
-                print >>sys.stderr, (
-                    "[XMRIG-SUBMIT-DIAG] rx_cm > eff_target: job=%s nonce=%s xmrig_res=%s cm_a=%x cm_b=%x target=%x"
+                sys.stderr.write(
+                    "[XMRIG-SUBMIT-DIAG] rx_cm > eff_target: job=%s nonce=%s xmrig_res=%s cm_a=%x cm_b=%x target=%x\n"
                     % (job_id, nonce_hex, result_hex, rx_cm_a, rx_cm_b, eff_target)
                 )
                 sys.stderr.flush()
@@ -311,9 +330,14 @@ class StratumRPCMiningProvider(object):
             rx_hash=rx_hash_int,
         )
         try:
-            ok = got_response(header, '' if self.username is None else self.username, coinb_nonce)
+            on_time_ok = got_response(header, '' if self.username is None else self.username, coinb_nonce)
             sys.stdout.flush()
-            return bool(ok), None
+            if not on_time_ok:
+                # Share had valid PoW (recorded in P2Pool rate monitor), but arrived during a new_work_event transition;
+                # push the latest job immediately and report accurate stale status instead of "Low difficulty share"!
+                self._schedule_send_work(0.0)
+                return False, "Stale share (new work)"
+            return True, None
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
             sys.stderr.flush()
@@ -379,7 +403,8 @@ class StratumProtocol(jsonrpc.LineBasedPeer):
                 if ok:
                     self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": None, "result": True})
                 else:
-                    self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": [23, "Low difficulty share", None], "result": False})
+                    self.svc_mining._schedule_send_work(0.0)
+                    self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": [21, "Stale or rejected share", None], "result": False})
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
                 self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": [20, str(e), None], "result": False})
@@ -417,7 +442,7 @@ class StratumProtocol(jsonrpc.LineBasedPeer):
             if ok:
                 self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": None, "result": {"status": "OK"}})
             else:
-                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": {"code": -1, "message": err_msg or "Low difficulty share"}, "result": None})
+                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": {"code": -1, "message": err_msg or "Stale share (new work)"}, "result": None})
             return
 
         if method == 'keepalived':

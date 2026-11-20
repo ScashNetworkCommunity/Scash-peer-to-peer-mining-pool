@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.5)</title>
+  <title>Scash P2Pool — QtKawaii Peer-to-Peer Mining Pool (v0.3.6)</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -326,7 +326,7 @@
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 font-semibold text-purple-200">
             <span class="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-600 shadow-[0_0_8px_#c77dff]"></span>
-            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.5)</span>
+            <span>Scash P2Pool &mdash; peer2peer-pool (QtKawaii Edition v0.3.6)</span>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-xs text-purple-300/80">
             <button id="menuSettingsBtn" class="hover:text-white">Quick Help</button>
@@ -338,7 +338,7 @@
           <span id="apiConnectionBadge" class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-amber-400/70 text-amber-300 font-mono-code text-[11px]">
             &#9203; CONNECTING TO LOCAL NODE...
           </span>
-          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.5</span>
+          <span id="topSubversionText" class="hidden md:inline text-purple-300/75 font-mono-code">/Scash:30.4.0/ &bull; P2Pool v0.3.6</span>
         </div>
       </div>
 
@@ -461,7 +461,7 @@
                 </div>
               </div>
 
-              <!-- v0.3.5 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
+              <!-- v0.3.6 Miner SCASH Mined (7d / 30d / All-Time) + Pool Total Blocks Found (All-Time) Boxes -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- Box A: Miner SCASH Mined (7d / 30d / All-Time) -->
                 <div class="qt-cyan-card p-4 flex flex-col justify-between">
@@ -644,6 +644,17 @@
                     <a href="https://www.coingecko.com/en/coins/satoshi-cash-network" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">CoinGecko</a>
                   </div>
                   <span id="kpiTotalLiquiditySub" class="font-mono-code text-[10.5px] text-purple-300/80">24h Vol: &mdash;</span>
+                </div>
+                <div class="mt-2 pt-2 border-t border-purple-500/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-purple-300/85">
+                  <div class="flex flex-wrap items-center gap-2" id="explorerLinksBar">
+                    <span>Block Explorers:</span>
+                    <a href="https://explorer.scash.network/" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">explorer.scash.network &#8599;</a>
+                    <span>&bull;</span>
+                    <a href="https://scash.tv/" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:underline font-medium">scash.tv &#8599;</a>
+                    <span>&bull;</span>
+                    <a href="/local_explorer" target="_blank" rel="noopener noreferrer" class="text-purple-200 hover:underline">Local Node &#8599;</a>
+                  </div>
+                  <span id="activeExplorerBadge" class="font-mono-code text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/40 text-emerald-300">Auto-Failover: explorer.scash.network</span>
                 </div>
               </div>
 
@@ -881,7 +892,7 @@
       </div>
       <div class="flex items-center gap-3 font-mono-code">
         <span id="footerSyncStatus" class="text-amber-300">&#9203; Connecting...</span>
-        <span>v0.3.5 (Core 30.4)</span>
+        <span>v0.3.6 (Core 30.4)</span>
       </div>
     </footer>
   </div>
@@ -1011,6 +1022,97 @@
       });
     }
 
+    const SCASH_EXPLORERS_FALLBACK = [
+      {
+        key: 'scash_network',
+        name: 'explorer.scash.network',
+        short: 'scash.network',
+        home_url: 'https://explorer.scash.network/',
+        block_tpl: 'https://explorer.scash.network/block/{id}/20/1',
+        address_tpl: 'https://explorer.scash.network/address/{id}/20/1',
+        online: true
+      },
+      {
+        key: 'scash_tv',
+        name: 'scash.tv',
+        short: 'scash.tv',
+        home_url: 'https://scash.tv/',
+        block_tpl: 'https://scash.tv/block/{id}',
+        address_tpl: 'https://scash.tv/address/{id}',
+        online: true
+      },
+      {
+        key: 'local_node',
+        name: 'Local Scash Node',
+        short: 'Local Coinbase',
+        home_url: '/local_explorer',
+        block_tpl: '/local_explorer?block={id}',
+        address_tpl: '/local_explorer?address={id}',
+        online: true
+      }
+    ];
+
+    function stripWorkerSuffixJs(rawAddr) {
+      let s = String(rawAddr || '').trim();
+      for (const sep of ['.', '+', '/', ':']) {
+        const idx = s.indexOf(sep);
+        if (idx > 0) s = s.slice(0, idx);
+      }
+      if (s.toLowerCase().startsWith('scash1') && s.includes('_')) {
+        s = s.split('_')[0];
+      }
+      return s;
+    }
+
+    function getExplorerItemsJs() {
+      const ex = live.telemetry && live.telemetry.explorers;
+      return (ex && Array.isArray(ex.items) && ex.items.length > 0) ? ex.items : SCASH_EXPLORERS_FALLBACK;
+    }
+
+    function getActiveExplorerJs() {
+      const ex = live.telemetry && live.telemetry.explorers;
+      const items = getExplorerItemsJs();
+      if (ex && ex.active_key) {
+        const found = items.find(i => i.key === ex.active_key);
+        if (found) return found;
+      }
+      const firstOnline = items.find(i => i.online !== false);
+      return firstOnline || items[0];
+    }
+
+    function buildExplorerCycleHref(kind, rawId) {
+      const clean = kind === 'address' ? stripWorkerSuffixJs(rawId) : String(rawId || '').trim();
+      if (!clean) return getActiveExplorerJs().home_url || 'https://explorer.scash.network/';
+      if (live.online) {
+        return `/explorer_go?type=${encodeURIComponent(kind)}&id=${encodeURIComponent(clean)}`;
+      }
+      const act = getActiveExplorerJs();
+      const tpl = kind === 'address' ? act.address_tpl : act.block_tpl;
+      return String(tpl || '').replace('{id}', encodeURIComponent(clean));
+    }
+
+    function buildDirectExplorerPillsHtml(kind, rawId) {
+      const clean = kind === 'address' ? stripWorkerSuffixJs(rawId) : String(rawId || '').trim();
+      if (!clean) return '';
+      const isHex64 = /^[0-9a-fA-F]{64}$/.test(clean);
+      const actKey = getActiveExplorerJs().key;
+      return getExplorerItemsJs().map(it => {
+        let href = '';
+        if (kind === 'block' && !isHex64 && it.key !== 'local_node') {
+          href = `/explorer_go?type=block&id=${encodeURIComponent(clean)}&prefer=${encodeURIComponent(it.key)}`;
+        } else {
+          const tpl = kind === 'address' ? it.address_tpl : it.block_tpl;
+          href = String(tpl || '').replace('{id}', encodeURIComponent(clean));
+        }
+        const isAct = it.key === actKey;
+        const stDot = it.online === false ? '&#9675; ' : (isAct ? '&#9679; ' : '');
+        const cls = it.online === false
+          ? 'text-purple-400/60 hover:underline'
+          : (isAct ? 'text-emerald-300 font-semibold hover:underline' : 'text-cyan-300/90 hover:underline');
+        return `<a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer" class="${cls}" title="Open on ${escHtml(it.name)}">${stDot}${escHtml(it.short || it.name)} &#8599;</a>`;
+      }).join(' <span class="text-purple-400/50">&middot;</span> ');
+    }
+
     function computeLocalHashrateHs() {
       const xmrigHs = (live.miner && live.miner.running) ? (Number(live.miner.hashrate_hs) || 0) : 0;
       let stratumHs = 0;
@@ -1122,8 +1224,15 @@
       document.getElementById('chainHeightRowText').textContent =
         hdrs > 0 ? `#${blks.toLocaleString()} / #${hdrs.toLocaleString()}` : (blks > 0 ? `#${blks.toLocaleString()}` : 'Loading block index...');
       document.getElementById('currentBlockHeightText').textContent = blks > 0 ? blks.toLocaleString() : '—';
-      document.getElementById('bestBlockHashText').textContent =
-        ns.bestblockhash ? `${ns.bestblockhash.slice(0, 16)}...${ns.bestblockhash.slice(-8)}` : '—';
+      const bestBhEl = document.getElementById('bestBlockHashText');
+      if (bestBhEl) {
+        if (ns.bestblockhash) {
+          const bhHref = buildExplorerCycleHref('block', ns.bestblockhash);
+          bestBhEl.innerHTML = `<a href="${escHtml(bhHref)}" target="_blank" rel="noopener noreferrer" class="hover:underline text-cyan-300" title="Verify block ${escHtml(ns.bestblockhash)} on active Scash explorer">${escHtml(ns.bestblockhash.slice(0, 16))}...${escHtml(ns.bestblockhash.slice(-8))} &#8599;</a>`;
+        } else {
+          bestBhEl.textContent = '—';
+        }
+      }
       document.getElementById('connectedPeersRowText').textContent =
         `Scash Core: ${scashPeers} • P2Pool: ${p2pPeers}`;
 
@@ -1226,9 +1335,16 @@
       document.getElementById('kpiMinerMined30dUsd').textContent = (wPrice > 0 && m30 > 0) ? `(${fmtUsdCompact(m30 * wPrice)})` : '';
       document.getElementById('kpiMinerMinedAllUsd').textContent = (wPrice > 0 && mAll > 0) ? `(${fmtUsdCompact(mAll * wPrice)})` : '';
       document.getElementById('kpiMinerBlocksBadge').textContent = `${mPaidBlks} Block${mPaidBlks === 1 ? '' : 's'} Paid`;
-      document.getElementById('kpiMinerMinedNote').textContent = userWallet
-        ? `On-chain P2Pool payouts for ${userWallet.slice(0, 12)}...${userWallet.slice(-6)}`
-        : 'Paste your scash1... wallet to view your 7d / 30d / all-time SCASH mined';
+      const minedNoteEl = document.getElementById('kpiMinerMinedNote');
+      if (minedNoteEl) {
+        if (userWallet) {
+          const cleanUw = stripWorkerSuffixJs(userWallet);
+          const uwHref = buildExplorerCycleHref('address', cleanUw);
+          minedNoteEl.innerHTML = `On-chain payouts: <a href="${escHtml(uwHref)}" target="_blank" rel="noopener noreferrer" class="font-mono-code text-cyan-300 hover:underline" title="Verify ${escHtml(cleanUw)} on active Scash block explorer">${escHtml(cleanUw.slice(0, 12))}...${escHtml(cleanUw.slice(-6))} &#8599;</a>`;
+        } else {
+          minedNoteEl.textContent = 'Paste your scash1... wallet to view your 7d / 30d / all-time SCASH mined';
+        }
+      }
 
       // Render Pool Total Blocks Found Together (All-Time)
       const rbCount = Array.isArray(live.recentBlocks) ? live.recentBlocks.length : 0;
@@ -1241,7 +1357,9 @@
       document.getElementById('kpiPoolBlocks7d').textContent = p7Blks.toLocaleString();
       document.getElementById('kpiPoolBlocks30d').textContent = p30Blks.toLocaleString();
       if (lgTel.last_block_height) {
-        document.getElementById('kpiPoolLastBlockSub').textContent = `Latest: #${Number(lgTel.last_block_height).toLocaleString()}`;
+        const lbTarget = lgTel.last_block_hash || String(lgTel.last_block_height);
+        const lbHref = buildExplorerCycleHref('block', lbTarget);
+        document.getElementById('kpiPoolLastBlockSub').innerHTML = `Latest: <a href="${escHtml(lbHref)}" target="_blank" rel="noopener noreferrer" class="text-amber-300 hover:underline font-semibold" title="Inspect latest solved P2Pool block #${Number(lgTel.last_block_height)} on working Scash explorer">#${Number(lgTel.last_block_height).toLocaleString()} &#8599;</a>`;
       } else if (lgTel.backfill_scanning) {
         document.getElementById('kpiPoolLastBlockSub').textContent = 'Scanning local blocks...';
       } else {
@@ -1261,6 +1379,24 @@
       document.getElementById('kpiTotalLiquiditySub').textContent = totVol > 0
         ? `24h Vol: ${fmtUsdCompact(totVol)} • Weight Liq: ${fmtUsdCompact(totLiq)}`
         : 'Live CEX + DEX Markets';
+
+      const actExp = getActiveExplorerJs();
+      const expBadge = document.getElementById('activeExplorerBadge');
+      if (expBadge && actExp) {
+        expBadge.textContent = `Active Explorer: ${actExp.name}`;
+      }
+      const expBar = document.getElementById('explorerLinksBar');
+      if (expBar) {
+        const expItems = getExplorerItemsJs();
+        expBar.innerHTML = '<span>Block Explorers:</span> ' + expItems.map(it => {
+          const isAct = actExp && it.key === actExp.key;
+          const cls = it.online === false
+            ? 'text-purple-400/60 line-through'
+            : (isAct ? 'text-emerald-300 font-semibold hover:underline' : 'text-cyan-300 hover:underline font-medium');
+          const dot = it.online === false ? '&#9675; ' : (isAct ? '&#9679; ' : '');
+          return `<a href="${escHtml(it.home_url)}" target="_blank" rel="noopener noreferrer" class="${cls}" title="${it.online === false ? 'Unreachable in last probe — auto-failover bypassed' : 'Online'}">${dot}${escHtml(it.name)} &#8599;</a>`;
+        }).join(' <span>&bull;</span> ');
+      }
 
       const exBox = document.getElementById('exchangeMarketsContainer');
       if (exBox && Array.isArray(mkTel.exchanges) && mkTel.exchanges.length > 0) {
@@ -1352,14 +1488,18 @@
         .filter(b => b && Number(b.ts || 0) > 0 && (nowSec - Number(b.ts)) <= 86400);
       for (const b of blocks.slice(0, 15)) {
         const dt = b.ts ? new Date(b.ts * 1000).toLocaleString() : 'Solved Block';
+        const bId = b.hash || String(b.number || '');
+        const bHref = buildExplorerCycleHref('block', bId);
+        const bPills = buildDirectExplorerPillsHtml('block', bId);
         items.push(`
           <div class="flex items-start justify-between gap-3 p-3 rounded-lg bg-[#160d26]/90 border border-amber-400/60">
             <div class="min-w-0">
-              <div class="text-xs font-bold text-amber-300">&#9733; Scash Block #${b.number} Solved by P2Pool!</div>
-              <div class="text-[11px] text-purple-200 mt-0.5">${dt}</div>
-              <div class="font-mono-code text-[10px] text-cyan-300 truncate mt-0.5">Block Hash: ${b.hash || ''}</div>
+              <a href="${escHtml(bHref)}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-amber-300 hover:underline block">&#9733; Scash Block #${escHtml(b.number)} Solved by P2Pool! &#8599;</a>
+              <div class="text-[11px] text-purple-200 mt-0.5">${escHtml(dt)}</div>
+              <a href="${escHtml(bHref)}" target="_blank" rel="noopener noreferrer" class="font-mono-code text-[10px] text-cyan-300 hover:underline truncate block mt-0.5" title="Verify solved block coinbase payouts on working Scash explorer">Block Hash: ${escHtml(b.hash || '')} &#8599;</a>
+              <div class="text-[10px] mt-1 flex flex-wrap items-center gap-1">${bPills}</div>
             </div>
-            <div class="text-right shrink-0 font-mono-code text-xs text-amber-300 font-bold">BLOCK FOUND</div>
+            <a href="${escHtml(bHref)}" target="_blank" rel="noopener noreferrer" class="text-right shrink-0 font-mono-code text-xs text-amber-300 hover:underline font-bold">VERIFY &#8599;</a>
           </div>
         `);
       }
@@ -1378,11 +1518,16 @@
 
       if (payoutEntries.length > 0) {
         for (const [addr, amt] of payoutEntries.slice(0, 8)) {
+          const aHref = buildExplorerCycleHref('address', addr);
+          const aPills = buildDirectExplorerPillsHtml('address', addr);
           items.push(`
             <div class="p-2.5 rounded-lg bg-[#160d26]/90 border border-purple-500/35 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <div class="text-[11px] text-purple-300">Active Sharechain Miner Payout</div>
-                <div class="font-mono-code text-xs text-white truncate">${addr}</div>
+                <div class="text-[11px] text-purple-300 flex flex-wrap items-center gap-2">
+                  <span>Active Sharechain Miner Payout</span>
+                  <span class="text-[10px]">${aPills}</span>
+                </div>
+                <a href="${escHtml(aHref)}" target="_blank" rel="noopener noreferrer" class="font-mono-code text-xs text-cyan-200 hover:text-cyan-300 hover:underline truncate block" title="Check on-chain SCASH balance &amp; payouts for ${escHtml(addr)}">${escHtml(addr)} &#8599;</a>
               </div>
               <div class="font-mono-code text-xs text-emerald-300 font-semibold shrink-0">+${Number(amt).toFixed(8)} SCASH</div>
             </div>
@@ -1431,23 +1576,30 @@
         return;
       }
 
-      tbody.innerHTML = rows.map((r, i) => `
+      tbody.innerHTML = rows.map((r, i) => {
+        const aHref = buildExplorerCycleHref('address', r.address);
+        const aPills = buildDirectExplorerPillsHtml('address', r.address);
+        return `
         <tr class="${r.isMe ? 'bg-purple-900/55 border-l-4 border-l-[#4deeea]' : 'hover:bg-purple-950/40'}">
           <td class="py-2.5 px-3 text-purple-300">#${i + 1}</td>
           <td class="py-2.5 px-3 text-white">
-            ${r.address}
-            ${r.isMe ? '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
+            <div class="flex flex-wrap items-center gap-1.5">
+              <a href="${escHtml(aHref)}" target="_blank" rel="noopener noreferrer" class="text-cyan-200 hover:text-cyan-300 hover:underline" title="Inspect wallet payouts on active Scash explorer">${escHtml(r.address)} &#8599;</a>
+              ${r.isMe ? '<span class="px-1.5 py-0.5 text-[10px] rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-sans font-semibold">YOU</span>' : ''}
+            </div>
+            <div class="text-[10px] font-sans mt-0.5">${aPills}</div>
           </td>
           <td class="py-2.5 px-3 text-right text-cyan-300">${fmtHashrate(r.hs)}</td>
           <td class="py-2.5 px-3 text-right text-amber-300">${r.pct.toFixed(2)}%</td>
           <td class="py-2.5 px-3 text-right font-bold text-emerald-300">+${r.amount.toFixed(8)} SCASH</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function renderNodeWindow(ns, ls, p2pPeers = 0) {
       document.getElementById('nodeWinSubversion').textContent = ns.subversion || '/Scash:30.4.0/';
-      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.5-scash-kawaii');
+      document.getElementById('nodeWinP2PoolVer').textContent = (ls && ls.version) ? ls.version : (ns.syncing ? 'Waiting for sync...' : 'v0.3.6-scash-kawaii');
       document.getElementById('nodeWinDatadir').textContent = ns.datadir || '—';
       document.getElementById('nodeWinChain').textContent = ns.chain || 'scash';
       document.getElementById('nodeWinConns').textContent = `Scash Core: ${ns.connections || 0} • P2Pool Sharechain: ${p2pPeers}`;
