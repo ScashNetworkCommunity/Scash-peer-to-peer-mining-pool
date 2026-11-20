@@ -1,5 +1,5 @@
 """
-Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.3.6).
+Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.3.7).
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 
 Every miner running Start-Scash-P2Pool automatically runs a full Scash Core 30.4.0 node
@@ -1024,7 +1024,8 @@ def _is_peer_connected(p2p_node, ip, port=None):
             paddr = getattr(proto, "addr", None)
             if paddr:
                 p_ip, p_port = str(paddr[0]), int(paddr[1])
-                if p_ip == str(ip) and (port is None or p_port == int(port)):
+                # Remote LAN/WAN hosts run a single P2Pool node per IP (incoming sockets carry ephemeral source ports like :45308)
+                if p_ip == str(ip) and ((not ip_is_local) or port is None or p_port == int(port)):
                     return True
                 if port is not None and p_port == int(port) and ip_is_local and p_ip in local_equiv:
                     return True

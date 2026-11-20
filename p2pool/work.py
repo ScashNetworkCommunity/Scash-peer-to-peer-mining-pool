@@ -17,6 +17,49 @@ import p2pool, p2pool.data as p2pool_data
 
 print_throttle = 0.0
 
+def _scash_fmt_hashes(_t):
+    try:
+        _h = float(2**256) / max(1.0, float(_t) + 1.0)
+        if _h >= 1e9: return '%.2fG hashes' % (_h / 1e9,)
+        if _h >= 1e6: return '%.2fM hashes' % (_h / 1e6,)
+        if _h >= 1e3: return '%.2fK hashes' % (_h / 1e3,)
+        return '%d hashes' % max(1, int(round(_h)))
+    except Exception:
+        return '? hashes'
+
+def _scash_maybe_purge_presync(wb_self, cur_share_target):
+    try:
+        if getattr(wb_self, '_scash_presync_purged', False):
+            return
+        _max_t = getattr(getattr(wb_self.node, 'net', None), 'MAX_TARGET', None)
+        if not _max_t or cur_share_target >= (_max_t // 4):
+            return
+        wb_self._scash_presync_purged = True
+        _my_sh = getattr(wb_self, 'my_share_hashes', None)
+        if not _my_sh:
+            return
+        _tr = getattr(wb_self.node, 'tracker', None)
+        _best = getattr(getattr(wb_self.node, 'best_share_var', None), 'value', None)
+        _keep = set()
+        if _tr is not None and _best is not None and _best in _tr.items:
+            _ch_len = min(int(_tr.get_height(_best)), int(getattr(wb_self.node.net, 'REAL_CHAIN_LENGTH', 5760)))
+            for _s in _tr.get_chain(_best, _ch_len):
+                if _s.hash in _my_sh and getattr(_s, 'max_target', _s.target) < (_max_t * 9 // 10):
+                    _keep.add(_s.hash)
+        _purged = len(_my_sh) - len(_keep)
+        if _purged > 0:
+            _my_sh.clear()
+            _my_sh.update(_keep)
+            if hasattr(wb_self, 'my_doa_share_hashes'):
+                wb_self.my_doa_share_hashes.intersection_update(_keep)
+            if hasattr(wb_self, 'recent_shares_ts_work'):
+                del wb_self.recent_shares_ts_work[:]
+            if hasattr(wb_self, 'local_rate_monitor'):
+                wb_self.local_rate_monitor = type(wb_self.local_rate_monitor)(10 * 60)
+            print '[Scash P2Pool] Sharechain synced! Cleared %d pre-sync warmup shares so session efficiency starts clean.' % (_purged,)
+    except Exception:
+        pass
+
 class WorkerBridge(worker_interface.WorkerBridge):
     COINBASE_NONCE_LENGTH = 8
     
@@ -354,17 +397,13 @@ class WorkerBridge(worker_interface.WorkerBridge):
         lp_count = self.new_work_event.times
         merkle_link = bitcoin_data.calculate_merkle_link([None] + other_transaction_hashes, 0) if share_info.get('segwit_data', None) is None else share_info['segwit_data']['txid_merkle_link']
         
+        _scash_maybe_purge_presync(self, share_info['bits'].target)
         if print_throttle is 0.0:
             print_throttle = time.time()
         else:
             current_time = time.time()
             if (current_time - print_throttle) > 5.0:
-                print 'New work for worker! Difficulty: %.06f Share difficulty: %.06f Total block value: %.6f %s including %i transactions' % (
-                    bitcoin_data.target_to_difficulty(target),
-                    bitcoin_data.target_to_difficulty(share_info['bits'].target),
-                    self.current_work.value['subsidy']*1e-8, self.node.net.PARENT.SYMBOL,
-                    len(self.current_work.value['transactions']),
-                )
+                print 'New work for worker! Worker target: ~%s | Pool share target: ~%s (diff %.06f) | Block value: %.6f %s (%i tx)' % (_scash_fmt_hashes(target), _scash_fmt_hashes(share_info['bits'].target), bitcoin_data.target_to_difficulty(share_info['bits'].target), self.current_work.value['subsidy']*1e-8, self.node.net.PARENT.SYMBOL, len(self.current_work.value['transactions']))
                 print_throttle = time.time()
 
         #need this for stats

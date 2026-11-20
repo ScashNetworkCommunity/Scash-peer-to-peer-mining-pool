@@ -594,7 +594,7 @@ try:
         return _node_status_cache['data']
 
 
-    # --- v0.3.6 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
+    # --- v0.3.7 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
     import binascii as _w_binascii
     from p2pool.bitcoin import bech32_scash as _w_b32
 
@@ -1172,7 +1172,7 @@ try:
     def _http_get_json_wan(url, timeout=4.5):
         req = _w_ureq.Request(url, headers={
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         raw = _scash_open_url(req, timeout=timeout, is_local=url.startswith('http://127.0.0.1'))
         return _w_json.loads(raw.decode('utf-8', 'replace'))
@@ -1549,7 +1549,7 @@ try:
             _mt.start()
         return cur
 
-    # --- Multi-Explorer Health Cycling & Automatic Failover (v0.3.6) ---
+    # --- Multi-Explorer Health Cycling & Automatic Failover (v0.3.7) ---
     def _get_scash_explorer_defs():
         e1_base = 'https://explorer.scash.network'
         e2_base = 'https://scash.tv'
@@ -1623,7 +1623,7 @@ try:
         try:
             req = _w_ureq.Request(probe_url, headers={
                 'Accept': 'text/html,application/json,*/*;q=0.8',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             })
             raw = _scash_open_url(req, timeout=timeout, is_local=probe_url.startswith('http://127.0.0.1'))
             if not raw or len(raw) < 16:
@@ -1814,7 +1814,7 @@ try:
         parts = [
             '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">',
             '<meta name="viewport" content="width=device-width,initial-scale=1">',
-            '<title>Scash P2Pool v0.3.6 — Local Full-Node Block &amp; Payout Explorer</title>',
+            '<title>Scash P2Pool v0.3.7 — Local Full-Node Block &amp; Payout Explorer</title>',
             '<style>',
             'body{background:#120b1e;color:#f3ecff;font-family:Inter,system-ui,-apple-system,sans-serif;max-width:920px;margin:28px auto;padding:0 16px;line-height:1.55}',
             '.card{background:#1b112c;border:1px solid rgba(77,238,234,0.45);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 10px 28px rgba(0,0,0,0.4)}',
@@ -1825,7 +1825,7 @@ try:
             'th{color:#d8b4fe;background:#24163b}.amt{color:#34d399;font-weight:700;text-align:right}.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid rgba(77,238,234,0.5);background:#140b23;margin-right:6px}',
             '</style></head><body>',
             '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">',
-            '<div><h1>Scash P2Pool (v0.3.6) &mdash; Local Scash Core 30.4 Coinbase &amp; Payout Inspector</h1>',
+            '<div><h1>Scash P2Pool (v0.3.7) &mdash; Local Scash Core 30.4 Coinbase &amp; Payout Inspector</h1>',
             '<div style="font-size:12px;color:#c4b5fd">100% trustless verification directly from your local <code>scashd</code> blockchain &amp; P2Pool ledger (built-in fallback when external web explorers are unreachable).</div></div>',
             '<a class="pill" href="/static/">&larr; Back to Dashboard</a></div></div>',
         ]
@@ -1958,6 +1958,130 @@ try:
             body = '<html><body>Redirecting to working Scash explorer: <a href="%s">%s</a></body></html>' % (_html_esc(dest), _html_esc(dest))
             return body if isinstance(body, bytes) else body.encode('utf-8')
 
+    _sc_sync_lock = _w_threading.Lock()
+    _sc_sync_tracker = {
+        'boot_ts': _w_time.time(),
+        'last_items_len': 0,
+        'last_ver_len': 0,
+        'last_growth_ts': _w_time.time(),
+        'settled': False,
+    }
+
+    def _get_sharechain_sync_state(_wb_ref, now_ts=None):
+        t_now = float(now_ts if now_ts is not None else _w_time.time())
+        p_cnt = 0
+        tot_n = 0
+        ver_n = 0
+        ch_h = 0
+        real_len = 5760
+        try:
+            _node = getattr(_wb_ref, 'node', None)
+            _p2pn = getattr(_node, 'p2p_node', None)
+            if _p2pn is not None and getattr(_p2pn, 'peers', None) is not None:
+                p_cnt = len(_p2pn.peers)
+            _tr = getattr(_node, 'tracker', None)
+            _net = getattr(_node, 'net', None)
+            if _net is not None:
+                real_len = int(getattr(_net, 'REAL_CHAIN_LENGTH', 5760))
+            if _tr is not None and hasattr(_tr, 'items'):
+                tot_n = len(_tr.items)
+                _ver_obj = getattr(_tr, 'verified', None)
+                if _ver_obj is not None and hasattr(_ver_obj, 'items'):
+                    ver_n = len(_ver_obj.items)
+                _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+                if _best is not None and _best in _tr.items:
+                    ch_h = int(_tr.get_height(_best))
+        except Exception:
+            pass
+
+        if os.environ.get('SCASH_CI_FAST_DIFF') == '1' or os.environ.get('SCASH_SKIP_SHARECHAIN_GATE') == '1':
+            return {
+                'syncing': False,
+                'settled': True,
+                'peers': int(p_cnt),
+                'chain_height': int(ch_h),
+                'verified_shares': int(ver_n),
+                'total_shares': int(tot_n),
+                'status_text': 'Ready',
+            }
+
+        with _sc_sync_lock:
+            age = max(0.0, t_now - float(_sc_sync_tracker['boot_ts']))
+            if (tot_n - _sc_sync_tracker['last_items_len']) >= 6 or ((ver_n - _sc_sync_tracker['last_ver_len']) >= 6 and ver_n < (min(int(ch_h), int(real_len)) - 5)):
+                _sc_sync_tracker['last_growth_ts'] = t_now
+            _sc_sync_tracker['last_items_len'] = tot_n
+            _sc_sync_tracker['last_ver_len'] = ver_n
+            since_growth = max(0.0, t_now - float(_sc_sync_tracker['last_growth_ts']))
+
+            if _sc_sync_tracker['settled'] or age >= 75.0:
+                _sc_sync_tracker['settled'] = True
+                return {
+                    'syncing': False,
+                    'settled': True,
+                    'peers': int(p_cnt),
+                    'chain_height': int(ch_h),
+                    'verified_shares': int(ver_n),
+                    'total_shares': int(tot_n),
+                    'status_text': 'Sharechain synced',
+                }
+
+            # 1) Brief 7s startup window to let LAN/WAN peers connect before mining at genesis diff
+            if p_cnt == 0 and tot_n == 0:
+                if age < 7.0:
+                    return {
+                        'syncing': True,
+                        'settled': False,
+                        'peers': 0,
+                        'chain_height': 0,
+                        'verified_shares': 0,
+                        'total_shares': 0,
+                        'status_text': 'Connecting to P2Pool peers (:8344)...',
+                    }
+                _sc_sync_tracker['settled'] = True
+                return {
+                    'syncing': False,
+                    'settled': True,
+                    'peers': 0,
+                    'chain_height': 0,
+                    'verified_shares': 0,
+                    'total_shares': 0,
+                    'status_text': 'Solo/Seed ready (0 peers)',
+                }
+
+            # 2) Peer(s) connected: wait while share batches are actively streaming or 24h window is verifying
+            target_ver = min(int(ch_h), int(real_len))
+            if p_cnt > 0 and tot_n == 0 and age < 20.0:
+                return {
+                    'syncing': True,
+                    'settled': False,
+                    'peers': int(p_cnt),
+                    'chain_height': 0,
+                    'verified_shares': 0,
+                    'total_shares': 0,
+                    'status_text': 'Downloading P2Pool sharechain from %d peer(s)...' % int(p_cnt),
+                }
+            if since_growth < 3.5 or (target_ver >= 50 and ver_n < (target_ver - 10) and since_growth < 8.0 and age < 60.0):
+                return {
+                    'syncing': True,
+                    'settled': False,
+                    'peers': int(p_cnt),
+                    'chain_height': int(ch_h),
+                    'verified_shares': int(ver_n),
+                    'total_shares': int(tot_n),
+                    'status_text': 'Verifying P2Pool sharechain (%d / %d shares)...' % (int(ver_n), int(max(tot_n, target_ver))),
+                }
+
+            _sc_sync_tracker['settled'] = True
+            return {
+                'syncing': False,
+                'settled': True,
+                'peers': int(p_cnt),
+                'chain_height': int(ch_h),
+                'verified_shares': int(ver_n),
+                'total_shares': int(tot_n),
+                'status_text': 'Sharechain synced',
+            }
+
     def _maybe_start_v032_telemetry_daemons(_wb_ref):
         if not _hr_sampler_started['active']:
             _hr_sampler_started['active'] = True
@@ -2008,13 +2132,15 @@ try:
         ledger = _summarize_ledger_stats(wallet_addr=w_eff)
         market = _get_cached_scash_market()
         explorers = _get_cached_explorers()
+        sc_sync = _get_sharechain_sync_state(_wb_ref)
         return {
             'ok': True,
-            'version': '0.3.6',
+            'version': '0.3.7',
             'hashrates': rates,
             'ledger': ledger,
             'market': market,
             'explorers': explorers,
+            'sharechain_sync': sc_sync,
         }
 
     def _build_miningcore_pool_payload(_wb_ref):
@@ -2260,7 +2386,7 @@ try:
             return False
 
         try:
-            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
             r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
             r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
             if r_obj:
@@ -2289,7 +2415,7 @@ try:
                 'Authorization': 'Bearer ' + tok,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             }
             req = _w_ureq.Request(url, data, hdrs)
             req.get_method = lambda: method
@@ -2389,7 +2515,7 @@ try:
             'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
         ):
             try:
-                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
                 txt = _scash_open_url(req, timeout=4.0, is_local=u.startswith('http://127.0.0.1')).decode('utf-8', 'replace')
                 obj = _w_json.loads(txt) or {}
                 if 'report_url' in obj:
@@ -2429,7 +2555,7 @@ try:
         except Exception:
             pass
         body = _w_json.dumps({
-            'version': '0.3.6',
+            'version': '0.3.7',
             'best_share_hash': best_hex,
             'chain_height': int(chain_h),
             'p2pool_peers': int(p2p_peers),
@@ -2437,7 +2563,7 @@ try:
         }).encode('utf-8')
         req = _w_ureq.Request(target_url, body, {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.6; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
         if not _community_reporter_started.get('logged'):
