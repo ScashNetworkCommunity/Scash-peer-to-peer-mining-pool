@@ -1620,7 +1620,7 @@ def main():
 
     p2pool_proc[0] = subprocess.Popen(p2pool_cmd, **p2p_kwargs)
     assign_popen_to_win32_job(p2pool_proc[0])
-    _lower_win32_process_priority(scashd_proc[0])
+    _lower_win32_process_priority(spawned_proc[0])
     _lower_win32_process_priority(p2pool_proc[0])
 
     try:

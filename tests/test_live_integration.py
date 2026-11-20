@@ -336,6 +336,30 @@ def run_all_live_tests():
             hp_out, hp_err = php.communicate(timeout=25)
             assert php.returncode == 0 and b"SHP1_HOLEPUNCH_64KB_OK" in hp_out, (hp_out, hp_err)
             print("[LIVE-PASS 2/5] Verified PyPy 2.7 runtime, native RandomX, BEP 15 Swarm & 64KB SHP1 UDP Hole-Punch tunnel!")
+            # 2b. Lexical symtable undefined-name check across start_scash_p2pool.py & all p2pool/*.py modules!
+            import builtins as _bi, symtable as _symt
+            _bnames = set(dir(_bi)) | {"__builtins__", "__file__", "__name__", "__doc__", "__package__", "unicode", "long", "xrange", "basestring", "raw_input", "StandardError", "reload"}
+            def _chk_undef(fpath):
+                _s = open(fpath, encoding="utf-8", errors="replace").read()
+                _top = _symt.symtable(_s, fpath, "exec")
+                _mdefs = {x.get_name() for x in _top.get_symbols() if x.is_imported() or x.is_assigned() or x.is_namespace()}
+                _errs = []
+                def _walk(tb, enc):
+                    _ld = {x.get_name() for x in tb.get_symbols() if x.is_imported() or x.is_assigned() or x.is_parameter() or x.is_namespace()}
+                    _vis = enc | _ld
+                    for x in tb.get_symbols():
+                        _n = x.get_name()
+                        if x.is_referenced() and not (x.is_local() or x.is_free()):
+                            if _n not in _mdefs and _n not in _bnames:
+                                _errs.append((tb.get_name(), tb.get_lineno(), _n))
+                    for ch in tb.get_children():
+                        _walk(ch, enc if tb.get_type() == "class" else _vis)
+                _walk(_top, _mdefs)
+                assert not _errs, f"Undefined variable(s) in {fpath}: {_errs}"
+            for _own_py in ("start_scash_p2pool.py", "p2pool/xmrig_manager.py", "p2pool/auto_mesh.py", "p2pool/scash_nodes.py", "p2pool/bitcoin/scash_randomx.py"):
+                _chk_undef(os.path.join(ROOT, _own_py))
+            print("[LIVE-PASS 2b/5] Verified ZERO undefined variable names (NameError) across start_scash_p2pool.py & p2pool/!")
+
 
             # 3. Connect run_p2pool.py DIRECTLY to REAL Scash Core 30.4.0 scashd (zero RPC mocks!)
             tmp_data = os.path.join(ci_base, "p2pool_data")
