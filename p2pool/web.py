@@ -594,7 +594,7 @@ try:
         return _node_status_cache['data']
 
 
-    # --- v0.3.7 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
+    # --- v0.3.8 Real 10s/60s/30m Averages + On-Chain P2Pool Block Ledger + Liquidity-Weighted SCASH Market Tracker ---
     import binascii as _w_binascii
     from p2pool.bitcoin import bech32_scash as _w_b32
 
@@ -1172,7 +1172,7 @@ try:
     def _http_get_json_wan(url, timeout=4.5):
         req = _w_ureq.Request(url, headers={
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.8; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
         raw = _scash_open_url(req, timeout=timeout, is_local=url.startswith('http://127.0.0.1'))
         return _w_json.loads(raw.decode('utf-8', 'replace'))
@@ -1549,7 +1549,7 @@ try:
             _mt.start()
         return cur
 
-    # --- Multi-Explorer Health Cycling & Automatic Failover (v0.3.7) ---
+    # --- Multi-Explorer Health Cycling & Automatic Failover (v0.3.8) ---
     def _get_scash_explorer_defs():
         e1_base = 'https://explorer.scash.network'
         e2_base = 'https://scash.tv'
@@ -1623,7 +1623,7 @@ try:
         try:
             req = _w_ureq.Request(probe_url, headers={
                 'Accept': 'text/html,application/json,*/*;q=0.8',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.8; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             })
             raw = _scash_open_url(req, timeout=timeout, is_local=probe_url.startswith('http://127.0.0.1'))
             if not raw or len(raw) < 16:
@@ -1814,7 +1814,7 @@ try:
         parts = [
             '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">',
             '<meta name="viewport" content="width=device-width,initial-scale=1">',
-            '<title>Scash P2Pool v0.3.7 — Local Full-Node Block &amp; Payout Explorer</title>',
+            '<title>Scash P2Pool v0.3.8 — Local Full-Node Block &amp; Payout Explorer</title>',
             '<style>',
             'body{background:#120b1e;color:#f3ecff;font-family:Inter,system-ui,-apple-system,sans-serif;max-width:920px;margin:28px auto;padding:0 16px;line-height:1.55}',
             '.card{background:#1b112c;border:1px solid rgba(77,238,234,0.45);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 10px 28px rgba(0,0,0,0.4)}',
@@ -1825,7 +1825,7 @@ try:
             'th{color:#d8b4fe;background:#24163b}.amt{color:#34d399;font-weight:700;text-align:right}.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid rgba(77,238,234,0.5);background:#140b23;margin-right:6px}',
             '</style></head><body>',
             '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">',
-            '<div><h1>Scash P2Pool (v0.3.7) &mdash; Local Scash Core 30.4 Coinbase &amp; Payout Inspector</h1>',
+            '<div><h1>Scash P2Pool (v0.3.8) &mdash; Local Scash Core 30.4 Coinbase &amp; Payout Inspector</h1>',
             '<div style="font-size:12px;color:#c4b5fd">100% trustless verification directly from your local <code>scashd</code> blockchain &amp; P2Pool ledger (built-in fallback when external web explorers are unreachable).</div></div>',
             '<a class="pill" href="/static/">&larr; Back to Dashboard</a></div></div>',
         ]
@@ -2135,7 +2135,7 @@ try:
         sc_sync = _get_sharechain_sync_state(_wb_ref)
         return {
             'ok': True,
-            'version': '0.3.7',
+            'version': '0.3.8',
             'hashrates': rates,
             'ledger': ledger,
             'market': market,
@@ -2386,7 +2386,7 @@ try:
             return False
 
         try:
-            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+            r_req = _w_ureq.Request('%s/%s/gh-pages/api/pools.json' % (raw_base, repo_slug), headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.8; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
             r_txt = _w_wan_opener.open(r_req, timeout=4.0).read().decode('utf-8', 'replace')
             r_obj = (_w_json.loads(r_txt) or {}).get('pools') or []
             if r_obj:
@@ -2415,7 +2415,7 @@ try:
                 'Authorization': 'Bearer ' + tok,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+                'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.8; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
             }
             req = _w_ureq.Request(url, data, hdrs)
             req.get_method = lambda: method
@@ -2515,7 +2515,7 @@ try:
             'https://scashnetworkcommunity.github.io/Scash-peer-to-peer-mining-pool/collector.json',
         ):
             try:
-                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
+                req = _w_ureq.Request(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.8; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)'})
                 txt = _scash_open_url(req, timeout=4.0, is_local=u.startswith('http://127.0.0.1')).decode('utf-8', 'replace')
                 obj = _w_json.loads(txt) or {}
                 if 'report_url' in obj:
@@ -2541,6 +2541,8 @@ try:
         best_hex = ''
         chain_h = 0
         p2p_peers = 0
+        _p2pn = None
+        _mesh_meta = {}
         try:
             _node = getattr(_wb_ref, 'node', None)
             _tracker = getattr(_node, 'tracker', None)
@@ -2554,18 +2556,47 @@ try:
                 p2p_peers = len(_p2pn.peers)
         except Exception:
             pass
+        try:
+            from p2pool import auto_mesh as _scash_am_rep
+            _mst = _scash_am_rep.get_mesh_status() or {}
+            if _mst.get('started') and int(_mst.get('external_udp_port') or 0) == 0 and report_url is None and os.environ.get('SCASH_CI_ISOLATED_MESH') != '1':
+                _scash_am_rep.refresh_stun_on_shared_socket(wait_s=0.9)
+                _mst = _scash_am_rep.get_mesh_status() or {}
+            _mesh_meta = {
+                'instance_id': str(_mst.get('instance_id') or ''),
+                'p2p_port': int(_mst.get('p2p_port') or 8344),
+                'udp_port': int(_mst.get('udp_port') or 8344),
+                'external_udp_port': int(_mst.get('external_udp_port') or 0),
+                'upnp_open': bool(_mst.get('upnp_mapped') or _mst.get('pcp_mapped') or _mst.get('natpmp_mapped')),
+                'nat_mapping': str(_mst.get('nat_mapping') or 'unknown'),
+                'wan_peers': int(_mst.get('connected_wan_peers') or 0),
+                'lan_peers': int(_mst.get('connected_lan_peers') or 0),
+                'holepunch_tunnels': int(_mst.get('holepunch_tunnels') or 0),
+            }
+        except Exception:
+            _mesh_meta = {}
         body = _w_json.dumps({
-            'version': '0.3.7',
+            'version': '0.3.8',
             'best_share_hash': best_hex,
             'chain_height': int(chain_h),
             'p2pool_peers': int(p2p_peers),
+            'mesh': _mesh_meta,
             'pool_payload': pool_obj,
         }).encode('utf-8')
         req = _w_ureq.Request(target_url, body, {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.7; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
+            'User-Agent': 'Mozilla/5.0 (compatible; Scash-P2Pool/0.3.8; +https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool)',
         })
-        _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
+        raw_rep_resp = _scash_open_url(req, timeout=5.0, is_local=target_url.startswith('http://127.0.0.1'))
+        try:
+            if raw_rep_resp:
+                rep_obj = _w_json.loads(raw_rep_resp.decode('utf-8', 'replace')) or {}
+                r_peers = rep_obj.get('rendezvous_peers')
+                if isinstance(r_peers, list) and r_peers:
+                    from p2pool import auto_mesh as _scash_am_ing
+                    _scash_am_ing.ingest_https_rendezvous_peers(_p2pn, r_peers)
+        except Exception:
+            pass
         if not _community_reporter_started.get('logged'):
             _community_reporter_started['logged'] = True
             try:

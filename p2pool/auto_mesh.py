@@ -1,5 +1,5 @@
 """
-Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.3.7).
+Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.3.8).
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 
 Every miner running Start-Scash-P2Pool automatically runs a full Scash Core 30.4.0 node
@@ -93,6 +93,9 @@ MESH_STATE = {
     "swarm_peers_found": 0,
     "holepunch_tunnels": 0,
     "connected_peers": 0,
+    "connected_wan_peers": 0,
+    "connected_lan_peers": 0,
+    "https_rendezvous_peers": 0,
     "incoming_peers": 0,
     "outgoing_peers": 0,
 }
@@ -109,6 +112,7 @@ _UDP_TUNNELS = {}
 _UDP_TUNNELS_LOCK = threading.Lock()
 _HELLO_RATE_LIMIT = {}
 _PUNCH_TARGETS = {}
+_HTTPS_HP_CANDIDATES = {}
 _STOP_EVENT = threading.Event()
 
 
@@ -127,20 +131,49 @@ def _refresh_live_peer_counts():
     if p2p_node is None:
         return
     try:
+        with _UDP_TUNNELS_LOCK:
+            active_tuns = [t for t in _UDP_TUNNELS.values() if not t.closed]
+            MESH_STATE["holepunch_tunnels"] = len(active_tuns)
+            wan_tun_ports = set()
+            wan_est_tuns = 0
+            for t in active_tuns:
+                if t.established and _is_routable_public_ipv4(t.remote_addr[0]):
+                    wan_est_tuns += 1
+                    if getattr(t, "local_bridge_port", 0):
+                        wan_tun_ports.add(int(t.local_bridge_port))
+                    if getattr(t, "local_tcp_port", 0):
+                        wan_tun_ports.add(int(t.local_tcp_port))
+
         peers = getattr(p2p_node, "peers", {}) or {}
         vals = list(peers.values())
         inc = 0
         out = 0
+        wan_cnt = 0
+        loop_unmatched = 0
         for proto in vals:
             if getattr(proto, "incoming", False):
                 inc += 1
             else:
                 out += 1
+            paddr = getattr(proto, "addr", None)
+            if paddr and len(paddr) >= 2:
+                p_ip, p_port = str(paddr[0]).strip(), int(paddr[1])
+                if _is_routable_public_ipv4(p_ip):
+                    wan_cnt += 1
+                elif p_ip.startswith("127."):
+                    if p_port in wan_tun_ports:
+                        wan_cnt += 1
+                    else:
+                        loop_unmatched += 1
+        if loop_unmatched > 0 and wan_est_tuns > wan_cnt:
+            wan_cnt += min(loop_unmatched, wan_est_tuns - wan_cnt)
+        lan_cnt = max(0, len(vals) - wan_cnt)
+
         MESH_STATE["connected_peers"] = len(vals)
+        MESH_STATE["connected_wan_peers"] = wan_cnt
+        MESH_STATE["connected_lan_peers"] = lan_cnt
         MESH_STATE["incoming_peers"] = inc
         MESH_STATE["outgoing_peers"] = out
-        with _UDP_TUNNELS_LOCK:
-            MESH_STATE["holepunch_tunnels"] = len(_UDP_TUNNELS)
     except Exception:
         pass
 
@@ -149,6 +182,7 @@ def get_mesh_status():
     _refresh_live_peer_counts()
     return {
         "started": bool(MESH_STATE["started"]),
+        "instance_id": str(MESH_STATE["instance_id"]),
         "p2p_port": int(MESH_STATE["p2p_port"]),
         "udp_port": int(MESH_STATE["udp_port"]),
         "upnp_mapped": bool(MESH_STATE["upnp_mapped"]),
@@ -161,8 +195,11 @@ def get_mesh_status():
         "discovered_lan_peers": list(MESH_STATE["discovered_lan_peers"])[-20:],
         "discovered_wan_peers": list(MESH_STATE["discovered_wan_peers"])[-20:],
         "swarm_peers_found": int(MESH_STATE["swarm_peers_found"]),
+        "https_rendezvous_peers": int(MESH_STATE["https_rendezvous_peers"]),
         "holepunch_tunnels": int(MESH_STATE["holepunch_tunnels"]),
         "connected_peers": int(MESH_STATE["connected_peers"]),
+        "connected_wan_peers": int(MESH_STATE["connected_wan_peers"]),
+        "connected_lan_peers": int(MESH_STATE["connected_lan_peers"]),
         "incoming_peers": int(MESH_STATE["incoming_peers"]),
         "outgoing_peers": int(MESH_STATE["outgoing_peers"]),
     }
@@ -320,6 +357,7 @@ class _UdpTunnelSession(object):
         self.target_local_port = int(target_local_port or MESH_STATE["p2p_port"])
         self.listen_sock = None
         self.local_bridge_port = 0
+        self.local_tcp_port = 0
         self.tcp_sock = None
         self.established = False
         self.closed = False
@@ -356,6 +394,10 @@ class _UdpTunnelSession(object):
         cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         cs.settimeout(2.5)
         cs.connect(("127.0.0.1", self.target_local_port))
+        try:
+            self.local_tcp_port = int(cs.getsockname()[1])
+        except Exception:
+            pass
         cs.setblocking(False)
         self.tcp_sock = cs
         self.established = True
@@ -699,6 +741,65 @@ def send_udp_holepunch_burst(candidates):
             sock.sendto(pkt, (str(ip), int(uport)))
         except Exception:
             pass
+
+
+def ingest_https_rendezvous_peers(p2p_node, peers_list):
+    """
+    Ingests WAN peer endpoints discovered via censorship-proof HTTPS :443 (/api/report),
+    probing direct TCP :8344 and firing STUN UDP hole-punch bursts even when LAN peers exist!
+    """
+    if not isinstance(peers_list, list) or not peers_list:
+        return 0
+    if p2p_node is None:
+        p2p_node = _ACTIVE_P2P_NODE
+    my_inst = str(MESH_STATE.get("instance_id") or "")
+    now = time.time()
+    tcp_cands = []
+    hp_cands = []
+
+    for item in peers_list[:32]:
+        if not isinstance(item, dict):
+            continue
+        r_inst = str(item.get("instance_id") or "").strip()
+        if r_inst and my_inst and r_inst == my_inst:
+            continue
+        ip = str(item.get("ip") or "").strip()
+        if not _is_routable_public_ipv4(ip):
+            continue
+        try:
+            t_port = int(item.get("p2p_port") or MESH_STATE["p2p_port"] or 8344)
+        except Exception:
+            t_port = 8344
+        try:
+            u_port = int(item.get("udp_port") or t_port)
+        except Exception:
+            u_port = t_port
+
+        if 0 < t_port <= 65535 and not is_self_endpoint(ip, t_port):
+            if (ip, t_port) not in tcp_cands:
+                tcp_cands.append((ip, t_port))
+        if 0 < u_port <= 65535 and not is_self_endpoint(ip, u_port):
+            _HTTPS_HP_CANDIDATES[(ip, u_port)] = now + 180.0
+            if (ip, u_port) not in hp_cands:
+                hp_cands.append((ip, u_port))
+
+    MESH_STATE["https_rendezvous_peers"] = max(len(tcp_cands), len(hp_cands))
+
+    if tcp_cands and p2p_node is not None:
+        open_https = _probe_tcp_batch(tcp_cands[:24], timeout=1.3)
+        if open_https:
+            _save_cached_peers(open_https)
+        for ip, port in open_https:
+            tag = "%s:%d" % (ip, port)
+            if tag not in MESH_STATE["discovered_wan_peers"]:
+                MESH_STATE["discovered_wan_peers"].append(tag)
+            _schedule_connect(p2p_node, ip, port, immediate=True, source="https_rendezvous")
+
+    _refresh_live_peer_counts()
+    if int(MESH_STATE["connected_wan_peers"]) < 2 and hp_cands:
+        send_udp_holepunch_burst(hp_cands)
+
+    return len(hp_cands)
 
 
 # ==============================================================================
@@ -1052,7 +1153,7 @@ def _twisted_register_and_dial(p2p_node, ip, port, immediate=True, source="mesh"
 
     try:
         addr_store = getattr(p2p_node, "addr_store", None)
-        if isinstance(addr_store, dict) and len(getattr(p2p_node, "peers", {}) or {}) == 0:
+        if isinstance(addr_store, dict) and int(MESH_STATE.get("connected_wan_peers") or 0) == 0:
             for k in list(addr_store.keys()):
                 if k not in _VERIFIED_OPEN_PEERS:
                     addr_store.pop(k, None)
@@ -1211,7 +1312,7 @@ def _udp_beacon_worker(p2p_node, base_udp_port):
             # Re-send scheduled UDP hole-punch HELLO bursts (~1.6s spacing)
             for t_addr in list(_PUNCH_TARGETS.keys()):
                 last_t, rem = _PUNCH_TARGETS.get(t_addr, [0.0, 0])
-                if rem <= 0 or _has_tunnel_with_peer(t_addr, None) or int(MESH_STATE["connected_peers"]) >= 2:
+                if rem <= 0 or _has_tunnel_with_peer(t_addr, None) or int(MESH_STATE["connected_wan_peers"]) >= 3:
                     _PUNCH_TARGETS.pop(t_addr, None)
                     continue
                 if (now - last_t) >= 1.6:
@@ -1348,6 +1449,7 @@ def _mesh_scanner_worker(p2p_node):
     last_lan_sweep = 0.0
     last_wan_scan = 0.0
     last_swarm_announce = 0.0
+    last_https_repunch = 0.0
 
     cached = _load_cached_peers()
     if cached:
@@ -1363,12 +1465,25 @@ def _mesh_scanner_worker(p2p_node):
         now = time.time()
         _refresh_live_peer_counts()
         n_peers = int(MESH_STATE["connected_peers"])
+        n_wan = int(MESH_STATE["connected_wan_peers"])
         local_ips = set(get_local_lan_ipv4s())
         if MESH_STATE["external_ip"]:
             local_ips.add(str(MESH_STATE["external_ip"]))
 
+        # 0. Keep NAT UDP pinholes warm every 18s toward HTTPS :443 rendezvous peers until >= 2 WAN peers connect!
+        if n_wan < 2 and _HTTPS_HP_CANDIDATES and (now - last_https_repunch) >= 18.0:
+            last_https_repunch = now
+            fresh_hp = []
+            for hp_k, exp_t in list(_HTTPS_HP_CANDIDATES.items()):
+                if now > exp_t:
+                    _HTTPS_HP_CANDIDATES.pop(hp_k, None)
+                elif not _is_peer_connected(p2p_node, hp_k[0], None):
+                    fresh_hp.append(hp_k)
+            if fresh_hp:
+                send_udp_holepunch_burst(fresh_hp)
+
         # 1. Serverless Global BEP 15 Swarm Rendezvous + STUN + Decentralized UDP Hole Punching!
-        swarm_interval = 22.0 if n_peers == 0 else 120.0
+        swarm_interval = 22.0 if n_wan == 0 else (60.0 if n_wan < 2 else 120.0)
         if (now - last_swarm_announce) >= swarm_interval:
             last_swarm_announce = now
             ext_ip, ext_uport = refresh_stun_on_shared_socket(wait_s=1.1)
@@ -1400,11 +1515,11 @@ def _mesh_scanner_worker(p2p_node):
 
             # If STILL 0 direct TCP peers, fire simultaneous UDP hole-punch bursts to punch closed NATs!
             _refresh_live_peer_counts()
-            if int(MESH_STATE["connected_peers"]) == 0 and hp_cands:
+            if int(MESH_STATE["connected_wan_peers"]) < 2 and hp_cands:
                 send_udp_holepunch_burst(hp_cands)
 
         # 2. Re-resolve BOOTSTRAP_ADDRS & probe Scash Core (`scashd` -uacomment=p2pool) blockchain peers on :8344
-        wan_interval = 20.0 if n_peers == 0 else (90.0 if n_peers < 4 else 300.0)
+        wan_interval = 20.0 if n_wan == 0 else (75.0 if n_wan < 3 else 240.0)
         if (now - last_wan_scan) >= wan_interval:
             last_wan_scan = now
             seed_hosts = ["p2pool.magicalgirlsunite.moe", "magicalgirlsunite.moe", "seed.scash.one", "scash.tv"]
@@ -1496,7 +1611,7 @@ def _mesh_scanner_worker(p2p_node):
 
             # Also attempt UDP :8344 hole-punching toward prioritized `/Scash:...(p2pool)/` blockchain peers if still 0 peers!
             _refresh_live_peer_counts()
-            if int(MESH_STATE["connected_peers"]) == 0 and prio_cands:
+            if int(MESH_STATE["connected_wan_peers"]) < 2 and prio_cands:
                 send_udp_holepunch_burst(prio_cands[:12])
 
         # 3. Local /24 LAN TCP :8344 sweep fallback ONLY while connected_peers == 0

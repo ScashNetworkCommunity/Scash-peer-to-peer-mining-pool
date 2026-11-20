@@ -1,6 +1,6 @@
-// Scash P2Pool (v0.3.7) — 100% Serverless Community Consensus Stats API for MiningPoolStats
+// Scash P2Pool (v0.3.8) — 100% Serverless Community Consensus Stats + HTTPS :443 Peer Rendezvous & Diagnostics API
 // Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
-// Zero home servers, zero GitHub tokens, true 1-minute updates, median anti-spoof consensus.
+// Zero home servers, zero GitHub tokens, 1-minute consensus, censorship-proof HTTPS :443 NAT rendezvous, privacy-masked /api/nodes.
 
 const REPORT_TTL_SEC = 195; // Expire silent nodes after ~3.25 minutes (nodes report every 60s)
 
@@ -20,14 +20,44 @@ CREATE TABLE IF NOT EXISTS node_reports (
   block_height INTEGER NOT NULL,
   net_diff REAL NOT NULL,
   net_hr REAL NOT NULL,
-  net_peers INTEGER NOT NULL
+  net_peers INTEGER NOT NULL,
+  peer_ip TEXT DEFAULT '',
+  p2p_port INTEGER DEFAULT 8344,
+  stun_udp_port INTEGER DEFAULT 0,
+  upnp_open INTEGER DEFAULT 0,
+  nat_mapping TEXT DEFAULT 'unknown',
+  wan_peers INTEGER DEFAULT 0,
+  lan_peers INTEGER DEFAULT 0,
+  hp_tunnels INTEGER DEFAULT 0,
+  node_ver TEXT DEFAULT '',
+  instance_id TEXT DEFAULT ''
 );`;
+
+const MIGRATION_COLS = [
+  "ALTER TABLE node_reports ADD COLUMN peer_ip TEXT DEFAULT ''",
+  "ALTER TABLE node_reports ADD COLUMN p2p_port INTEGER DEFAULT 8344",
+  "ALTER TABLE node_reports ADD COLUMN stun_udp_port INTEGER DEFAULT 0",
+  "ALTER TABLE node_reports ADD COLUMN upnp_open INTEGER DEFAULT 0",
+  "ALTER TABLE node_reports ADD COLUMN nat_mapping TEXT DEFAULT 'unknown'",
+  "ALTER TABLE node_reports ADD COLUMN wan_peers INTEGER DEFAULT 0",
+  "ALTER TABLE node_reports ADD COLUMN lan_peers INTEGER DEFAULT 0",
+  "ALTER TABLE node_reports ADD COLUMN hp_tunnels INTEGER DEFAULT 0",
+  "ALTER TABLE node_reports ADD COLUMN node_ver TEXT DEFAULT ''",
+  "ALTER TABLE node_reports ADD COLUMN instance_id TEXT DEFAULT ''"
+];
 
 let schemaReady = false;
 
 async function ensureSchema(db) {
   if (!schemaReady && db) {
     await db.prepare(SCHEMA_SQL).run();
+    for (const alterSql of MIGRATION_COLS) {
+      try {
+        await db.prepare(alterSql).run();
+      } catch (_) {
+        // Column already exists on upgraded D1 database
+      }
+    }
     schemaReady = true;
   }
 }
@@ -38,11 +68,142 @@ async function sha256Short(text) {
   return Array.from(new Uint8Array(digest)).slice(0, 12).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+function isRoutableIpv4(ip) {
+  if (!ip || typeof ip !== "string") return false;
+  const parts = ip.trim().split(".");
+  if (parts.length !== 4) return false;
+  const nums = parts.map(p => Number(p));
+  if (nums.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+  const [a, b] = nums;
+  if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
+  if (a === 192 && b === 168) return false;
+  if (a === 172 && b >= 16 && b <= 31) return false;
+  if (a === 169 && b === 254) return false;
+  if (a === 100 && b >= 64 && b <= 127) return false;
+  return true;
+}
+
+function maskIp(ip) {
+  if (!ip || typeof ip !== "string") return "hidden";
+  const parts = ip.trim().split(".");
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.x.x`;
+  if (ip.includes(":")) return ip.split(":").slice(0, 2).join(":") + ":*";
+  return "hidden";
+}
+
+function baseNetHash(ipHashKey) {
+  return String(ipHashKey || "").split(":")[0];
+}
+
 function median(values) {
   if (!values || values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
+}
+
+function buildRendezvousPeers(rows, nowSec, callerIp, callerInst) {
+  const fresh = (rows || []).filter(r => (nowSec - Number(r.updated_ep || 0)) <= REPORT_TTL_SEC);
+  const out = [];
+  const seen = new Set();
+  // Prioritize open-port/UPnP nodes and Endpoint-Independent NAT nodes first
+  fresh.sort((a, b) => {
+    const sa = (Number(a.upnp_open || 0) ? 4 : 0) + (a.nat_mapping === "endpoint_independent" ? 2 : 0);
+    const sb = (Number(b.upnp_open || 0) ? 4 : 0) + (b.nat_mapping === "endpoint_independent" ? 2 : 0);
+    return sb - sa || Number(b.updated_ep || 0) - Number(a.updated_ep || 0);
+  });
+  for (const r of fresh) {
+    const rip = String(r.peer_ip || "").trim();
+    const rinst = String(r.instance_id || "").trim();
+    if (!isRoutableIpv4(rip)) continue;
+    if (callerIp && rip === callerIp) continue;
+    if (callerInst && rinst && rinst === callerInst) continue;
+    const p2pPort = Math.max(1, Math.min(65535, Number(r.p2p_port || 8344)));
+    const udpPort = Math.max(1, Math.min(65535, Number(r.stun_udp_port || p2pPort)));
+    const dedupKey = `${rip}:${p2pPort}:${udpPort}`;
+    if (seen.has(dedupKey)) continue;
+    seen.add(dedupKey);
+    out.push({
+      ip: rip,
+      p2p_port: p2pPort,
+      udp_port: udpPort,
+      upnp_open: Boolean(Number(r.upnp_open || 0)),
+      nat_mapping: String(r.nat_mapping || "unknown"),
+      instance_id: rinst
+    });
+    if (out.length >= 24) break;
+  }
+  return out;
+}
+
+export function buildNodesDiagnostics(rows, nowSec) {
+  const fresh = (rows || []).filter(r => (nowSec - Number(r.updated_ep || 0)) <= REPORT_TTL_SEC);
+  const netSet = new Set();
+  const tipMap = new Map();
+  let wanConnectedNodes = 0;
+  let openPortNodes = 0;
+  let hpActiveTotal = 0;
+
+  const nodeItems = fresh.map(r => {
+    const netKey = baseNetHash(r.ip_hash);
+    if (netKey) netSet.add(netKey);
+    const tip = String(r.best_share || "").trim();
+    if (tip && Number(r.chain_height || 0) > 0) {
+      tipMap.set(tip, (tipMap.get(tip) || 0) + 1);
+    }
+    const wanP = Number(r.wan_peers || 0);
+    const lanP = Number(r.lan_peers || 0);
+    const totP = Number(r.p2pool_peers || 0);
+    const upnp = Boolean(Number(r.upnp_open || 0));
+    const hp = Number(r.hp_tunnels || 0);
+    if (wanP > 0) wanConnectedNodes += 1;
+    if (upnp) openPortNodes += 1;
+    hpActiveTotal += hp;
+    return {
+      node_key: String(r.ip_hash || "").slice(0, 12),
+      network_id: netKey.slice(0, 8),
+      masked_ip: maskIp(r.peer_ip),
+      version: String(r.node_ver || "unknown"),
+      age_sec: Math.max(0, nowSec - Number(r.updated_ep || 0)),
+      chain_height: Number(r.chain_height || 0),
+      best_share_prefix: tip ? tip.slice(0, 16) : "",
+      p2pool_peers: totP,
+      wan_peers: wanP,
+      lan_peers: lanP,
+      holepunch_tunnels: hp,
+      upnp_open: upnp,
+      nat_mapping: String(r.nat_mapping || "unknown"),
+      pool_hashrate_hs: Number(Number(r.pool_hr || 0).toFixed(2)),
+      connected_miners: Number(r.miners_cnt || 0),
+      scash_block_height: Number(r.block_height || 0)
+    };
+  });
+
+  let consensusTip = "";
+  let consensusCnt = 0;
+  for (const [t, c] of tipMap.entries()) {
+    if (c > consensusCnt) {
+      consensusTip = t;
+      consensusCnt = c;
+    }
+  }
+  const splitBrain = netSet.size >= 2 && tipMap.size >= 2 && wanConnectedNodes < fresh.length;
+
+  return {
+    ok: true,
+    updatedAt: new Date(nowSec * 1000).toISOString().replace(/\.\d{3}Z$/, "Z"),
+    summary: {
+      active_nodes: fresh.length,
+      unique_wan_networks: netSet.size,
+      nodes_with_wan_peers: wanConnectedNodes,
+      nodes_with_open_port_or_upnp: openPortNodes,
+      holepunch_tunnels_active: hpActiveTotal,
+      consensus_share_tip_prefix: consensusTip ? consensusTip.slice(0, 16) : "",
+      distinct_share_tips: tipMap.size,
+      split_brain_warning: splitBrain
+    },
+    nodes: nodeItems
+  };
 }
 
 function buildMiningcorePool(agg, nowSec) {
@@ -83,7 +244,7 @@ function buildMiningcorePool(agg, nowSec) {
     blockRefreshInterval: 1000,
     poolFeePercent: 0.0,
     address: "",
-    addressInfoLink: "https://scash.tv/",
+    addressInfoLink: "https://explorer.scash.network/",
     poolStats: {
       connectedMiners: agg.miners_cnt,
       connectedWorkers: agg.workers_cnt,
@@ -105,6 +266,7 @@ function buildMiningcorePool(agg, nowSec) {
     lastPoolBlockTime: agg.last_block_iso || null,
     blockReward: 50.0,
     activeReportingNodes: agg.active_nodes,
+    uniqueWanNetworks: agg.unique_wan_networks,
     updatedAt: isoNow,
     updatedAtEpoch: nowSec
   };
@@ -119,6 +281,7 @@ export function aggregateReports(rows, nowSec) {
   if (fresh.length === 0) {
     return {
       active_nodes: 0,
+      unique_wan_networks: 0,
       miners_cnt: 0,
       workers_cnt: 0,
       pool_hr: 0.0,
@@ -131,6 +294,8 @@ export function aggregateReports(rows, nowSec) {
       net_peers: latestChain ? Number(latestChain.net_peers || 0) : 0
     };
   }
+
+  const uniqueNets = new Set(fresh.map(r => baseNetHash(r.ip_hash))).size;
 
   // Prefer nodes connected to at least 1 P2Pool peer when 2+ nodes are online so lone spoofers cannot skew stats
   const connected = fresh.filter(r => Number(r.p2pool_peers || 0) >= 1);
@@ -162,6 +327,7 @@ export function aggregateReports(rows, nowSec) {
 
   return {
     active_nodes: fresh.length,
+    unique_wan_networks: uniqueNets,
     miners_cnt: medMiners,
     workers_cnt: Math.max(medMiners, Math.round(median(cohort.map(r => Number(r.workers_cnt || 0))))),
     pool_hr: safePoolHr,
@@ -200,17 +366,13 @@ export default {
 
     if (request.method === "POST" && (path === "/api/report" || path === "/" || path === "/api/pools")) {
       try {
-        const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
+        const ip = (request.headers.get("CF-Connecting-IP") || "0.0.0.0").trim();
         const ipHash = await sha256Short("scash-p2pool-v020|" + ip);
-
-        const existing = await env.DB.prepare("SELECT updated_ep FROM node_reports WHERE ip_hash = ?").bind(ipHash).first();
-        if (existing && (nowSec - Number(existing.updated_ep || 0)) < 12) {
-          return new Response(JSON.stringify({ ok: true, throttled: true }), {
-            headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
-          });
-        }
-
         const body = await request.json();
+        const mesh = body.mesh || {};
+        const instClean = String(mesh.instance_id || "").replace(/[^0-9a-fA-F]/g, "").slice(0, 16);
+        const rowKey = instClean ? `${ipHash}:${instClean.slice(0, 8)}` : ipHash;
+
         const pp = body.pool_payload || {};
         const ps = pp.poolStats || {};
         const ns = pp.networkStats || {};
@@ -220,7 +382,6 @@ export default {
         const netHr = Math.max(0, Number(ns.networkHashrate || 0) || 0);
         const rawPoolHr = Math.max(0, Number(ps.poolHashrate || 0) || 0);
 
-        // Sanity bound: only reject absurd spoofed claims (> 50x network hashrate AND > 50 MH/s), never real 20+ KH/s rigs!
         const sanityCap = netHr > 0 ? Math.max(netHr * 50.0, 50000000.0) : 50000000.0;
         if (blkH < 100 || rawPoolHr > sanityCap) {
           return new Response(JSON.stringify({ ok: false, reason: "sanity_check" }), {
@@ -229,42 +390,74 @@ export default {
           });
         }
 
-        const p2pPeers = Math.max(0, Math.min(256, parseInt(body.p2pool_peers || 0, 10) || 0));
-        const chainH = Math.max(0, parseInt(body.chain_height || 0, 10) || 0);
-        const bestShare = String(body.best_share_hash || "").slice(0, 80);
-        const minersCnt = Math.max(0, Math.min(10000, parseInt(ps.connectedMiners || 0, 10) || 0));
-        const workersCnt = Math.max(minersCnt, Math.min(50000, parseInt(ps.connectedWorkers || 0, 10) || 0));
-        const sharesPs = Math.max(0, Number(ps.sharesPerSecond || 0) || 0);
-        const totalBlocks = Math.max(0, parseInt(pp.totalBlocks || 0, 10) || 0);
-        const lastBlockIso = pp.lastPoolBlockTime ? String(pp.lastPoolBlockTime).slice(0, 40) : null;
-        const netPeers = Math.max(0, Math.min(500, parseInt(ns.connectedPeers || 0, 10) || 0));
+        const existing = await env.DB.prepare("SELECT updated_ep FROM node_reports WHERE ip_hash = ?").bind(rowKey).first();
+        if (!existing || (nowSec - Number(existing.updated_ep || 0)) >= 10) {
+          const p2pPeers = Math.max(0, Math.min(256, parseInt(body.p2pool_peers || 0, 10) || 0));
+          const chainH = Math.max(0, parseInt(body.chain_height || 0, 10) || 0);
+          const bestShare = String(body.best_share_hash || "").slice(0, 80);
+          const minersCnt = Math.max(0, Math.min(10000, parseInt(ps.connectedMiners || 0, 10) || 0));
+          const workersCnt = Math.max(minersCnt, Math.min(50000, parseInt(ps.connectedWorkers || 0, 10) || 0));
+          const sharesPs = Math.max(0, Number(ps.sharesPerSecond || 0) || 0);
+          const totalBlocks = Math.max(0, parseInt(pp.totalBlocks || 0, 10) || 0);
+          const lastBlockIso = pp.lastPoolBlockTime ? String(pp.lastPoolBlockTime).slice(0, 40) : null;
+          const netPeers = Math.max(0, Math.min(500, parseInt(ns.connectedPeers || 0, 10) || 0));
 
-        await env.DB.prepare(`
-          INSERT INTO node_reports (
-            ip_hash, updated_ep, p2pool_peers, chain_height, best_share,
-            miners_cnt, workers_cnt, pool_hr, shares_ps, total_blocks,
-            last_block_iso, block_height, net_diff, net_hr, net_peers
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(ip_hash) DO UPDATE SET
-            updated_ep=excluded.updated_ep, p2pool_peers=excluded.p2pool_peers,
-            chain_height=excluded.chain_height, best_share=excluded.best_share,
-            miners_cnt=excluded.miners_cnt, workers_cnt=excluded.workers_cnt,
-            pool_hr=excluded.pool_hr, shares_ps=excluded.shares_ps,
-            total_blocks=excluded.total_blocks, last_block_iso=excluded.last_block_iso,
-            block_height=excluded.block_height, net_diff=excluded.net_diff,
-            net_hr=excluded.net_hr, net_peers=excluded.net_peers
-        `).bind(
-          ipHash, nowSec, p2pPeers, chainH, bestShare,
-          minersCnt, workersCnt, rawPoolHr, sharesPs, totalBlocks,
-          lastBlockIso, blkH, netDiff, netHr, netPeers
-        ).run();
+          const p2pPort = Math.max(1, Math.min(65535, parseInt(mesh.p2p_port || 8344, 10) || 8344));
+          const stunUdpPort = Math.max(0, Math.min(65535, parseInt(mesh.external_udp_port || mesh.udp_port || 0, 10) || 0));
+          const upnpOpen = mesh.upnp_open ? 1 : 0;
+          const natMap = String(mesh.nat_mapping || "unknown").replace(/[^a-z_]/g, "").slice(0, 28) || "unknown";
+          const wanPeers = Math.max(0, Math.min(256, parseInt(mesh.wan_peers || 0, 10) || 0));
+          const lanPeers = Math.max(0, Math.min(256, parseInt(mesh.lan_peers || 0, 10) || 0));
+          const hpTunnels = Math.max(0, Math.min(64, parseInt(mesh.holepunch_tunnels || 0, 10) || 0));
+          const nodeVer = String(body.version || "").slice(0, 24);
+          const peerIpClean = isRoutableIpv4(ip) ? ip : "";
 
-        // Opportunistically prune rows older than 24h (~5% of writes) to keep DB tiny (< 1 MB forever)
-        if (Math.random() < 0.05) {
-          await env.DB.prepare("DELETE FROM node_reports WHERE updated_ep < ?").bind(nowSec - 86400).run();
+          await env.DB.prepare(`
+            INSERT INTO node_reports (
+              ip_hash, updated_ep, p2pool_peers, chain_height, best_share,
+              miners_cnt, workers_cnt, pool_hr, shares_ps, total_blocks,
+              last_block_iso, block_height, net_diff, net_hr, net_peers,
+              peer_ip, p2p_port, stun_udp_port, upnp_open, nat_mapping,
+              wan_peers, lan_peers, hp_tunnels, node_ver, instance_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(ip_hash) DO UPDATE SET
+              updated_ep=excluded.updated_ep, p2pool_peers=excluded.p2pool_peers,
+              chain_height=excluded.chain_height, best_share=excluded.best_share,
+              miners_cnt=excluded.miners_cnt, workers_cnt=excluded.workers_cnt,
+              pool_hr=excluded.pool_hr, shares_ps=excluded.shares_ps,
+              total_blocks=excluded.total_blocks, last_block_iso=excluded.last_block_iso,
+              block_height=excluded.block_height, net_diff=excluded.net_diff,
+              net_hr=excluded.net_hr, net_peers=excluded.net_peers,
+              peer_ip=excluded.peer_ip, p2p_port=excluded.p2p_port,
+              stun_udp_port=excluded.stun_udp_port, upnp_open=excluded.upnp_open,
+              nat_mapping=excluded.nat_mapping, wan_peers=excluded.wan_peers,
+              lan_peers=excluded.lan_peers, hp_tunnels=excluded.hp_tunnels,
+              node_ver=excluded.node_ver, instance_id=excluded.instance_id
+          `).bind(
+            rowKey, nowSec, p2pPeers, chainH, bestShare,
+            minersCnt, workersCnt, rawPoolHr, sharesPs, totalBlocks,
+            lastBlockIso, blkH, netDiff, netHr, netPeers,
+            peerIpClean, p2pPort, stunUdpPort, upnpOpen, natMap,
+            wanPeers, lanPeers, hpTunnels, nodeVer, instClean
+          ).run();
+
+          if (Math.random() < 0.08) {
+            await env.DB.prepare("DELETE FROM node_reports WHERE updated_ep < ?").bind(nowSec - 86400).run();
+          }
         }
 
-        return new Response(JSON.stringify({ ok: true }), {
+        const { results: peerRows } = await env.DB.prepare(
+          "SELECT * FROM node_reports ORDER BY updated_ep DESC LIMIT 200"
+        ).all();
+        const rPeers = buildRendezvousPeers(peerRows || [], nowSec, ip, instClean);
+        const diag = buildNodesDiagnostics(peerRows || [], nowSec);
+
+        return new Response(JSON.stringify({
+          ok: true,
+          rendezvous_peers: rPeers,
+          unique_wan_networks: diag.summary.unique_wan_networks,
+          split_brain_warning: diag.summary.split_brain_warning
+        }), {
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
         });
       } catch (err) {
@@ -278,6 +471,14 @@ export default {
     const { results } = await env.DB.prepare(
       "SELECT * FROM node_reports ORDER BY updated_ep DESC LIMIT 200"
     ).all();
+
+    if (path === "/api/nodes" || path === "/api/nodes.json") {
+      const diag = buildNodesDiagnostics(results || [], nowSec);
+      return new Response(JSON.stringify(diag, null, 2), {
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Cache-Control": "no-store" }
+      });
+    }
+
     const agg = aggregateReports(results || [], nowSec);
     const poolObj = buildMiningcorePool(agg, nowSec);
 
@@ -295,14 +496,16 @@ export default {
       });
     }
 
+    const diagSummary = buildNodesDiagnostics(results || [], nowSec).summary;
     const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scash P2Pool — Live Decentralized Sharechain Stats</title>
-<style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.55}
+<title>Scash P2Pool — Live Decentralized Sharechain Stats & Mesh Diagnostics</title>
+<style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55}
 .card{background:#1c182b;border:1px solid #352d52;border-radius:14px;padding:22px;margin:18px 0}
 code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font-size:13px;overflow-x:auto}pre{padding:14px}a{color:#c084fc}</style></head>
-<body><h1>Scash P2Pool (<code>v0.3.7</code>) — Serverless Pool Stats</h1>
-<p>100% decentralized community-reported P2Pool stats (1-minute live consensus across active P2Pool nodes):</p>
-<div class="card"><p><strong>MiningPoolStats Endpoint:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases/latest">Download Scash P2Pool v0.3.7</a></p>
+<body><h1>Scash P2Pool (<code>v0.3.8</code>) — Serverless Pool Stats &amp; Global Mesh</h1>
+<p>100% decentralized community-reported P2Pool stats &amp; HTTPS :443 NAT peer rendezvous:</p>
+<div class="card"><p><strong>Live Endpoints:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="./api/nodes"><code>/api/nodes</code> (Global Mesh Diagnostics)</a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases">Download Scash P2Pool</a></p>
+<p style="font-size:13px;color:#d8b4fe">Active Nodes: <strong>${diagSummary.active_nodes}</strong> &middot; Unique WAN Networks: <strong>${diagSummary.unique_wan_networks}</strong> &middot; Split-Brain Warning: <strong>${diagSummary.split_brain_warning ? "YES" : "No"}</strong></p>
 <pre>${JSON.stringify({ pools: [poolObj] }, null, 2)}</pre></div></body></html>`;
     return new Response(html, { headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" } });
   }
