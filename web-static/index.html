@@ -1433,9 +1433,9 @@
         }).join('');
       }
 
-      const shTotal = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
-      const shOrph = ls && ls.shares ? Number(ls.shares.orphan || 0) : 0;
-      const shDead = ls && ls.shares ? Number(ls.shares.dead || 0) : 0;
+      const shOrph = ls && ls.shares ? Math.max(0, Number(ls.shares.orphan || 0)) : 0;
+      const shDead = ls && ls.shares ? Math.max(0, Number(ls.shares.dead || 0)) : 0;
+      const shTotal = ls && ls.shares ? Math.max(shOrph + shDead, Number(ls.shares.total || 0)) : 0;
       document.getElementById('kpiNodeShares').textContent = `${shTotal} Total`;
       document.getElementById('kpiNodeSharesSub').textContent = `${shOrph} Orphan • ${shDead} Dead`;
 
@@ -1518,7 +1518,7 @@
           <div class="p-3 rounded-lg bg-[#160d26]/90 border border-cyan-400/50 flex items-center justify-between">
             <div>
               <div class="text-xs font-semibold text-cyan-300">&#10003; Verified Local P2Pool Shares Found</div>
-              <div class="text-[11px] text-purple-200 mt-0.5 font-mono-code">Total: ${ls.shares.total} | Orphan: ${ls.shares.orphan || 0} | Dead: ${ls.shares.dead || 0}</div>
+              <div class="text-[11px] text-purple-200 mt-0.5 font-mono-code">Total: ${Math.max(0, Number(ls.shares.total || 0))} | Orphan: ${Math.max(0, Number(ls.shares.orphan || 0))} | Dead: ${Math.max(0, Number(ls.shares.dead || 0))}</div>
             </div>
             <span class="font-mono-code text-xs ${p2pPeers > 0 ? 'text-emerald-300' : 'text-amber-300'}">${p2pPeers > 0 ? `P2P MESH (${p2pPeers} PEER${p2pPeers === 1 ? '' : 'S'})` : 'AUTO-SEARCHING PEERS (:8344)'}</span>
           </div>

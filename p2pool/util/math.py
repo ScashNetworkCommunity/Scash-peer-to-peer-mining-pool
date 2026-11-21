@@ -243,3 +243,16 @@ def merge_dicts(*dicts):
     res = {}
     for d in dicts: res.update(d)
     return res
+
+# --- Scash Safe Binomial Confidence Clamp ---
+if 'binomial_conf_interval' in globals():
+    _orig_scash_bci = getattr(binomial_conf_interval, '_scash_orig_fn', binomial_conf_interval)
+    def binomial_conf_interval(x, n, conf=0.95):
+        try:
+            n_c = max(0, int(n))
+            x_c = min(max(0, int(x)), n_c)
+            c_c = min(max(0.0, float(conf)), 0.999999)
+            return _orig_scash_bci(x_c, n_c, c_c)
+        except Exception:
+            return (0.0, 0.0)
+    binomial_conf_interval._scash_orig_fn = _orig_scash_bci

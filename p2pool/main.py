@@ -405,7 +405,7 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
                         paystr += "=%.4f" % (paytot,)
                         this_str += '\n Shares: %i (%i orphan, %i dead) Stale rate: %s Efficiency: %s Current payout: %s %s' % (
                             shares, stale_orphan_shares, stale_doa_shares,
-                            math.format_binomial_conf(stale_orphan_shares + stale_doa_shares, shares, 0.95),
+                            math.format_binomial_conf(max(0, stale_orphan_shares) + max(0, stale_doa_shares), max(shares, max(0, stale_orphan_shares) + max(0, stale_doa_shares)), 0.95),
                             math.format_binomial_conf(stale_orphan_shares + stale_doa_shares, shares, 0.95, lambda x: (1 - x)/(1 - stale_prop)),
                             paystr, net.PARENT.SYMBOL,
                         )

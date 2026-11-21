@@ -40,23 +40,40 @@ def _scash_maybe_purge_presync(wb_self, cur_share_target):
             return
         _tr = getattr(wb_self.node, 'tracker', None)
         _best = getattr(getattr(wb_self.node, 'best_share_var', None), 'value', None)
+        if _tr is None or _best is None or _best not in _tr.items:
+            return
         _keep = set()
-        if _tr is not None and _best is not None and _best in _tr.items:
-            _ch_len = min(int(_tr.get_height(_best)), int(getattr(wb_self.node.net, 'REAL_CHAIN_LENGTH', 5760)))
-            for _s in _tr.get_chain(_best, _ch_len):
-                if _s.hash in _my_sh and getattr(_s, 'max_target', _s.target) < (_max_t * 9 // 10):
-                    _keep.add(_s.hash)
+        _ch_len = min(int(_tr.get_height(_best)), int(getattr(wb_self.node.net, 'REAL_CHAIN_LENGTH', 5760)))
+        for _s in _tr.get_chain(_best, _ch_len):
+            if _s.hash in _my_sh:
+                _keep.add(_s.hash)
         _purged = len(_my_sh) - len(_keep)
         if _purged > 0:
             _my_sh.clear()
             _my_sh.update(_keep)
             if hasattr(wb_self, 'my_doa_share_hashes'):
                 wb_self.my_doa_share_hashes.intersection_update(_keep)
-            if hasattr(wb_self, 'recent_shares_ts_work'):
-                del wb_self.recent_shares_ts_work[:]
-            if hasattr(wb_self, 'local_rate_monitor'):
-                wb_self.local_rate_monitor = type(wb_self.local_rate_monitor)(10 * 60)
-            print '[Scash P2Pool] Sharechain synced! Cleared %d pre-sync warmup shares so session efficiency starts clean.' % (_purged,)
+            for _co in (wb_self, _tr, getattr(_tr, 'verified', None)):
+                if _co is None:
+                    continue
+                for _dv in list(getattr(_co, '__dict__', {}).values()):
+                    if hasattr(_dv, 'deltas') and isinstance(_dv.deltas, dict):
+                        _dv.deltas.clear()
+                _dts = getattr(_co, '_delta_trackers', None)
+                if isinstance(_dts, dict):
+                    for _dt in list(_dts.values()):
+                        if hasattr(_dt, 'deltas') and isinstance(_dt.deltas, dict):
+                            _dt.deltas.clear()
+            if hasattr(wb_self, 'removed_unstales_var') and hasattr(wb_self.removed_unstales_var, 'set'):
+                wb_self.removed_unstales_var.set((0, 0, 0))
+            if hasattr(wb_self, 'removed_doa_unstales_var') and hasattr(wb_self.removed_doa_unstales_var, 'set'):
+                wb_self.removed_doa_unstales_var.set(0)
+            if not _keep:
+                if hasattr(wb_self, 'recent_shares_ts_work'):
+                    del wb_self.recent_shares_ts_work[:]
+                if hasattr(wb_self, 'local_rate_monitor'):
+                    wb_self.local_rate_monitor = type(wb_self.local_rate_monitor)(10 * 60)
+            print '[Scash P2Pool] Sharechain synced! Cleared %d orphaned pre-sync solo shares.' % (_purged,)
     except Exception:
         pass
 
@@ -524,3 +541,20 @@ class WorkerBridge(worker_interface.WorkerBridge):
             return on_time
         
         return ba, got_response
+
+# --- Scash Safe Stale Counts Guard ---
+if 'WorkerBridge' in globals() and hasattr(WorkerBridge, 'get_stale_counts'):
+    _orig_scash_gsc = getattr(WorkerBridge, '_scash_orig_gsc', WorkerBridge.get_stale_counts)
+    def _scash_safe_get_stale_counts(self):
+        _res = _orig_scash_gsc(self)
+        try:
+            if isinstance(_res, tuple) and len(_res) >= 2 and isinstance(_res[0], tuple) and len(_res[0]) == 2:
+                _orph = max(0, int(_res[0][0]))
+                _doa = max(0, int(_res[0][1]))
+                _tot = max(max(0, int(_res[1])), _orph + _doa)
+                return ((_orph, _doa), _tot) + _res[2:]
+        except Exception:
+            pass
+        return _res
+    WorkerBridge._scash_orig_gsc = _orig_scash_gsc
+    WorkerBridge.get_stale_counts = _scash_safe_get_stale_counts
