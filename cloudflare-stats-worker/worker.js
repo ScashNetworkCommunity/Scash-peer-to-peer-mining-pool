@@ -1,6 +1,6 @@
-// Scash P2Pool (v0.3.8) — 100% Serverless Community Consensus Stats + HTTPS :443 Peer Rendezvous & Diagnostics API
+// Scash P2Pool (v0.3.9) — 100% Serverless Community Consensus Stats + Dual-Stack IPv4/IPv6 /64 Peer Rendezvous & Diagnostics API
 // Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
-// Zero home servers, zero GitHub tokens, 1-minute consensus, censorship-proof HTTPS :443 NAT rendezvous, privacy-masked /api/nodes.
+// Zero home servers, zero GitHub tokens, 1-minute consensus, IPv6 /64 home-LAN grouping, STUN IPv4 fallback, privacy-masked /api/nodes.
 
 const REPORT_TTL_SEC = 195; // Expire silent nodes after ~3.25 minutes (nodes report every 60s)
 
@@ -83,11 +83,59 @@ function isRoutableIpv4(ip) {
   return true;
 }
 
+export function expandIpv6Hextets(rawIp) {
+  if (!rawIp || typeof rawIp !== "string" || !rawIp.includes(":")) return null;
+  let s = rawIp.trim().toLowerCase().split("%")[0];
+  if (!s) return null;
+  // Handle IPv4-mapped IPv6 (e.g. ::ffff:198.51.100.7)
+  if (s.includes(".")) {
+    const lastColon = s.lastIndexOf(":");
+    const v4Part = s.slice(lastColon + 1);
+    if (!isRoutableIpv4(v4Part)) return null;
+    const oct = v4Part.split(".").map(Number);
+    const h6 = ((oct[0] << 8) | oct[1]).toString(16);
+    const h7 = ((oct[2] << 8) | oct[3]).toString(16);
+    s = s.slice(0, lastColon + 1) + h6 + ":" + h7;
+  }
+  const dbl = s.split("::");
+  if (dbl.length > 2) return null;
+  const left = dbl[0] ? dbl[0].split(":") : [];
+  const right = dbl.length === 2 && dbl[1] ? dbl[1].split(":") : [];
+  const missing = 8 - (left.length + right.length);
+  if ((dbl.length === 1 && left.length !== 8) || (dbl.length === 2 && missing < 1)) return null;
+  const full = dbl.length === 2
+    ? [...left, ...Array(missing).fill("0"), ...right]
+    : left;
+  if (full.length !== 8) return null;
+  const norm = [];
+  for (const h of full) {
+    if (!/^[0-9a-f]{1,4}$/.test(h)) return null;
+    norm.push(h.padStart(4, "0"));
+  }
+  return norm;
+}
+
+export function normalizeNetworkPrefix(ip) {
+  const s = String(ip || "").trim();
+  if (isRoutableIpv4(s)) return "v4:" + s;
+  const hx = expandIpv6Hextets(s);
+  if (hx) {
+    // Group residential dual-stack IPv6 LAN devices by /64 prefix (first 4 hextets)
+    return "v6:" + hx.slice(0, 4).join(":");
+  }
+  return "raw:" + s.toLowerCase();
+}
+
 function maskIp(ip) {
   if (!ip || typeof ip !== "string") return "hidden";
-  const parts = ip.trim().split(".");
+  const s = ip.trim();
+  const parts = s.split(".");
   if (parts.length === 4) return `${parts[0]}.${parts[1]}.x.x`;
-  if (ip.includes(":")) return ip.split(":").slice(0, 2).join(":") + ":*";
+  const hx = expandIpv6Hextets(s);
+  if (hx) {
+    return `${hx[0].replace(/^0+/, "") || "0"}:${hx[1].replace(/^0+/, "") || "0"}:${hx[2].replace(/^0+/, "") || "0"}:*`;
+  }
+  if (s.includes(":")) return s.split(":").slice(0, 3).join(":") + ":*";
   return "hidden";
 }
 
@@ -102,11 +150,10 @@ function median(values) {
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
 }
 
-function buildRendezvousPeers(rows, nowSec, callerIp, callerInst) {
+function buildRendezvousPeers(rows, nowSec, callerNetHash, callerIpv4, callerInst) {
   const fresh = (rows || []).filter(r => (nowSec - Number(r.updated_ep || 0)) <= REPORT_TTL_SEC);
   const out = [];
   const seen = new Set();
-  // Prioritize open-port/UPnP nodes and Endpoint-Independent NAT nodes first
   fresh.sort((a, b) => {
     const sa = (Number(a.upnp_open || 0) ? 4 : 0) + (a.nat_mapping === "endpoint_independent" ? 2 : 0);
     const sb = (Number(b.upnp_open || 0) ? 4 : 0) + (b.nat_mapping === "endpoint_independent" ? 2 : 0);
@@ -115,8 +162,10 @@ function buildRendezvousPeers(rows, nowSec, callerIp, callerInst) {
   for (const r of fresh) {
     const rip = String(r.peer_ip || "").trim();
     const rinst = String(r.instance_id || "").trim();
+    const rNet = baseNetHash(r.ip_hash);
     if (!isRoutableIpv4(rip)) continue;
-    if (callerIp && rip === callerIp) continue;
+    if (callerNetHash && rNet === callerNetHash) continue;
+    if (callerIpv4 && rip === callerIpv4) continue;
     if (callerInst && rinst && rinst === callerInst) continue;
     const p2pPort = Math.max(1, Math.min(65535, Number(r.p2p_port || 8344)));
     const udpPort = Math.max(1, Math.min(65535, Number(r.stun_udp_port || p2pPort)));
@@ -160,7 +209,7 @@ export function buildNodesDiagnostics(rows, nowSec) {
     if (upnp) openPortNodes += 1;
     hpActiveTotal += hp;
     return {
-      node_key: String(r.ip_hash || "").slice(0, 12),
+      node_key: String(r.ip_hash || "").slice(0, 17),
       network_id: netKey.slice(0, 8),
       masked_ip: maskIp(r.peer_ip),
       version: String(r.node_ver || "unknown"),
@@ -187,7 +236,29 @@ export function buildNodesDiagnostics(rows, nowSec) {
       consensusCnt = c;
     }
   }
-  const splitBrain = netSet.size >= 2 && tipMap.size >= 2 && wanConnectedNodes < fresh.length;
+
+  // Only flag split_brain_warning when >= 2 genuinely distinct WAN networks are online AND
+  // either NO network has any WAN peer connected or sharechain heights diverge by > 25 shares
+  // (preventing false positives from normal 60-second heartbeat timing offsets!).
+  let splitBrain = false;
+  const byNet = new Map();
+  for (const r of fresh) {
+    if (Number(r.chain_height || 0) <= 0) continue;
+    const nk = baseNetHash(r.ip_hash);
+    const cur = byNet.get(nk);
+    if (!cur || Number(r.wan_peers || 0) > Number(cur.wan_peers || 0) || Number(r.updated_ep || 0) > Number(cur.updated_ep || 0)) {
+      byNet.set(nk, r);
+    }
+  }
+  if (byNet.size >= 2) {
+    const reps = Array.from(byNet.values());
+    const allZeroWan = reps.every(r => Number(r.wan_peers || 0) === 0);
+    const heights = reps.map(r => Number(r.chain_height || 0));
+    const heightSpread = Math.max(...heights) - Math.min(...heights);
+    if (allZeroWan || heightSpread > 25) {
+      splitBrain = true;
+    }
+  }
 
   return {
     ok: true,
@@ -297,11 +368,9 @@ export function aggregateReports(rows, nowSec) {
 
   const uniqueNets = new Set(fresh.map(r => baseNetHash(r.ip_hash))).size;
 
-  // Prefer nodes connected to at least 1 P2Pool peer when 2+ nodes are online so lone spoofers cannot skew stats
   const connected = fresh.filter(r => Number(r.p2pool_peers || 0) >= 1);
   let cohort = connected.length > 0 ? connected : fresh;
 
-  // Group by best_share tip if a majority cluster exists
   const tipCounts = {};
   for (const r of cohort) {
     const k = String(r.best_share || "");
@@ -367,11 +436,16 @@ export default {
     if (request.method === "POST" && (path === "/api/report" || path === "/" || path === "/api/pools")) {
       try {
         const ip = (request.headers.get("CF-Connecting-IP") || "0.0.0.0").trim();
-        const ipHash = await sha256Short("scash-p2pool-v020|" + ip);
         const body = await request.json();
         const mesh = body.mesh || {};
         const instClean = String(mesh.instance_id || "").replace(/[^0-9a-fA-F]/g, "").slice(0, 16);
-        const rowKey = instClean ? `${ipHash}:${instClean.slice(0, 8)}` : ipHash;
+        const stunV4 = String(mesh.external_ip || "").trim();
+
+        // Group dual-stack IPv6 LAN PCs under a single /64 home network hash while keeping per-PC row keys!
+        const netPrefix = normalizeNetworkPrefix(ip);
+        const netHash = (await sha256Short("scash-net-v039|" + netPrefix)).slice(0, 8);
+        const devKey = instClean ? instClean.slice(0, 8) : (await sha256Short("scash-dev|" + ip)).slice(0, 8);
+        const rowKey = `${netHash}:${devKey}`;
 
         const pp = body.pool_payload || {};
         const ps = pp.poolStats || {};
@@ -389,6 +463,9 @@ export default {
             headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
           });
         }
+
+        const callerV4 = isRoutableIpv4(ip) ? ip : (ip.includes(":") && isRoutableIpv4(stunV4) ? stunV4 : "");
+        const peerIpStored = callerV4 || (ip.includes(":") ? ip : "");
 
         const existing = await env.DB.prepare("SELECT updated_ep FROM node_reports WHERE ip_hash = ?").bind(rowKey).first();
         if (!existing || (nowSec - Number(existing.updated_ep || 0)) >= 10) {
@@ -410,7 +487,6 @@ export default {
           const lanPeers = Math.max(0, Math.min(256, parseInt(mesh.lan_peers || 0, 10) || 0));
           const hpTunnels = Math.max(0, Math.min(64, parseInt(mesh.holepunch_tunnels || 0, 10) || 0));
           const nodeVer = String(body.version || "").slice(0, 24);
-          const peerIpClean = isRoutableIpv4(ip) ? ip : "";
 
           await env.DB.prepare(`
             INSERT INTO node_reports (
@@ -437,7 +513,7 @@ export default {
             rowKey, nowSec, p2pPeers, chainH, bestShare,
             minersCnt, workersCnt, rawPoolHr, sharesPs, totalBlocks,
             lastBlockIso, blkH, netDiff, netHr, netPeers,
-            peerIpClean, p2pPort, stunUdpPort, upnpOpen, natMap,
+            peerIpStored, p2pPort, stunUdpPort, upnpOpen, natMap,
             wanPeers, lanPeers, hpTunnels, nodeVer, instClean
           ).run();
 
@@ -449,7 +525,7 @@ export default {
         const { results: peerRows } = await env.DB.prepare(
           "SELECT * FROM node_reports ORDER BY updated_ep DESC LIMIT 200"
         ).all();
-        const rPeers = buildRendezvousPeers(peerRows || [], nowSec, ip, instClean);
+        const rPeers = buildRendezvousPeers(peerRows || [], nowSec, netHash, callerV4, instClean);
         const diag = buildNodesDiagnostics(peerRows || [], nowSec);
 
         return new Response(JSON.stringify({
@@ -502,8 +578,8 @@ export default {
 <style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55}
 .card{background:#1c182b;border:1px solid #352d52;border-radius:14px;padding:22px;margin:18px 0}
 code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font-size:13px;overflow-x:auto}pre{padding:14px}a{color:#c084fc}</style></head>
-<body><h1>Scash P2Pool (<code>v0.3.8</code>) — Serverless Pool Stats &amp; Global Mesh</h1>
-<p>100% decentralized community-reported P2Pool stats &amp; HTTPS :443 NAT peer rendezvous:</p>
+<body><h1>Scash P2Pool (<code>v0.3.9</code>) — Serverless Pool Stats &amp; Global Mesh</h1>
+<p>100% decentralized community-reported P2Pool stats &amp; Dual-Stack IPv4/IPv6 HTTPS :443 NAT peer rendezvous:</p>
 <div class="card"><p><strong>Live Endpoints:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="./api/nodes"><code>/api/nodes</code> (Global Mesh Diagnostics)</a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases">Download Scash P2Pool</a></p>
 <p style="font-size:13px;color:#d8b4fe">Active Nodes: <strong>${diagSummary.active_nodes}</strong> &middot; Unique WAN Networks: <strong>${diagSummary.unique_wan_networks}</strong> &middot; Split-Brain Warning: <strong>${diagSummary.split_brain_warning ? "YES" : "No"}</strong></p>
 <pre>${JSON.stringify({ pools: [poolObj] }, null, 2)}</pre></div></body></html>`;

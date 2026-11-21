@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.3.8).
+Sovereign Full-Stack Launcher for Scash P2Pool (QtKawaii Edition v0.3.9).
 Publisher: magicalgirlsunite | Community: ScashNetworkCommunity
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 - Wraps stdout/stderr safely on PyPy 2.7 so Unicode strings from Scash Core 30.4.0
@@ -137,7 +137,7 @@ _WIN_CTRL_HANDLER = None
 KAWAII_ANSI_HIRES_ZB64 = (
     "eNrtfUuvZddx3jx/QZOTQQAJBlvr/dAZSbQSCbHINmnDBoQMWtSF2FA/iO6WGAEeCB5n4IFgOIAHgRHkR+Tn8JdkVdV6VNXa+9zbEptNIZZa"
     "Ld7DfffeZ++1qr6q+uqr7/zcl6u75nx18A8+XAP87PzVtn+0z7/6w//46g+///c/3+Cff/rOz83z//Cde1/MP37n5/hRMFdvrik+v1z6L9la"
-    "r9bFq4vx+Vf//L/Gxy54Oll0zz/97Mnrzy+P3eOXL59dPrh8cXf3ysFfH3wBH3z3r9/81ydfPnn69PJb88g/Kt+7vPV/tvvvl/zw5au7izeP"
+    "r9bFq4vx+Vf//L/Gxy54Oll0zz/97Mnrzy+P3eOXL59dPrh8cXf3ysFfH3wBH3z3r9/81ydfPnn69PJb88g/qt+7vPV/tvvvl/zw5au7izeP"
     "wiNDhx18rbf6+h6+5zWW5+xk5mpNuXr3fH71GMf/2hP5v5ePf3v36rdP77687CcZH7W/2lVzen7wVf6yfZNfvHzy6peXHxQf4tucRbyEN6+e"
     "vPnN87c4SX9h7f/wl8LbXLnAxdviiKa/ik8ef4hncUdnUS8T/721BU5rSzx8sD+/0Hn/2+Xo1Tzgfa73btvfueKZ9XH/+u824pv9878fuiH5"
     "Zvbw2Vwk/QP9K//8+7M/4xfbYsvXAHv29+pcz9mxtNjaneVrTM/XR/deafyquTp7jZH9qm+7NFxjfZuzva8/B49d3vCfbLrfwipf/oi7Ya82"
@@ -304,12 +304,12 @@ KAWAII_ANSI_HIRES_ZB64 = (
     "5DHz6HnYzsQyKvPMt7olxpn3g/x+T1nIPw/4aFlAsn09T50U81SeZAJlMNG1AxOfEGQU/rMkBZb5RrHhFsqHrqSoiStolqM73bh968tsZtwP"
     "0OYiL3NxYLKwRCH1rELaiK3JbaHvfJkHZg5R3niR2VJ77Q1HuX/ZPsy+3ndf6SgHwO9L2428dk/c8wZkn+P5O9gq5cr8Ut6fdfTBA1dsCjjA"
     "rftWg837AVYcoGR6mIM/OANEOXl9i/0ejrLaIR2pXkhVAZQWN+H0wPGQbV1f8HDJ2awfUdrzVzfkKegAuarD1q2nxt3jR2x7Hf9OELcVH/jU"
-    "ugmHY+RJUVFEPnzkVk0H3UX15Pv1LKzFxxmUmBNS0oN5qx1lxKrANRLqw3Dh2/3npIL7IHz2bcCX/1/9+Rd8Mf8Pzkxl7w=="
+    "ugmHY+RJUVFEPnzkVk0H3UX15Pv1LKzFxxmUmBNS0oN5qx1lxKrANRLqw3Dh2/3npIL7IHz2bcCX/1/9+Rd8Mf8PtBBl8A=="
 )
 KAWAII_ANSI_BANNER_ZB64 = (
     "eNrlXMuOXcd1necXNDmTABIMNk+9q3RGMuEkQiKJIW1kIGTQoBtkI2y2QLYkG8hA8NgDDwhDATIIgiAf4c/hl3ivXc9d595LUqbEBiQ1H/ew"
     "Tj33XnvtR90PvjRx01sIm8ZfjN0sPmuzKfqrunr18o+vXn73s/n50wdfrld/98FrN+UPH3zJj+y6mXXz7mop76iUNqXdpp27evXn/6mPtTW5"
-    "L6evHj46f/Fkua/vX18/Xe4sX11cPNf47c5XePDhv9788/m355eXyzfrmTmLHy3Tf7vJXd27fn6xmPXMnq1LmZec6lstyWDym4tXva91U2vc"
+    "L6evHj46f/Fkua/vX18/Xe4sX11cPNf47c5XePDhv9788/m355eXyzfrmTlLHy3Tf7vJXd27fn6xmPXMnq1LmZec6lstyWDym4tXva91U2vc"
     "jG6rpNXVX7TKvyxffHPx/JvLi2+XXR/1Cf1GYwZ/dXBHbp6f33x9tXwcjXVv0kfZPLS3bzFmxLB0Rm69+vz6txfLg/v3uA99vA+lIvpR0R1c"
     "/JdLPs1/Xw7s3hvseD8ZRb+HxB3P7f7756SB//em4jqKusGzdj7lwfzKn7/LP7UZKWrYLAT4u+nN3nb6qYe8oqkrr/KjYDYPaUnDM5qCoX9Z"
     "h0fRoKXSYXi2n+HpnwPrlv0sb/XfHk/eAjOWN5zMsMG2HQ2pogmbT4f2YmkaSC8atfk4nJMxUDJfuqE+NOmOHhuQFnp6JzdQkRQ40JlZO7RR"
@@ -367,11 +367,11 @@ KAWAII_ANSI_BANNER_ZB64 = (
     "1uKnLTQyGrsvGjCTFgPcccWq1U9Ee4CeMBSpwdFHlAbBGS2+DQfWDGwIT5dROWLiEi1bjSnjnLwazRMxQ1UaOCscRZH9fe2Cyi75o7v0BluS"
     "kxWt9jl/EVaSXhhHyELP2DKBW93uJiVqrWv1Ct9RFy4j9jXqXmvh8ndNCDIQHXQwhl5AHeWKFH8NzlCwkWN8UkmL+omKFdoHWdKs2atr5YN8"
     "V2r2LnMlezp+ACurbhIHIO7uJVMMRyWCzH/AYfzUTy8lRbFgroiQpXdQo9qPY69XrQL/PDMp29XOS7XLANlijnl3J/YI9vU6tXO9VmBW3En1"
-    "OQBj0w9Frpfv9bt6vv8bsPDlz+n7zL7nTfkrrB+tmg=="
+    "OQBj0w9Frpfv9bt6vv8bsPDlz+n7zL7nTfkr++atmw=="
 )
 
 KAWAII_ASCII_FALLBACK = """+------------------------------------------------------------------------------+
-| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.3.8)          Core 30.4.0 |
+| [Scash] Scash P2Pool - peer2peer-pool (QtKawaii v0.3.9)          Core 30.4.0 |
 | [ > Overview ]  [ Stratum :8345 ]  [ P2Pool :8344 ]  [ Scash RPC :8342 ]     |
 +------------------------------------------------------------------------------+
 |  * SCASH PEER-TO-PEER MINING POOL (Sovereign Node + Sharechain + CPU Miner)  |
@@ -1065,7 +1065,7 @@ def make_sync_handler(sync_state, ctrl):
                 self._send_json({
                     "ok": True,
                     "syncing": True,
-                    "version": "0.3.8",
+                    "version": "0.3.9",
                     "hashrates": {
                         "local_live_hs": 0.0, "local_10s_hs": 0.0, "local_60s_hs": 0.0, "local_30m_hs": 0.0,
                         "pool_live_hs": 0.0, "pool_10s_hs": 0.0, "pool_60s_hs": 0.0, "pool_30m_hs": 0.0,

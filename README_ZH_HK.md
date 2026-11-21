@@ -1,6 +1,6 @@
 ### 🌐 語言 / Language: [🇺🇸 English README](README.md) &nbsp;|&nbsp; [🇨🇳 简体中文（中国大陆/北京）](README_ZH_CN.md) &nbsp;|&nbsp; **🇭🇰 繁體中文（香港/港澳台）**
 
-# Scash P2Pool — 一鍵式去中心化 CPU 聯合礦池（QtKawaii 版 `v0.3.8`）
+# Scash P2Pool — 一鍵式去中心化 CPU 聯合礦池（QtKawaii 版 `v0.3.9`）
 
 **發佈團隊：** `magicalgirlsunite` | **開源社區：** [`ScashNetworkCommunity`](https://github.com/ScashNetworkCommunity) | **礦池費率：** **0% 手續費**（**100%** 區塊獎勵鏈上直發礦工錢包）
 
@@ -18,9 +18,9 @@
 
 | 下載檔案名稱 | 適用對象 | 是否內置 CPU 挖礦程式？ |
 | :--- | :--- | :--- |
-| **`scash-p2pool-0.3.8-win64.zip`** | **Windows 用戶首選推薦！** 解壓縮即可一鍵開挖。 | **包含**（內置 `xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` 加速驅動） |
-| **`scash-p2pool-0.3.8-win64-nodeonly.zip`** | 希望自行使用外部挖礦軟件的進階 Windows 用戶。 | **不包含**（僅含全節點、P2Pool 及網頁控制面板） |
-| **`scash-p2pool-0.3.8-x86_64-pc-linux-gnu.tgz`** | **Linux (64 位元) 用戶。** 開箱即用。 | **包含**（內置支援 MSR 加速的 `xmrigDaemon` + `xmrigMiner`） |
+| **`scash-p2pool-0.3.9-win64.zip`** | **Windows 用戶首選推薦！** 解壓縮即可一鍵開挖。 | **包含**（內置 `xmrigDaemon.exe` + `xmrigMiner.exe` + `WinRing0x64.sys` 加速驅動） |
+| **`scash-p2pool-0.3.9-win64-nodeonly.zip`** | 希望自行使用外部挖礦軟件的進階 Windows 用戶。 | **不包含**（僅含全節點、P2Pool 及網頁控制面板） |
+| **`scash-p2pool-0.3.9-x86_64-pc-linux-gnu.tgz`** | **Linux (64 位元) 用戶。** 開箱即用。 | **包含**（內置支援 MSR 加速的 `xmrigDaemon` + `xmrigMiner`） |
 
 *（開挖前請確認已安裝 [Scash 官方錢包](https://github.com/ScashNetworkCommunity/scash/releases)，並準備好您自己的 **`scash1...`** 收款地址！）*
 
@@ -38,7 +38,7 @@
 5. 點擊 **新增排除項目** -> 揀選 **資料夾** -> 選取 **`C:\Scash-P2Pool`**（[Microsoft 官方步驟教學](https://learn.microsoft.com/en-us/answers/questions/3187645/how-to-add-an-exception-to-windows-defender)）。
 
 ### 第二步：儲存並解壓縮至 `C:\Scash-P2Pool`
-1. 喺 [**Releases 發佈頁面**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases) 右鍵點擊 **`scash-p2pool-0.3.8-win64.zip`**，揀選 **另存連結為...**，直接儲存入 **`C:\Scash-P2Pool`**。
+1. 喺 [**Releases 發佈頁面**](https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases) 右鍵點擊 **`scash-p2pool-0.3.9-win64.zip`**，揀選 **另存連結為...**，直接儲存入 **`C:\Scash-P2Pool`**。
 2. 打開 **`C:\Scash-P2Pool`**，右鍵點擊 `.zip` 壓縮檔 -> **全部解壓縮 (Extract All...)**。
 
 ### 第三步：雙擊執行 `Start-Scash-P2Pool.exe`
@@ -72,8 +72,8 @@
 
 ### Linux (64 位元) 快速啟動
 ```bash
-tar -xzf scash-p2pool-0.3.8-x86_64-pc-linux-gnu.tgz
-cd scash-p2pool-0.3.8
+tar -xzf scash-p2pool-0.3.9-x86_64-pc-linux-gnu.tgz
+cd scash-p2pool-0.3.9
 # 選用：啟用 Linux 2MB 大頁記憶體，並以 sudo 執行以開啟 MSR 暫存器加速
 sudo sysctl -w vm.nr_hugepages=1280
 ./start-scash-p2pool-linux.sh
@@ -92,5 +92,5 @@ sudo sysctl -w vm.nr_hugepages=1280
 ### 驗證下載檔案雜湊值（`sha256sum`）
 您可於 PowerShell 核對壓縮檔的 SHA256 是否與發佈頁一致：
 ```powershell
-Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.8-win64.zip -Algorithm SHA256
+Get-FileHash C:\Scash-P2Pool\scash-p2pool-0.3.9-win64.zip -Algorithm SHA256
 ```

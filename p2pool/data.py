@@ -63,7 +63,7 @@ def is_segwit_activated(version, net):
     segwit_activation_version = getattr(net, 'SEGWIT_ACTIVATION_VERSION', 0)
     return version >= segwit_activation_version and segwit_activation_version > 0
 
-DONATION_SCRIPT = '0014c2cee763fa09c5a1dd1b2153a61f66cdc61ea943'.decode('hex')  # legacy sharechain consensus script (0% fee in v0.3.8)
+DONATION_SCRIPT = '0014c2cee763fa09c5a1dd1b2153a61f66cdc61ea943'.decode('hex')  # legacy sharechain consensus script (0% fee in v0.3.9)
 
 class BaseShare(object):
     VERSION = 0
@@ -806,3 +806,89 @@ class ShareStore(object):
             self.known_desired.pop(filename)
             os.remove(filename)
             print "REMOVED", filename
+
+# --- Scash v0.3.9 Multi-Day Uptime Safe Pool Hashrate & Score Guard ---
+def _scash_flush_tracker_caches(_tr_obj):
+    for _cand in (_tr_obj, getattr(_tr_obj, 'verified', None), getattr(_tr_obj, 'subset_of', None)):
+        if _cand is None:
+            continue
+        _dts = getattr(_cand, '_delta_trackers', None)
+        if isinstance(_dts, dict):
+            for _dt in list(_dts.values()):
+                if hasattr(_dt, 'deltas') and isinstance(_dt.deltas, dict):
+                    _dt.deltas.clear()
+        _dt1 = getattr(_cand, '_delta_tracker', None)
+        if _dt1 is not None and hasattr(_dt1, 'deltas') and isinstance(_dt1.deltas, dict):
+            _dt1.deltas.clear()
+        for _sk_attr in ('get_nth_parent_hash', 'get_cumulative_weights'):
+            _sk = getattr(_cand, _sk_attr, None)
+            if _sk is not None and hasattr(_sk, 'deltas') and isinstance(_sk.deltas, dict):
+                _sk.deltas.clear()
+
+if 'get_pool_attempts_per_second' in globals():
+    _orig_scash_get_pool_aps = get_pool_attempts_per_second
+    def get_pool_attempts_per_second(tracker, previous_share_hash, dist, min_work=False, integer=False):
+        if previous_share_hash is None or previous_share_hash not in tracker.items:
+            return 0 if integer else 0.0
+        if dist < 2:
+            dist = 2
+        try:
+            return _orig_scash_get_pool_aps(tracker, previous_share_hash, dist, min_work, integer)
+        except (AssertionError, KeyError, ZeroDivisionError):
+            _scash_flush_tracker_caches(tracker)
+            try:
+                _avail_h = int(tracker.get_height(previous_share_hash))
+                if _avail_h >= 2:
+                    return _orig_scash_get_pool_aps(tracker, previous_share_hash, min(int(dist), _avail_h), min_work, integer)
+            except Exception:
+                pass
+            near = tracker.items[previous_share_hash]
+            cur_h = previous_share_hash
+            work_acc = 0
+            steps = 0
+            target_steps = max(1, int(dist) - 1)
+            while steps < target_steps and cur_h in tracker.items:
+                sh = tracker.items[cur_h]
+                work_acc += bitcoin_data.target_to_average_attempts(sh.max_target if min_work else sh.target)
+                nxt_h = sh.previous_hash
+                steps += 1
+                if nxt_h is None or nxt_h not in tracker.items:
+                    cur_h = sh.hash
+                    break
+                cur_h = nxt_h
+            far = tracker.items.get(cur_h, near)
+            dt = near.timestamp - far.timestamp
+            if dt <= 0:
+                dt = 1
+            if integer:
+                return work_acc // dt
+            return work_acc / dt
+
+if 'OkayTracker' in globals() and hasattr(OkayTracker, 'score'):
+    _orig_scash_okay_score = OkayTracker.score
+    def _scash_safe_okay_score(self, share_hash, block_rel_height_func):
+        try:
+            return _orig_scash_okay_score(self, share_hash, block_rel_height_func)
+        except (AssertionError, KeyError, ZeroDivisionError):
+            _scash_flush_tracker_caches(self)
+            try:
+                return _orig_scash_okay_score(self, share_hash, block_rel_height_func)
+            except Exception:
+                head_height = self.verified.get_height(share_hash)
+                if head_height < self.net.CHAIN_LENGTH:
+                    return head_height, None
+                span = self.net.CHAIN_LENGTH * 15 // 16
+                end_point = self.verified.get_nth_parent_hash(share_hash, span)
+                block_height = max(
+                    block_rel_height_func(share.header['previous_block'])
+                    for share in self.verified.get_chain(end_point, self.net.CHAIN_LENGTH // 16)
+                )
+                work_sum = sum(
+                    bitcoin_data.target_to_average_attempts(share.target)
+                    for share in self.verified.get_chain(share_hash, span)
+                )
+                denom = (0 - block_height + 1) * self.net.PARENT.BLOCK_PERIOD
+                if denom <= 0:
+                    denom = self.net.PARENT.BLOCK_PERIOD
+                return self.net.CHAIN_LENGTH, work_sum / denom
+    OkayTracker.score = _scash_safe_okay_score

@@ -359,3 +359,65 @@ class SubsetTracker(Tracker):
         if self._subset_of is not None:
             assert item_hash in self._subset_of.items
         Tracker.remove(self, item_hash)
+
+# --- Scash v0.3.9 Self-Healing Forest Delta & SkipList Guard ---
+def _scash_clear_forest_caches(_tr):
+    for _t in (_tr, getattr(_tr, 'subset_of', None)):
+        if _t is None:
+            continue
+        _dts = getattr(_t, '_delta_trackers', None)
+        if isinstance(_dts, dict):
+            for _d in list(_dts.values()):
+                if hasattr(_d, 'deltas') and isinstance(_d.deltas, dict):
+                    _d.deltas.clear()
+        _dt1 = getattr(_t, '_delta_tracker', None)
+        if _dt1 is not None and hasattr(_dt1, 'deltas') and isinstance(_dt1.deltas, dict):
+            _dt1.deltas.clear()
+        _sk = getattr(_t, 'get_nth_parent_hash', None)
+        if _sk is not None and hasattr(_sk, 'deltas') and isinstance(_sk.deltas, dict):
+            _sk.deltas.clear()
+
+if 'TrackerSkipList' in globals() and hasattr(TrackerSkipList, '__call__'):
+    _orig_scash_tsl_call = TrackerSkipList.__call__
+    def _scash_safe_tsl_call(self, start, *args, **kwargs):
+        try:
+            return _orig_scash_tsl_call(self, start, *args, **kwargs)
+        except (AssertionError, KeyError):
+            if hasattr(self, 'deltas') and isinstance(self.deltas, dict):
+                self.deltas.clear()
+            _scash_clear_forest_caches(getattr(self, 'tracker', None))
+            return _orig_scash_tsl_call(self, start, *args, **kwargs)
+    TrackerSkipList.__call__ = _scash_safe_tsl_call
+
+if 'AttributeDeltaTracker' in globals() and hasattr(AttributeDeltaTracker, 'get_delta'):
+    _orig_scash_adt_get_delta = AttributeDeltaTracker.get_delta
+    def _scash_safe_adt_get_delta(self, item, ancestor):
+        try:
+            return _orig_scash_adt_get_delta(self, item, ancestor)
+        except (AssertionError, KeyError):
+            if hasattr(self, 'deltas') and isinstance(self.deltas, dict):
+                self.deltas.clear()
+            _tr = getattr(self, '_tracker', None)
+            _scash_clear_forest_caches(_tr)
+            try:
+                return _orig_scash_adt_get_delta(self, item, ancestor)
+            except (AssertionError, KeyError):
+                if _tr is not None and hasattr(_tr, 'items') and hasattr(self, 'delta_type'):
+                    items_map = _tr.items
+                    res = self.delta_type.get_none(item)
+                    cur = item
+                    max_steps = len(items_map) + 2
+                    steps = 0
+                    while cur != ancestor and cur in items_map and steps < max_steps:
+                        sh = items_map[cur]
+                        res = res + self.delta_type(sh)
+                        cur = getattr(sh, 'previous_hash', None)
+                        steps += 1
+                    if cur != ancestor and hasattr(res, 'tail'):
+                        try:
+                            res.tail = ancestor
+                        except Exception:
+                            pass
+                    return res
+                raise
+    AttributeDeltaTracker.get_delta = _scash_safe_adt_get_delta
