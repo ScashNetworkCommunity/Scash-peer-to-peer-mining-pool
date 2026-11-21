@@ -1,5 +1,5 @@
 """
-Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.3.9).
+Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.3.10).
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 
 Every miner running Start-Scash-P2Pool automatically runs a full Scash Core 30.4.0 node

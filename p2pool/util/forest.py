@@ -360,7 +360,7 @@ class SubsetTracker(Tracker):
             assert item_hash in self._subset_of.items
         Tracker.remove(self, item_hash)
 
-# --- Scash v0.3.9 Self-Healing Forest Delta & SkipList Guard ---
+# --- Scash Self-Healing Forest Delta & SkipList Guard ---
 def _scash_clear_forest_caches(_tr):
     for _t in (_tr, getattr(_tr, 'subset_of', None)):
         if _t is None:
@@ -378,7 +378,8 @@ def _scash_clear_forest_caches(_tr):
             _sk.deltas.clear()
 
 if 'TrackerSkipList' in globals() and hasattr(TrackerSkipList, '__call__'):
-    _orig_scash_tsl_call = TrackerSkipList.__call__
+    _orig_scash_tsl_call = getattr(TrackerSkipList, '_scash_orig_call', TrackerSkipList.__call__)
+    TrackerSkipList._scash_orig_call = _orig_scash_tsl_call
     def _scash_safe_tsl_call(self, start, *args, **kwargs):
         try:
             return _orig_scash_tsl_call(self, start, *args, **kwargs)
@@ -390,7 +391,8 @@ if 'TrackerSkipList' in globals() and hasattr(TrackerSkipList, '__call__'):
     TrackerSkipList.__call__ = _scash_safe_tsl_call
 
 if 'AttributeDeltaTracker' in globals() and hasattr(AttributeDeltaTracker, 'get_delta'):
-    _orig_scash_adt_get_delta = AttributeDeltaTracker.get_delta
+    _orig_scash_adt_get_delta = getattr(AttributeDeltaTracker, '_scash_orig_get_delta', AttributeDeltaTracker.get_delta)
+    AttributeDeltaTracker._scash_orig_get_delta = _orig_scash_adt_get_delta
     def _scash_safe_adt_get_delta(self, item, ancestor):
         try:
             return _orig_scash_adt_get_delta(self, item, ancestor)

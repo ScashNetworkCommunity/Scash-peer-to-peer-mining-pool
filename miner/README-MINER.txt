@@ -1,4 +1,4 @@
-Scash P2Pool Built-in CPU Miner Folder (v0.3.9)
+Scash P2Pool Built-in CPU Miner Folder (v0.3.10)
 ======================================================
 
 You do NOT need to run anything inside this folder manually!

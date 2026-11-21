@@ -63,7 +63,7 @@ def is_segwit_activated(version, net):
     segwit_activation_version = getattr(net, 'SEGWIT_ACTIVATION_VERSION', 0)
     return version >= segwit_activation_version and segwit_activation_version > 0
 
-DONATION_SCRIPT = '0014c2cee763fa09c5a1dd1b2153a61f66cdc61ea943'.decode('hex')  # legacy sharechain consensus script (0% fee in v0.3.9)
+DONATION_SCRIPT = '0014c2cee763fa09c5a1dd1b2153a61f66cdc61ea943'.decode('hex')  # legacy sharechain consensus script (0% fee in v0.3.10)
 
 class BaseShare(object):
     VERSION = 0
@@ -592,7 +592,7 @@ class OkayTracker(forest.Tracker):
                 print 'Punishing share for %r! Jumping from %s to %s!' % (punish_reason, format_hash(best), format_hash(best_share.previous_hash))
                 best = best_share.previous_hash
             
-            timestamp_cutoff = min(int(time.time()), best_share.timestamp) - 3600
+            timestamp_cutoff = min(int(time.time()), best_share.timestamp) - 24*60*60
             target_cutoff = int(2**256//(self.net.SHARE_PERIOD*best_tail_score[1] + 1) * 2 + .5) if best_tail_score[1] is not None else 2**256-1
         else:
             timestamp_cutoff = int(time.time()) - 24*60*60
@@ -807,7 +807,7 @@ class ShareStore(object):
             os.remove(filename)
             print "REMOVED", filename
 
-# --- Scash v0.3.9 Multi-Day Uptime Safe Pool Hashrate & Score Guard ---
+# --- Scash Multi-Day Uptime Safe Pool Hashrate & Score Guard ---
 def _scash_flush_tracker_caches(_tr_obj):
     for _cand in (_tr_obj, getattr(_tr_obj, 'verified', None), getattr(_tr_obj, 'subset_of', None)):
         if _cand is None:
@@ -826,7 +826,7 @@ def _scash_flush_tracker_caches(_tr_obj):
                 _sk.deltas.clear()
 
 if 'get_pool_attempts_per_second' in globals():
-    _orig_scash_get_pool_aps = get_pool_attempts_per_second
+    _orig_scash_get_pool_aps = getattr(get_pool_attempts_per_second, '_scash_orig_fn', get_pool_attempts_per_second)
     def get_pool_attempts_per_second(tracker, previous_share_hash, dist, min_work=False, integer=False):
         if previous_share_hash is None or previous_share_hash not in tracker.items:
             return 0 if integer else 0.0
@@ -863,10 +863,18 @@ if 'get_pool_attempts_per_second' in globals():
             if integer:
                 return work_acc // dt
             return work_acc / dt
+    get_pool_attempts_per_second._scash_orig_fn = _orig_scash_get_pool_aps
 
 if 'OkayTracker' in globals() and hasattr(OkayTracker, 'score'):
-    _orig_scash_okay_score = OkayTracker.score
+    _orig_scash_okay_score = getattr(OkayTracker, '_scash_orig_score', OkayTracker.score)
+    OkayTracker._scash_orig_score = _orig_scash_okay_score
     def _scash_safe_okay_score(self, share_hash, block_rel_height_func):
+        try:
+            _tip_sh = self.items.get(share_hash) if hasattr(self, 'items') else None
+            if _tip_sh is not None and (time.time() - float(_tip_sh.timestamp)) > (24 * 60 * 60):
+                return 0, None
+        except Exception:
+            pass
         try:
             return _orig_scash_okay_score(self, share_hash, block_rel_height_func)
         except (AssertionError, KeyError, ZeroDivisionError):

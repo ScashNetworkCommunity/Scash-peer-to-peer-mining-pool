@@ -41,7 +41,7 @@ DEFAULT_DNS_SEEDS = [
     "satoshicash.cedric-crispin.com",
 ]
 
-NETWORK_SCOPED_KEYS = ("port", "rpcport", "rpcbind", "addnode", "connect", "seednode", "dnsseed")
+NETWORK_SCOPED_KEYS = ("port", "rpcport", "rpcbind", "bind", "listenonion", "addnode", "connect", "seednode", "dnsseed")
 
 
 def _normalize_base_datadir(dd):
@@ -235,6 +235,8 @@ def configure_scash_conf(
 
         if key in ("adddnsseed", "daemon", "daemonwait", "upnp"):
             continue
+        if key == "bind" and (":8344" in val or ":8345" in val):
+            continue
         if key == "txindex" and val == "1" and not keep_txindex:
             continue
 
@@ -275,6 +277,8 @@ def configure_scash_conf(
         global_lines.append("server=1")
     if not any(l.startswith("listen=") for l in global_lines):
         global_lines.append("listen=1")
+    if not any(l.startswith("listenonion=") for l in global_lines + scash_section_lines):
+        global_lines.append("listenonion=0")
     if not any(l.startswith("maxconnections=") for l in global_lines):
         global_lines.append("maxconnections=64")
     if not any(l.startswith("uacomment=") for l in global_lines):
@@ -300,12 +304,14 @@ def configure_scash_conf(
         if node not in existing_scash_blob:
             scash_section_lines.append("addnode=%s" % node)
 
+    # Never duplicate `bind=` or `whitebind=` across both [scash] and [main] (prevents CheckBindingConflicts if aliased)
+    main_section_lines = [l for l in scash_section_lines if not l.lower().startswith(("bind=", "whitebind="))]
     out_lines = (
         list(global_lines)
         + ["", "[scash]"]
         + list(scash_section_lines)
         + ["", "[main]"]
-        + list(scash_section_lines)
+        + list(main_section_lines)
     )
     for sec_hdr, sec_body in other_sections:
         out_lines.extend(["", sec_hdr] + sec_body)

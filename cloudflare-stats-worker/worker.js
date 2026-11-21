@@ -1,4 +1,4 @@
-// Scash P2Pool (v0.3.9) — 100% Serverless Community Consensus Stats + Dual-Stack IPv4/IPv6 /64 Peer Rendezvous & Diagnostics API
+// Scash P2Pool (v0.3.10) — 100% Serverless Community Consensus Stats + Dual-Stack IPv4/IPv6 /64 Peer Rendezvous & Diagnostics API
 // Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
 // Zero home servers, zero GitHub tokens, 1-minute consensus, IPv6 /64 home-LAN grouping, STUN IPv4 fallback, privacy-masked /api/nodes.
 
@@ -578,7 +578,7 @@ export default {
 <style>body{background:#12101c;color:#f3eefc;font-family:system-ui,sans-serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55}
 .card{background:#1c182b;border:1px solid #352d52;border-radius:14px;padding:22px;margin:18px 0}
 code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font-size:13px;overflow-x:auto}pre{padding:14px}a{color:#c084fc}</style></head>
-<body><h1>Scash P2Pool (<code>v0.3.9</code>) — Serverless Pool Stats &amp; Global Mesh</h1>
+<body><h1>Scash P2Pool (<code>v0.3.10</code>) — Serverless Pool Stats &amp; Global Mesh</h1>
 <p>100% decentralized community-reported P2Pool stats &amp; Dual-Stack IPv4/IPv6 HTTPS :443 NAT peer rendezvous:</p>
 <div class="card"><p><strong>Live Endpoints:</strong> <a href="./api/pools"><code>/api/pools</code></a> &middot; <a href="./api/nodes"><code>/api/nodes</code> (Global Mesh Diagnostics)</a> &middot; <a href="https://github.com/ScashNetworkCommunity/Scash-peer-to-peer-mining-pool/releases">Download Scash P2Pool</a></p>
 <p style="font-size:13px;color:#d8b4fe">Active Nodes: <strong>${diagSummary.active_nodes}</strong> &middot; Unique WAN Networks: <strong>${diagSummary.unique_wan_networks}</strong> &middot; Split-Brain Warning: <strong>${diagSummary.split_brain_warning ? "YES" : "No"}</strong></p>

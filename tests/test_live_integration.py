@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-End Live CI Integration Verification for Scash P2Pool v0.3.9 + Real Scash Core 30.4.0 Daemon!
+End-to-End Live CI Integration Verification for Scash P2Pool v0.3.10 + Real Scash Core 30.4.0 Daemon!
 Runs P2Pool directly against the REAL bundled `node/scashd` / `node/scashd.exe` RPC & P2P (zero RPC mocks!)
 so every Scash Core 30.4.0 RPC behavior (including `./rpc/util.cpp:803` `rpc_help` bypass and `coinbaseaux`)
 is verified live on both Linux and Windows before packaging.
@@ -30,19 +30,27 @@ NO_PROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 _USED_PORTS = set()
 
 
-def get_free_port():
-    for _ in range(200):
-        cand = random.randint(24000, 29999)
-        if cand in _USED_PORTS:
+def get_free_port(reserve_plus_one=False):
+    for _ in range(300):
+        cand = random.randint(24000, 29990)
+        if cand in _USED_PORTS or (reserve_plus_one and (cand + 1) in _USED_PORTS):
             continue
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM) if reserve_plus_one else None
         try:
             s.bind(("0.0.0.0", cand))
+            if s2 is not None:
+                s2.bind(("0.0.0.0", cand + 1))
+                s2.close()
             s.close()
             _USED_PORTS.add(cand)
+            if reserve_plus_one:
+                _USED_PORTS.add(cand + 1)
             return cand
         except Exception:
             s.close()
+            if s2 is not None:
+                s2.close()
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
@@ -112,7 +120,7 @@ def run_all_live_tests():
     os.makedirs(ci_base, exist_ok=True)
 
     scash_rpc_port = get_free_port()
-    scash_p2p_port = get_free_port()
+    scash_p2p_port = get_free_port(reserve_plus_one=True)
     p2pool_p2p_port = get_free_port()
     worker_port = get_free_port()
 
@@ -133,6 +141,7 @@ def run_all_live_tests():
         conf_p, u, pw, rport = scash_nodes.configure_scash_conf(custom_datadir=tmp_dd)
         repaired = open(conf_p, encoding="utf-8").read()
         assert "adddnsseed=" not in repaired, "Failed to strip invalid adddnsseed="
+        assert "listenonion=0" in repaired, "Missing listenonion=0 in scash.conf"
         assert "txindex=1" not in repaired, "Failed to strip unindexed txindex=1"
         assert "daemon=" not in repaired, "Failed to strip daemon=1"
         assert "upnp=" not in repaired, "Failed to strip Core-30-removed upnp="
@@ -150,6 +159,7 @@ def run_all_live_tests():
             "-chain=scash",
             "-server=1",
             "-listen=1",
+            "-listenonion=0",
             f"-rpcport={scash_rpc_port}",
             "-rpcbind=127.0.0.1",
             "-rpcallowip=127.0.0.1",
@@ -201,7 +211,10 @@ def run_all_live_tests():
             assert g0 == GENESIS_HEX, f"Genesis mismatch: {g0}"
             real_gbt = rpc_post(scash_rpc_port, u, pw, "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}])
             assert isinstance(real_gbt, dict) and real_gbt.get("previousblockhash") == GENESIS_HEX, real_gbt
-            print("[LIVE-PASS 1/5] Bundled Scash Core 30.4.0 scashd started and verified live Mainnet RPC, GBT & P2P!")
+            assert not tcp_open(scash_p2p_port + 1, timeout=0.25), (
+                f"scashd bound port+1 ({scash_p2p_port + 1}) for onion despite scash.conf bind=!"
+            )
+            print("[LIVE-PASS 1/5] Bundled Scash Core 30.4.0 scashd started, verified Mainnet RPC/GBT/P2P, and confirmed port+1 onion collision is suppressed!")
 
             # 2. Verify zero git warning and HTTPS redirect shim in portable PyPy 2.7
             non_git = os.path.join(ci_base, "nongit_check")
@@ -214,7 +227,7 @@ def run_all_live_tests():
             code = (
                 "import p2pool; "
                 "from twisted.web import client; "
-                "assert 'v0.3.9' in p2pool.__version__, p2pool.__version__; "
+                "assert 'v0.3.10' in p2pool.__version__, p2pool.__version__; "
                 "assert client.getPage.__name__ == '_scash_safe_getPage'; "
                 "import start_scash_p2pool as sp; print('WARM_OK:', sp.ascii_safe(u'Loading block index\\u2026')); print(u'Loading block index\\u2026'); print('VERSION_OK:', p2pool.__version__)"
             )
@@ -236,7 +249,7 @@ def run_all_live_tests():
                 "gh = struct.pack('<I32s32sIII', 1, b'\\x00'*32, ml, 1708650456, 0x1e0fffff, 20076863); "
                 "rxh, _ = scash_randomx.calculate_scash_hash_and_cm_bytes(gh); "
                 "assert binascii.hexlify(rxh[::-1]).decode('ascii') == '33c450e0152826e3a8948b01464cf9182344a1544b3ddcf6153dd04b62938d01'; "
-                "assert 'v0.3.9' in main.p2pool.__version__, main.p2pool.__version__; "
+                "assert 'v0.3.10' in main.p2pool.__version__, main.p2pool.__version__; "
                 "addr = bdata.script2_to_address(pdata.DONATION_SCRIPT, networks.nets['scash']); "
                 "assert addr == 'scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc', addr; "
                 "print('ROOT_DONATION_OK:', addr, main.p2pool.__version__)"
@@ -551,12 +564,12 @@ def run_all_live_tests():
                         timeout=8,
                     ).read().decode("utf-8")
                 )
-                assert tel_live.get("ok") is True and tel_live.get("version") == "0.3.9", tel_live
+                assert tel_live.get("ok") is True and tel_live.get("version") == "0.3.10", tel_live
                 assert "pool_10s_hs" in (tel_live.get("hashrates") or {}) and "pool_30m_hs" in (tel_live.get("hashrates") or {}), tel_live
                 assert "miner_scash_all_time" in (tel_live.get("ledger") or {}) and "pool_blocks_all_time" in (tel_live.get("ledger") or {}), tel_live
                 ex_urls = [e.get("url") for e in ((tel_live.get("market") or {}).get("exchanges") or [])]
                 assert "https://www.ourbit.com/exchange/SCASH_USDT" in ex_urls and "https://nonkyc.io/market/SCASH_USDT" in ex_urls and "https://trade.nestex.one/spot/SCASH" in ex_urls, ex_urls
-                print(f"[LIVE-TELEMETRY-VERIFIED] /pool_telemetry v0.3.9 OK: hashrates={tel_live.get('hashrates')}, ledger_blocks={tel_live['ledger']['pool_blocks_all_time']}")
+                print(f"[LIVE-TELEMETRY-VERIFIED] /pool_telemetry v0.3.10 OK: hashrates={tel_live.get('hashrates')}, ledger_blocks={tel_live['ledger']['pool_blocks_all_time']}")
                 for _ in range(15):
                     if not tcp_open(8346, timeout=0.25):
                         break
@@ -565,7 +578,7 @@ def run_all_live_tests():
                 p2p_fh.flush()
                 final_log = open(p2p_log, encoding="utf-8", errors="replace").read()
                 assert "Internal bug detected" not in final_log and "NarrowError" not in final_log and "Unhandled Error" not in final_log, final_log
-                assert "v0.3.9-scash-kawaii" in final_log and "Pool fee: 0.0%" in final_log and "Donating " not in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" not in final_log, final_log
+                assert "v0.3.10-scash-kawaii" in final_log and "Pool fee: 0.0%" in final_log and "Donating " not in final_log and "scash1qct8wwcl6p8z6rhgmy9f6v8mxehrpa22ra32vwc" not in final_log, final_log
                 print("[LIVE-PASS 3/5] REAL Scash Core 30.4.0 scashd RPC & P2P + P2Pool + QtKawaii UI + rx/scash Stratum verified with ZERO RPC errors!")
 
                 # 3b. [LIVE-PASS 4/5]: Launch a SECOND P2Pool node (Node B) with ZERO -n / --peer flags
@@ -688,7 +701,7 @@ def run_all_live_tests():
         # 4. Verify [LIVE-PASS 5/5]: Abruptly killing launcher parent process (like clicking X on terminal)
         # automatically terminates child scashd and unlocks its folder immediately!
         job_rpc_port = get_free_port()
-        job_p2p_port = get_free_port()
+        job_p2p_port = get_free_port(reserve_plus_one=True)
         job_dd = os.path.join(ci_base, "job_kill_dd")
         os.makedirs(job_dd, exist_ok=True)
         scash_nodes.configure_scash_conf(custom_datadir=job_dd, rpc_port=job_rpc_port, p2p_port=job_p2p_port)
@@ -696,7 +709,8 @@ def run_all_live_tests():
         holder_script = os.path.join(ci_base, "_holder_test.py")
         with open(holder_script, "w", encoding="utf-8") as hf:
             hf.write(
-                "import sys, time\n"
+                "import os, sys, time\n"
+                "os.environ['SCASH_CI_OFFLINE_SCASHD'] = '1'\n"
                 f"sys.path.insert(0, {ROOT!r})\n"
                 "import start_scash_p2pool as sp\n"
                 "sp.setup_win32_kill_on_close_job()\n"
@@ -714,7 +728,13 @@ def run_all_live_tests():
                     ready_job = True
                     break
                 time.sleep(0.5)
-            assert ready_job, f"Holder scashd failed to open RPC port {job_rpc_port}"
+            if not ready_job:
+                dbg1 = read_tail(os.path.join(job_dd, "scash", "debug.log"))
+                dbg2 = read_tail(os.path.join(job_dd, "debug.log"))
+                raise AssertionError(f"Holder scashd failed to open RPC port {job_rpc_port}:\n{dbg1}\n{dbg2}")
+            assert not tcp_open(job_p2p_port + 1, timeout=0.25), (
+                f"start_bundled_scashd allowed Core 30.4 to bind port+1 ({job_p2p_port + 1})!"
+            )
             # Simulate hard terminal close / kill of parent process!
             holder_proc.kill()
             holder_proc.wait(timeout=10)

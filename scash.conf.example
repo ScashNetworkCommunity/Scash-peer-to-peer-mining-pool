@@ -6,6 +6,7 @@
 chain=scash
 server=1
 listen=1
+listenonion=0
 maxconnections=64
 rpcuser=scashminer
 rpcpassword=change_this_password
@@ -15,6 +16,7 @@ rpcallowip=127.0.0.1
 rpcport=8342
 rpcbind=127.0.0.1
 port=8343
+bind=0.0.0.0:8343
 dnsseed=1
 addnode=seed.scash.one:8343
 addnode=scash.tv:8343
