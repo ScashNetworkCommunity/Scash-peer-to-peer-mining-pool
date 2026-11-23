@@ -1,0 +1,22 @@
+# Scash P2Pool v0.4.0 — Free-Plan Cloudflare Worker + D1 Stats + Durable Object CGNAT WebSocket Relay
+# Deploy via CLI (`npx wrangler deploy`) OR paste `worker.js` in the Cloudflare Dashboard and add `DB` + `RELAY_DO` bindings.
+
+name = "scash-p2pool-stats"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# 1. Free D1 SQLite Database binding (`DB`) for `/api/pools` & `/api/nodes`
+# Replace database_id with your existing D1 UUID from Cloudflare Dashboard -> Storage & Databases -> D1
+[[d1_databases]]
+binding = "DB"
+database_name = "scash-p2pool-stats-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# 2. Free-Plan SQLite Durable Object WebSocket Relay (`RELAY_DO`) for Symmetric CGNAT P2Pool Miners
+[[durable_objects.bindings]]
+name = "RELAY_DO"
+class_name = "P2PoolRelayRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["P2PoolRelayRoom"]

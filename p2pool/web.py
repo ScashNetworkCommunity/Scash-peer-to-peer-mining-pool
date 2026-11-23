@@ -2584,6 +2584,7 @@ try:
                 'wan_peers': int(_mst.get('connected_wan_peers') or 0),
                 'lan_peers': int(_mst.get('connected_lan_peers') or 0),
                 'holepunch_tunnels': int(_mst.get('holepunch_tunnels') or 0),
+                'wss_relay_tunnels': int(_mst.get('wss_relay_tunnels') or 0),
             }
         except Exception:
             _mesh_meta = {}
@@ -2603,6 +2604,13 @@ try:
         try:
             if raw_rep_resp:
                 rep_obj = _w_json.loads(raw_rep_resp.decode('utf-8', 'replace')) or {}
+                if 'relay_enabled' in rep_obj or 'relay_wss_url' in rep_obj:
+                    from p2pool import auto_mesh as _scash_am_rel
+                    if hasattr(_scash_am_rel, 'update_wss_relay_from_report'):
+                        _scash_am_rel.update_wss_relay_from_report(
+                            rep_obj.get('relay_wss_url') or '',
+                            bool(rep_obj.get('relay_enabled', True)),
+                        )
                 r_peers = rep_obj.get('rendezvous_peers')
                 if isinstance(r_peers, list) and r_peers:
                     from p2pool import auto_mesh as _scash_am_ing

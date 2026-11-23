@@ -1,5 +1,5 @@
 // Scash P2Pool (v0.4.0) — 100% Serverless Community Consensus Stats + Dual-Stack IPv4/IPv6 /64 Peer Rendezvous & Diagnostics API
-// Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (binding name: DB)
+// Runs on Cloudflare Workers Free Plan + Free D1 SQLite Database (DB) + SQLite Durable Object WebSocket Relay (RELAY_DO)
 // Zero home servers, zero GitHub tokens, 1-minute consensus, IPv6 /64 home-LAN grouping, STUN IPv4 fallback, privacy-masked /api/nodes.
 
 const REPORT_TTL_SEC = 195; // Expire silent nodes after ~3.25 minutes (nodes report every 60s)
@@ -425,6 +425,28 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const nowSec = Math.floor(Date.now() / 1000);
 
+    if (path === "/p2p-relay" || path === "/api/p2p-relay") {
+      if (!env.RELAY_DO) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            relay_enabled: false,
+            error: "Durable Object binding 'RELAY_DO' (class P2PoolRelayRoom) is not attached yet. Add RELAY_DO in Worker -> Settings -> Bindings or deploy with wrangler.toml."
+          }),
+          { status: 503, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        );
+      }
+      const rawIp = (request.headers.get("CF-Connecting-IP") || "0.0.0.0").trim();
+      const netPrefix = normalizeNetworkPrefix(rawIp);
+      const netHash = (await sha256Short("scash-net-v039|" + netPrefix)).slice(0, 8);
+      const netParam = String(url.searchParams.get("net") || "7363617368703236").replace(/[^0-9a-fA-F]/g, "").toLowerCase().slice(0, 32) || "7363617368703236";
+      const roomId = env.RELAY_DO.idFromName("scash-p2pool-" + netParam);
+      const stub = env.RELAY_DO.get(roomId);
+      const fwdHeaders = new Headers(request.headers);
+      fwdHeaders.set("X-Scash-NetHash", netHash);
+      return stub.fetch(new Request(request.url, { method: request.method, headers: fwdHeaders }));
+    }
+
     if (!env.DB) {
       return new Response(
         JSON.stringify({ error: "D1 database binding 'DB' not attached yet. In Cloudflare Worker -> Bindings -> Add D1 database named DB." }),
@@ -528,8 +550,13 @@ export default {
         const rPeers = buildRendezvousPeers(peerRows || [], nowSec, netHash, callerV4, instClean);
         const diag = buildNodesDiagnostics(peerRows || [], nowSec);
 
+        const relayWssUrl = env.RELAY_DO
+          ? new URL("/p2p-relay", url.origin).toString().replace(/^http:/i, "ws:").replace(/^https:/i, "wss:")
+          : "";
         return new Response(JSON.stringify({
           ok: true,
+          relay_enabled: Boolean(env.RELAY_DO),
+          relay_wss_url: relayWssUrl,
           rendezvous_peers: rPeers,
           unique_wan_networks: diag.summary.unique_wan_networks,
           split_brain_warning: diag.summary.split_brain_warning
@@ -550,6 +577,7 @@ export default {
 
     if (path === "/api/nodes" || path === "/api/nodes.json") {
       const diag = buildNodesDiagnostics(results || [], nowSec);
+      diag.summary.relay_enabled = Boolean(env.RELAY_DO);
       return new Response(JSON.stringify(diag, null, 2), {
         headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Cache-Control": "no-store" }
       });
@@ -586,3 +614,366 @@ code,pre{background:#100d1a;color:#a5f3fc;padding:3px 7px;border-radius:6px;font
     return new Response(html, { headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" } });
   }
 };
+
+// === Scash P2Pool v0.4.0 Durable Object Hibernation WebSocket CGNAT Relay ===
+const MAX_WS_FRAME_BYTES = 262144; // 256 KB max P2Pool message frame
+const MAX_ROOM_SOCKETS = 96;
+
+function makePairKey(instA, instB) {
+  return instA < instB ? `${instA}|${instB}` : `${instB}|${instA}`;
+}
+
+export class P2PoolRelayRoom {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+    this._connMap = null;
+  }
+
+  _getSockets() {
+    if (this.ctx && typeof this.ctx.getWebSockets === "function") {
+      return this.ctx.getWebSockets();
+    }
+    return this._fallbackSockets || [];
+  }
+
+  _readAtt(ws) {
+    try {
+      if (ws && typeof ws.deserializeAttachment === "function") {
+        const a = ws.deserializeAttachment();
+        if (a && typeof a === "object") return a;
+      }
+    } catch (_) {}
+    return (ws && ws._scashAtt) ? ws._scashAtt : null;
+  }
+
+  _writeAtt(ws, att) {
+    if (!ws) return;
+    ws._scashAtt = att;
+    try {
+      if (typeof ws.serializeAttachment === "function") {
+        ws.serializeAttachment(att);
+      }
+    } catch (_) {}
+  }
+
+  _rebuildConnMap() {
+    const m = new Map();
+    for (const ws of this._getSockets()) {
+      const att = this._readAtt(ws);
+      if (att && att.connId) {
+        m.set(att.connId, { ws, att });
+      }
+    }
+    this._connMap = m;
+    return m;
+  }
+
+  _safeClose(ws, code = 1000, reason = "closed") {
+    if (!ws) return;
+    try {
+      const validCode = (code >= 1000 && code < 5000 && code !== 1004 && code !== 1005 && code !== 1006 && code !== 1015) ? code : 1000;
+      ws.close(validCode, String(reason || "closed").slice(0, 64));
+    } catch (_) {
+      try { ws.close(); } catch (_2) {}
+    }
+    if (this._fallbackSockets) {
+      this._fallbackSockets = this._fallbackSockets.filter(s => s !== ws);
+    }
+  }
+
+  _pairSockets(entryA, entryB) {
+    const aIsInit = String(entryA.att.inst) < String(entryB.att.inst);
+    entryA.att.partnerConnId = entryB.att.connId;
+    entryA.att.partnerInst = entryB.att.inst;
+    entryA.att.role = aIsInit ? "initiator" : "responder";
+
+    entryB.att.partnerConnId = entryA.att.connId;
+    entryB.att.partnerInst = entryA.att.inst;
+    entryB.att.role = aIsInit ? "responder" : "initiator";
+
+    this._writeAtt(entryA.ws, entryA.att);
+    this._writeAtt(entryB.ws, entryB.att);
+    if (this._connMap) {
+      this._connMap.set(entryA.att.connId, entryA);
+      this._connMap.set(entryB.att.connId, entryB);
+    }
+
+    try {
+      entryA.ws.send(JSON.stringify({
+        type: "paired",
+        role: entryA.att.role,
+        peer_inst: entryB.att.inst,
+        conn_id: entryA.att.connId
+      }));
+      entryB.ws.send(JSON.stringify({
+        type: "paired",
+        role: entryB.att.role,
+        peer_inst: entryA.att.inst,
+        conn_id: entryB.att.connId
+      }));
+      return true;
+    } catch (_) {
+      this._safeClose(entryA.ws, 1011, "pair_send_failed");
+      this._safeClose(entryB.ws, 1011, "pair_send_failed");
+      return false;
+    }
+  }
+
+  async _matchWaitingSockets(forceSeekerPair = false) {
+    const cmap = this._rebuildConnMap();
+    const activePairKeys = new Set();
+    const seekers = [];
+    const acceptors = [];
+    const nowMs = Date.now();
+
+    for (const entry of cmap.values()) {
+      const { ws, att } = entry;
+      if (att.partnerConnId) {
+        const partner = cmap.get(att.partnerConnId);
+        if (!partner) {
+          this._safeClose(ws, 1001, "partner_gone");
+          cmap.delete(att.connId);
+          continue;
+        }
+        activePairKeys.add(makePairKey(att.inst, partner.att.inst));
+      } else if (Number(att.slot || 0) === 0) {
+        seekers.push(entry);
+      } else {
+        acceptors.push(entry);
+      }
+    }
+
+    seekers.sort((a, b) => Number(a.att.connectedAtMs || 0) - Number(b.att.connectedAtMs || 0));
+    acceptors.sort((a, b) => Number(a.att.connectedAtMs || 0) - Number(b.att.connectedAtMs || 0));
+
+    let hasActiveMesh = activePairKeys.size > 0;
+    const unmatchedSeekers = [];
+
+    // 1. Always attach unconnected Seekers (slot=0) to waiting Standby Acceptors (slot>=1) first!
+    //    Because slot=1 sockets NEVER pair with other slot=1 sockets, connected miners never waste
+    //    their standby slots forming closed cycles that would starve future CGNAT miners!
+    for (const sk of seekers) {
+      let bestIdx = -1;
+      for (let i = 0; i < acceptors.length; i++) {
+        const ac = acceptors[i];
+        if (ac.att.inst === sk.att.inst) continue;
+        if (activePairKeys.has(makePairKey(ac.att.inst, sk.att.inst))) continue;
+        bestIdx = i;
+        if (ac.att.netHash && sk.att.netHash && ac.att.netHash !== sk.att.netHash) {
+          break; // Prefer cross-WAN pairing first
+        }
+      }
+      if (bestIdx >= 0) {
+        const ac = acceptors.splice(bestIdx, 1)[0];
+        if (this._pairSockets(sk, ac)) {
+          activePairKeys.add(makePairKey(sk.att.inst, ac.att.inst));
+          hasActiveMesh = true;
+        }
+      } else {
+        unmatchedSeekers.push(sk);
+      }
+    }
+
+    // 2. Bootstrap Seeker + Seeker (slot=0 + slot=0) when no mesh exists yet (or after 1.2s alarm safety net)
+    let idx = 0;
+    while (idx < unmatchedSeekers.length) {
+      const s1 = unmatchedSeekers[idx];
+      const waitedMs = nowMs - Number(s1.att.connectedAtMs || nowMs);
+      if (hasActiveMesh && !forceSeekerPair && waitedMs < 1200) {
+        idx += 1;
+        continue;
+      }
+      let partnerIdx = -1;
+      for (let j = idx + 1; j < unmatchedSeekers.length; j++) {
+        const s2 = unmatchedSeekers[j];
+        if (s2.att.inst === s1.att.inst) continue;
+        if (activePairKeys.has(makePairKey(s1.att.inst, s2.att.inst))) continue;
+        partnerIdx = j;
+        if (s2.att.netHash && s1.att.netHash && s2.att.netHash !== s1.att.netHash) {
+          break;
+        }
+      }
+      if (partnerIdx >= 0) {
+        const s2 = unmatchedSeekers.splice(partnerIdx, 1)[0];
+        unmatchedSeekers.splice(idx, 1);
+        if (this._pairSockets(s1, s2)) {
+          activePairKeys.add(makePairKey(s1.att.inst, s2.att.inst));
+          hasActiveMesh = true;
+        }
+      } else {
+        idx += 1;
+      }
+    }
+
+    if (unmatchedSeekers.length >= 2 && hasActiveMesh && !forceSeekerPair) {
+      try {
+        if (this.ctx && this.ctx.storage && typeof this.ctx.storage.setAlarm === "function") {
+          await this.ctx.storage.setAlarm(Date.now() + 1250);
+        }
+      } catch (_) {}
+    }
+  }
+
+  async alarm() {
+    await this._matchWaitingSockets(true);
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    const upgrade = (request.headers.get("Upgrade") || "").toLowerCase();
+    if (upgrade !== "websocket") {
+      const cmap = this._rebuildConnMap();
+      let pairedCnt = 0;
+      let waitingSeekers = 0;
+      let waitingAcceptors = 0;
+      for (const { att } of cmap.values()) {
+        if (att.partnerConnId) pairedCnt += 1;
+        else if (Number(att.slot || 0) === 0) waitingSeekers += 1;
+        else waitingAcceptors += 1;
+      }
+      return new Response(JSON.stringify({
+        ok: true,
+        relay_enabled: true,
+        protocol: "scash-p2pool-wss-relay-v1",
+        active_sockets: cmap.size,
+        paired_circuits: Math.floor(pairedCnt / 2),
+        waiting_seekers: waitingSeekers,
+        waiting_acceptors: waitingAcceptors
+      }, null, 2), {
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Cache-Control": "no-store" }
+      });
+    }
+
+    const net = String(url.searchParams.get("net") || "7363617368703236").replace(/[^0-9a-fA-F]/g, "").toLowerCase().slice(0, 32) || "7363617368703236";
+    const inst = String(url.searchParams.get("inst") || "").replace(/[^0-9a-fA-F]/g, "").toLowerCase().slice(0, 24);
+    const slot = Math.max(0, Math.min(2, parseInt(url.searchParams.get("slot") || "0", 10) || 0));
+    const netHash = String(request.headers.get("X-Scash-NetHash") || "").slice(0, 16);
+
+    if (!inst || inst.length < 6) {
+      return new Response(JSON.stringify({ ok: false, error: "missing_inst" }), { status: 400, headers: CORS_HEADERS });
+    }
+
+    const cmap = this._rebuildConnMap();
+    // Replace any stale UNPAIRED waiting socket from the exact same (inst, slot)
+    for (const [cid, entry] of Array.from(cmap.entries())) {
+      if (!entry.att.partnerConnId && entry.att.inst === inst && Number(entry.att.slot || 0) === slot) {
+        this._safeClose(entry.ws, 1000, "replaced_waiting_slot");
+        cmap.delete(cid);
+      }
+    }
+
+    if (cmap.size >= MAX_ROOM_SOCKETS) {
+      return new Response(JSON.stringify({ ok: false, error: "relay_room_full" }), { status: 503, headers: CORS_HEADERS });
+    }
+
+    // Create WebSocketPair (supports both Cloudflare Workers global WebSocketPair and custom test factory)
+    const pairFactory = globalThis.WebSocketPair;
+    const pair = new pairFactory();
+    const client = pair[0];
+    const server = pair[1];
+
+    const connId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`);
+    const att = {
+      connId,
+      net,
+      inst,
+      slot,
+      netHash,
+      partnerConnId: null,
+      partnerInst: null,
+      role: null,
+      connectedAtMs: Date.now()
+    };
+
+    if (this.ctx && typeof this.ctx.acceptWebSocket === "function") {
+      this.ctx.acceptWebSocket(server);
+    } else {
+      if (!this._fallbackSockets) this._fallbackSockets = [];
+      this._fallbackSockets.push(server);
+    }
+    this._writeAtt(server, att);
+
+    await this._matchWaitingSockets(false);
+    const updatedAtt = this._readAtt(server) || att;
+    if (!updatedAtt.partnerConnId) {
+      try {
+        server.send(JSON.stringify({ type: "waiting", slot, conn_id: connId }));
+      } catch (_) {}
+    }
+
+    if (typeof globalThis.SCASH_MAKE_WS_RESPONSE === "function") {
+      return globalThis.SCASH_MAKE_WS_RESPONSE(client, server);
+    }
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async webSocketMessage(ws, message) {
+    const att = this._readAtt(ws);
+    if (!att) {
+      this._safeClose(ws, 1002, "missing_attachment");
+      return;
+    }
+
+    if (typeof message === "string") {
+      if (message.length <= 256 && message.includes('"ping"')) {
+        try { ws.send(JSON.stringify({ type: "pong", ts: Date.now() })); } catch (_) {}
+      }
+      return;
+    }
+
+    const byteLen = message instanceof ArrayBuffer ? message.byteLength : (message && message.byteLength ? message.byteLength : 0);
+    if (byteLen <= 0 || byteLen > MAX_WS_FRAME_BYTES) {
+      if (byteLen > MAX_WS_FRAME_BYTES) {
+        this._safeClose(ws, 1009, "frame_too_large");
+      }
+      return;
+    }
+
+    if (!att.partnerConnId) return;
+    if (!this._connMap || !this._connMap.has(att.partnerConnId)) {
+      this._rebuildConnMap();
+    }
+    const partner = this._connMap ? this._connMap.get(att.partnerConnId) : null;
+    if (!partner || !partner.ws) {
+      this._safeClose(ws, 1001, "partner_disconnected");
+      return;
+    }
+    try {
+      partner.ws.send(message);
+    } catch (_) {
+      this._handleDisconnect(partner.ws);
+      this._safeClose(ws, 1001, "partner_send_error");
+    }
+  }
+
+  _handleDisconnect(ws, code = 1000, reason = "closed") {
+    const att = this._readAtt(ws);
+    if (att && att.connId && this._connMap) {
+      this._connMap.delete(att.connId);
+    }
+    this._safeClose(ws, code, reason);
+
+    if (att && att.partnerConnId) {
+      const cmap = this._rebuildConnMap();
+      const partner = cmap.get(att.partnerConnId);
+      if (partner && partner.ws) {
+        partner.att.partnerConnId = null;
+        this._writeAtt(partner.ws, partner.att);
+        cmap.delete(partner.att.connId);
+        try {
+          partner.ws.send(JSON.stringify({ type: "peer_closed", peer_inst: att.inst }));
+        } catch (_) {}
+        this._safeClose(partner.ws, 1001, "peer_closed");
+      }
+    }
+  }
+
+  async webSocketClose(ws, code, reason, _wasClean) {
+    this._handleDisconnect(ws, code, reason);
+  }
+
+  async webSocketError(ws, _error) {
+    this._handleDisconnect(ws, 1011, "ws_error");
+  }
+}

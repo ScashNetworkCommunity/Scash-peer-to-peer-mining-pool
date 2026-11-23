@@ -23,6 +23,7 @@ ZERO central seed server and ZERO mandatory port forwarding:
 """
 from __future__ import print_function
 import base64
+import errno
 import hashlib
 import inspect
 import json
@@ -38,6 +39,11 @@ import sys
 import threading
 import time
 import zlib
+
+try:
+    import ssl as _ssl_mod
+except ImportError:
+    _ssl_mod = None
 
 try:
     import urllib.request as _ureq
@@ -75,6 +81,9 @@ DEFAULT_STUN_SERVERS = (
     ("stun1.l.google.com", 19302),
 )
 
+DEFAULT_WSS_RELAY_URL = "wss://scash-p2pool-stats.magicalgirlsunited.workers.dev/p2p-relay"
+WSS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
 MESH_STATE = {
     "started": False,
     "instance_id": "%016x" % random.randrange(1, 2**64),
@@ -92,6 +101,8 @@ MESH_STATE = {
     "discovered_wan_peers": [],
     "swarm_peers_found": 0,
     "holepunch_tunnels": 0,
+    "wss_relay_tunnels": 0,
+    "wss_relay_url": DEFAULT_WSS_RELAY_URL,
     "connected_peers": 0,
     "connected_wan_peers": 0,
     "connected_lan_peers": 0,
@@ -117,6 +128,9 @@ _STOP_EVENT = threading.Event()
 _BRIDGED_SCASHD_IPS = set()
 _PENDING_SCASHD_BRIDGE = []
 _SCASHD_BRIDGE_LOCK = threading.Lock()
+_WSS_SESSIONS = {}
+_WSS_LOCK = threading.Lock()
+_WSS_META = {"disabled_until": 0.0, "fail_streak": 0}
 
 
 def _utf8_str(val):
@@ -217,6 +231,16 @@ def _refresh_live_peer_counts():
                     if getattr(t, "local_tcp_port", 0):
                         wan_tun_ports.add(int(t.local_tcp_port))
 
+        with _WSS_LOCK:
+            active_wss = [w for w in _WSS_SESSIONS.values() if not w.closed and w.established]
+            MESH_STATE["wss_relay_tunnels"] = len(active_wss)
+            for w in active_wss:
+                wan_est_tuns += 1
+                if getattr(w, "local_bridge_port", 0):
+                    wan_tun_ports.add(int(w.local_bridge_port))
+                if getattr(w, "local_tcp_port", 0):
+                    wan_tun_ports.add(int(w.local_tcp_port))
+
         peers = getattr(p2p_node, "peers", {}) or {}
         vals = list(peers.values())
         inc = 0
@@ -272,6 +296,7 @@ def get_mesh_status():
         "swarm_peers_found": int(MESH_STATE["swarm_peers_found"]),
         "https_rendezvous_peers": int(MESH_STATE["https_rendezvous_peers"]),
         "holepunch_tunnels": int(MESH_STATE["holepunch_tunnels"]),
+        "wss_relay_tunnels": int(MESH_STATE["wss_relay_tunnels"]),
         "connected_peers": int(MESH_STATE["connected_peers"]),
         "connected_wan_peers": int(MESH_STATE["connected_wan_peers"]),
         "connected_lan_peers": int(MESH_STATE["connected_lan_peers"]),
@@ -2008,6 +2033,7 @@ def start_for_p2p_node(p2p_node):
         (_udp_tunnel_pump_worker, ()),
         (_mesh_scanner_worker, (p2p_node,)),
         (_upnp_worker, (p2p_node,)),
+        (_wss_relay_manager_worker, (p2p_node,)),
     ):
         t = threading.Thread(target=target_fn, args=args)
         t.daemon = True
@@ -2015,6 +2041,713 @@ def start_for_p2p_node(p2p_node):
 
     print(
         "[AutoMesh] Serverless P2Pool Mesh active on :%d "
-        "(Global Swarm + STUN UDP Hole-Punching + UPnP/PCP/NAT-PMP + Scash Node Gossip + LAN)"
+        "(Global Swarm + STUN UDP Hole-Punching + Cloudflare WSS CGNAT Relay + UPnP/PCP + LAN)"
         % port
     )
+
+
+# ==============================================================================
+# Cloudflare Worker Durable Object WebSocket (`wss://:443/p2p-relay`) Fallback
+# Pure-stdlib RFC 6455 TLS/TCP WebSocket stream bridge for Symmetric CGNAT nodes
+# ==============================================================================
+
+def get_effective_wss_relay_url():
+    env_u = _utf8_str(os.environ.get("SCASH_WSS_RELAY_URL") or "").strip()
+    if env_u.lower() in ("0", "off", "false", "none", "disabled"):
+        return ""
+    if env_u.startswith(("wss://", "ws://")):
+        return env_u
+    if os.environ.get("SCASH_DISABLE_WSS_RELAY") == "1" or os.environ.get("SCASH_DISABLE_PUBLIC_STATS") == "1":
+        return ""
+    return _utf8_str(MESH_STATE.get("wss_relay_url") or DEFAULT_WSS_RELAY_URL).strip()
+
+
+def update_wss_relay_from_report(relay_url, relay_enabled=True):
+    if os.environ.get("SCASH_WSS_RELAY_URL"):
+        return
+    u = _utf8_str(relay_url or "").strip()
+    if not relay_enabled:
+        _WSS_META["disabled_until"] = time.time() + 180.0
+        return
+    _WSS_META["disabled_until"] = 0.0
+    if u.startswith("wss://") or u.startswith("ws://127.0.0.1"):
+        MESH_STATE["wss_relay_url"] = u
+
+
+def _parse_ws_url(raw_url):
+    u = _utf8_str(raw_url or "").strip()
+    if u.startswith("wss://"):
+        use_tls = True
+        rest = u[6:]
+    elif u.startswith("ws://"):
+        use_tls = False
+        rest = u[5:]
+    else:
+        return None
+    if "/" in rest:
+        hostport, path = rest.split("/", 1)
+        path = "/" + path
+    else:
+        hostport, path = rest, "/p2p-relay"
+    if ":" in hostport and not hostport.startswith("["):
+        host, port_s = hostport.rsplit(":", 1)
+        try:
+            port = int(port_s)
+        except Exception:
+            return None
+    else:
+        host = hostport
+        port = 443 if use_tls else 80
+    host = host.strip()
+    if not host or port <= 0 or port > 65535:
+        return None
+    return use_tls, host, port, path
+
+
+def _ws_mask_bytes(payload_bytes, mask4_bytes):
+    ba = bytearray(payload_bytes)
+    m = bytearray(mask4_bytes)
+    m0, m1, m2, m3 = m[0], m[1], m[2], m[3]
+    n = len(ba)
+    i = 0
+    n4 = n - (n & 3)
+    while i < n4:
+        ba[i] ^= m0
+        ba[i + 1] ^= m1
+        ba[i + 2] ^= m2
+        ba[i + 3] ^= m3
+        i += 4
+    while i < n:
+        ba[i] ^= m[i & 3]
+        i += 1
+    return bytes(ba)
+
+
+def _pack_ws_client_frame(opcode, payload_bytes=b""):
+    if not isinstance(payload_bytes, bytes):
+        payload_bytes = payload_bytes.encode("utf-8")
+    plen = len(payload_bytes)
+    b0 = 0x80 | (int(opcode) & 0x0F)
+    mask4 = os.urandom(4)
+    if plen < 126:
+        hdr = struct.pack("!BB", b0, 0x80 | plen)
+    elif plen < 65536:
+        hdr = struct.pack("!BBH", b0, 0x80 | 126, plen)
+    else:
+        hdr = struct.pack("!BBQ", b0, 0x80 | 127, plen)
+    masked = _ws_mask_bytes(payload_bytes, mask4) if plen > 0 else b""
+    return hdr + mask4 + masked
+
+
+def _try_pop_ws_frame(rx_buf):
+    """Parses one complete RFC 6455 frame from bytearray `rx_buf`, returning `(fin, opcode, payload_bytes)` or `None`."""
+    blen = len(rx_buf)
+    if blen < 2:
+        return None
+    b0 = rx_buf[0]
+    b1 = rx_buf[1]
+    fin = bool(b0 & 0x80)
+    opcode = b0 & 0x0F
+    masked = bool(b1 & 0x80)
+    plen = b1 & 0x7F
+    pos = 2
+    if plen == 126:
+        if blen < 4:
+            return None
+        plen = struct.unpack("!H", bytes(rx_buf[2:4]))[0]
+        pos = 4
+    elif plen == 127:
+        if blen < 10:
+            return None
+        plen = struct.unpack("!Q", bytes(rx_buf[2:10]))[0]
+        pos = 10
+    if plen > 524288:
+        raise ValueError("ws_frame_too_large")
+    mask4 = None
+    if masked:
+        if blen < pos + 4:
+            return None
+        mask4 = bytes(rx_buf[pos:pos + 4])
+        pos += 4
+    if blen < pos + plen:
+        return None
+    raw_payload = bytes(rx_buf[pos:pos + plen])
+    del rx_buf[:pos + plen]
+    if masked and plen > 0:
+        raw_payload = _ws_mask_bytes(raw_payload, mask4)
+    return fin, opcode, raw_payload
+
+
+def _is_would_block_err(exc):
+    if _ssl_mod is not None:
+        want_r = getattr(_ssl_mod, "SSLWantReadError", None)
+        want_w = getattr(_ssl_mod, "SSLWantWriteError", None)
+        if want_r is not None and isinstance(exc, want_r):
+            return True
+        if want_w is not None and isinstance(exc, want_w):
+            return True
+    err_no = getattr(exc, "errno", None)
+    if err_no is None and getattr(exc, "args", None):
+        if isinstance(exc.args[0], int):
+            err_no = exc.args[0]
+    if err_no in (errno.EAGAIN, errno.EWOULDBLOCK, 10035):
+        return True
+    msg = str(exc).lower()
+    return "want read" in msg or "want write" in msg or "would block" in msg or "timed out" in msg
+
+
+def _ws_send_all(sock, data, timeout=4.0):
+    view = memoryview(data)
+    total = len(data)
+    sent = 0
+    deadline = time.time() + float(timeout)
+    while sent < total:
+        try:
+            n = sock.send(view[sent:].tobytes())
+            if n and n > 0:
+                sent += n
+                continue
+            raise IOError("ws_socket_eof")
+        except Exception as exc:
+            if _is_would_block_err(exc) and time.time() < deadline:
+                try:
+                    select.select([], [sock], [], 0.05)
+                except Exception:
+                    time.sleep(0.02)
+                continue
+            raise
+
+
+def _open_rfc6455_connection(ws_url, net_hex, inst_id, slot_num, timeout=6.5):
+    """Connects TCP (+ TLS SNI for wss://) and completes RFC 6455 HTTP 101 Upgrade.
+    Returns `(sock, leftover_bytearray, http_status_code)`."""
+    parsed = _parse_ws_url(ws_url)
+    if parsed is None:
+        return None, None, 0
+    use_tls, host, port, base_path = parsed
+    sep = "&" if "?" in base_path else "?"
+    req_path = "%s%snet=%s&inst=%s&slot=%d" % (base_path, sep, str(net_hex), str(inst_id), int(slot_num))
+
+    raw_sock = socket.create_connection((host, port), timeout=float(timeout))
+    try:
+        raw_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    except Exception:
+        pass
+
+    sock = raw_sock
+    if use_tls:
+        if _ssl_mod is None:
+            raw_sock.close()
+            return None, None, 0
+        wrapped = None
+        ctx_candidates = []
+        try:
+            import certifi as _certifi_mod
+            ctx_candidates.append(_ssl_mod.create_default_context(cafile=_certifi_mod.where()))
+        except Exception:
+            pass
+        try:
+            ctx_candidates.append(_ssl_mod.create_default_context())
+        except Exception:
+            pass
+        if hasattr(_ssl_mod, "_create_unverified_context"):
+            try:
+                ctx_candidates.append(_ssl_mod._create_unverified_context())
+            except Exception:
+                pass
+        last_ssl_err = None
+        for idx_c, ctx in enumerate(ctx_candidates):
+            try:
+                if idx_c > 0:
+                    raw_sock = socket.create_connection((host, port), timeout=float(timeout))
+                    try:
+                        raw_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    except Exception:
+                        pass
+                wrapped = ctx.wrap_socket(raw_sock, server_hostname=host)
+                break
+            except Exception as se:
+                last_ssl_err = se
+                try:
+                    raw_sock.close()
+                except Exception:
+                    pass
+        if wrapped is None:
+            if last_ssl_err is not None:
+                raise last_ssl_err
+            return None, None, 0
+        sock = wrapped
+
+    sock.settimeout(float(timeout))
+    sec_key = base64.b64encode(os.urandom(16)).decode("ascii")
+    default_port = 443 if use_tls else 80
+    host_hdr = host if port == default_port else ("%s:%d" % (host, port))
+    req_lines = [
+        "GET %s HTTP/1.1" % req_path,
+        "Host: %s" % host_hdr,
+        "Upgrade: websocket",
+        "Connection: Upgrade",
+        "Sec-WebSocket-Key: %s" % sec_key,
+        "Sec-WebSocket-Version: 13",
+        "User-Agent: Scash-P2Pool/0.4.0",
+        "",
+        "",
+    ]
+    sock.sendall("\r\n".join(req_lines).encode("ascii"))
+
+    hdr_buf = bytearray()
+    deadline = time.time() + float(timeout)
+    marker_idx = -1
+    while time.time() < deadline and len(hdr_buf) < 16384:
+        chunk = sock.recv(4096)
+        if not chunk:
+            break
+        hdr_buf.extend(chunk)
+        marker_idx = bytes(hdr_buf).find(b"\r\n\r\n")
+        if marker_idx != -1:
+            break
+
+    if marker_idx == -1:
+        try:
+            sock.close()
+        except Exception:
+            pass
+        return None, None, 0
+
+    hdr_raw = bytes(hdr_buf[:marker_idx]).decode("latin1", "replace")
+    leftover = bytearray(hdr_buf[marker_idx + 4:])
+    first_line = hdr_raw.splitlines()[0] if hdr_raw else ""
+    parts = first_line.split()
+    status_code = int(parts[1]) if (len(parts) >= 2 and parts[1].isdigit()) else 0
+    if status_code != 101:
+        try:
+            sock.close()
+        except Exception:
+            pass
+        return None, None, status_code
+
+    expected_acc = base64.b64encode(hashlib.sha1((sec_key + WSS_GUID).encode("ascii")).digest()).decode("ascii")
+    got_acc = ""
+    for ln in hdr_raw.splitlines()[1:]:
+        if ":" in ln:
+            k, v = ln.split(":", 1)
+            if k.strip().lower() == "sec-websocket-accept":
+                got_acc = v.strip()
+                break
+    if got_acc != expected_acc:
+        try:
+            sock.close()
+        except Exception:
+            pass
+        return None, None, 400
+
+    sock.setblocking(False)
+    return sock, leftover, 101
+
+
+def _has_wss_with_peer(remote_inst, exclude_session=None):
+    if not remote_inst:
+        return False
+    with _WSS_LOCK:
+        for s in _WSS_SESSIONS.values():
+            if s is exclude_session or s.closed:
+                continue
+            if s.remote_inst and s.remote_inst == remote_inst:
+                return True
+    return False
+
+
+class _Rfc6455RelaySession(object):
+    """Manages one outbound WebSocket circuit (`slot=0` seeker or `slot=1` acceptor) to Cloudflare Durable Object."""
+
+    def __init__(self, sess_id, ws_url, slot, p2p_node=None, target_local_port=None, on_initiator_ready=None):
+        self.sess_id = str(sess_id)
+        self.ws_url = str(ws_url)
+        self.slot = int(slot)
+        self.p2p_node = p2p_node
+        self.target_local_port = int(target_local_port or MESH_STATE["p2p_port"])
+        self.on_initiator_ready = on_initiator_ready
+
+        self.ws_sock = None
+        self.listen_sock = None
+        self.tcp_sock = None
+        self.local_bridge_port = 0
+        self.local_tcp_port = 0
+
+        self.role = None
+        self.remote_inst = ""
+        self.established = False
+        self.closed = False
+        self.http_status = 0
+
+        self.ws_rx_buf = bytearray()
+        self.frag_opcode = 0
+        self.frag_buf = bytearray()
+        self.rx_to_tcp_buf = bytearray()
+        self.ws_send_lock = threading.Lock()
+
+        now = time.time()
+        self.created_ts = now
+        self.last_rx_ts = now
+        self.last_ping_ts = now
+
+    def _send_ws_frame(self, opcode, payload=b""):
+        s = self.ws_sock
+        if s is None or self.closed:
+            return False
+        raw = _pack_ws_client_frame(opcode, payload)
+        with self.ws_send_lock:
+            try:
+                _ws_send_all(s, raw, timeout=4.0)
+                return True
+            except Exception:
+                self.close(send_ws_close=False)
+                return False
+
+    def close(self, send_ws_close=True):
+        if self.closed:
+            return
+        self.closed = True
+        ws = self.ws_sock
+        if send_ws_close and ws is not None:
+            try:
+                raw_cl = _pack_ws_client_frame(0x8, struct.pack("!H", 1000))
+                with self.ws_send_lock:
+                    _ws_send_all(ws, raw_cl, timeout=0.8)
+            except Exception:
+                pass
+        for s in (self.tcp_sock, self.listen_sock, self.ws_sock):
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+        self.tcp_sock = None
+        self.listen_sock = None
+        self.ws_sock = None
+
+    def _activate_pair(self, role_str, peer_inst):
+        if self.established or self.closed:
+            return
+        p_inst = _utf8_str(peer_inst or "").strip()
+        if p_inst and (_has_wss_with_peer(p_inst, exclude_session=self) or _has_tunnel_with_peer(None, p_inst)):
+            self.close(send_ws_close=True)
+            return
+
+        self.role = "initiator" if str(role_str) == "initiator" else "responder"
+        self.remote_inst = p_inst
+
+        if self.role == "responder":
+            cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            cs.settimeout(3.0)
+            cs.connect(("127.0.0.1", self.target_local_port))
+            try:
+                cs.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                self.local_tcp_port = int(cs.getsockname()[1])
+            except Exception:
+                pass
+            cs.setblocking(False)
+            self.tcp_sock = cs
+            self.established = True
+            print("[AutoMesh] Accepted CGNAT peer %s via Cloudflare WSS relay (slot %d)" % (p_inst[:12] or "peer", self.slot))
+        else:
+            ls = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            ls.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            ls.bind(("127.0.0.1", 0))
+            ls.listen(1)
+            ls.setblocking(False)
+            self.listen_sock = ls
+            self.local_bridge_port = int(ls.getsockname()[1])
+            self.established = True
+            if self.on_initiator_ready is not None:
+                self.on_initiator_ready(self.local_bridge_port)
+            elif self.p2p_node is not None:
+                print(
+                    "[AutoMesh] Paired with CGNAT peer %s via Cloudflare WSS relay -> 127.0.0.1:%d"
+                    % (p_inst[:12] or "peer", self.local_bridge_port)
+                )
+                _schedule_connect(
+                    self.p2p_node,
+                    "127.0.0.1",
+                    self.local_bridge_port,
+                    immediate=True,
+                    source="cf_wss_relay",
+                    allow_loopback_bridge=True,
+                )
+
+    def _process_ws_frames(self):
+        while not self.closed:
+            parsed = _try_pop_ws_frame(self.ws_rx_buf)
+            if parsed is None:
+                break
+            fin, opcode, payload = parsed
+            self.last_rx_ts = time.time()
+
+            if opcode == 0x8:  # Close
+                self.close(send_ws_close=False)
+                return
+            if opcode == 0x9:  # Ping -> Pong
+                self._send_ws_frame(0xA, payload[:125])
+                continue
+            if opcode == 0xA:  # Pong
+                continue
+
+            if opcode == 0x0:
+                if self.frag_opcode == 0:
+                    continue
+                self.frag_buf.extend(payload)
+                if not fin:
+                    if len(self.frag_buf) > 524288:
+                        self.close(send_ws_close=True)
+                        return
+                    continue
+                eff_op = self.frag_opcode
+                eff_data = bytes(self.frag_buf)
+                self.frag_opcode = 0
+                del self.frag_buf[:]
+            elif not fin:
+                self.frag_opcode = opcode
+                del self.frag_buf[:]
+                self.frag_buf.extend(payload)
+                continue
+            else:
+                eff_op = opcode
+                eff_data = payload
+
+            if eff_op == 0x1:  # Text JSON control frame from P2PoolRelayRoom
+                try:
+                    ctrl = json.loads(eff_data.decode("utf-8", "replace"))
+                except Exception:
+                    ctrl = {}
+                ctype = _utf8_str(ctrl.get("type") or "")
+                if ctype == "paired":
+                    self._activate_pair(ctrl.get("role"), ctrl.get("peer_inst"))
+                elif ctype == "peer_closed":
+                    self.close(send_ws_close=False)
+                    return
+            elif eff_op == 0x2:  # Binary P2Pool TCP stream chunk
+                if self.established and eff_data:
+                    if len(self.rx_to_tcp_buf) > 1048576:
+                        self.close(send_ws_close=True)
+                        return
+                    self.rx_to_tcp_buf.extend(eff_data)
+
+    def run_blocking(self):
+        try:
+            ws_sock, leftover, code = _open_rfc6455_connection(
+                self.ws_url,
+                MESH_STATE["net_id_hex"],
+                MESH_STATE["instance_id"],
+                self.slot,
+                timeout=6.5,
+            )
+            self.http_status = int(code or 0)
+            if ws_sock is None:
+                if self.http_status in (404, 501, 503):
+                    _WSS_META["disabled_until"] = time.time() + 120.0
+                else:
+                    _WSS_META["fail_streak"] = min(6, int(_WSS_META.get("fail_streak") or 0) + 1)
+                self.close(send_ws_close=False)
+                return
+
+            _WSS_META["fail_streak"] = 0
+            self.ws_sock = ws_sock
+            if leftover:
+                self.ws_rx_buf.extend(leftover)
+                self._process_ws_frames()
+
+            while not self.closed and not _STOP_EVENT.is_set():
+                now = time.time()
+                # Expire idle unpaired waiting socket cleanly after 15 minutes so it refreshes
+                if not self.established and (now - self.created_ts) > 900.0:
+                    self.close(send_ws_close=True)
+                    break
+                # If initiator listener wasn't accepted within 15s, close cleanly
+                if self.established and self.listen_sock is not None and self.tcp_sock is None and (now - self.created_ts) > 20.0:
+                    self.close(send_ws_close=True)
+                    break
+                # Send lightweight RFC 6455 Ping every 25s (handled free at Cloudflare edge without waking hibernating DO!)
+                if (now - self.last_ping_ts) >= 25.0:
+                    self.last_ping_ts = now
+                    if not self._send_ws_frame(0x9, b"k"):
+                        break
+                if (now - self.last_rx_ts) > 95.0:
+                    self.close(send_ws_close=True)
+                    break
+
+                rlist = []
+                wlist = []
+                if self.ws_sock is not None:
+                    rlist.append(self.ws_sock)
+                if self.listen_sock is not None and self.tcp_sock is None:
+                    rlist.append(self.listen_sock)
+                elif self.tcp_sock is not None:
+                    rlist.append(self.tcp_sock)
+                    if self.rx_to_tcp_buf:
+                        wlist.append(self.tcp_sock)
+
+                has_ssl_pending = bool(
+                    self.ws_sock is not None
+                    and hasattr(self.ws_sock, "pending")
+                    and self.ws_sock.pending() > 0
+                )
+                wait_s = 0.0 if has_ssl_pending else 0.25
+                try:
+                    rd, wr, er = select.select(rlist, wlist, rlist, wait_s)
+                except Exception:
+                    break
+
+                if has_ssl_pending and self.ws_sock is not None and self.ws_sock not in rd:
+                    rd = list(rd) + [self.ws_sock]
+
+                if er:
+                    self.close(send_ws_close=True)
+                    break
+
+                # 1. Drain WebSocket incoming bytes (draining full SSL record buffer until EWOULDBLOCK)
+                if self.ws_sock is not None and self.ws_sock in rd:
+                    for _ in range(16):
+                        try:
+                            ch = self.ws_sock.recv(32768)
+                        except Exception as exc:
+                            if _is_would_block_err(exc):
+                                break
+                            self.close(send_ws_close=False)
+                            break
+                        if not ch:
+                            self.close(send_ws_close=False)
+                            break
+                        self.ws_rx_buf.extend(ch)
+                    if not self.closed and self.ws_rx_buf:
+                        self._process_ws_frames()
+                    if self.closed:
+                        break
+
+                # 2. Accept local P2Pool initiator socket if ready
+                if self.listen_sock is not None and self.listen_sock in rd:
+                    try:
+                        cs, _ = self.listen_sock.accept()
+                        try:
+                            cs.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        except Exception:
+                            pass
+                        cs.setblocking(False)
+                        self.tcp_sock = cs
+                        try:
+                            self.listen_sock.close()
+                        except Exception:
+                            pass
+                        self.listen_sock = None
+                    except Exception:
+                        pass
+
+                # 3. Flush buffered WebSocket binary payload into local P2Pool TCP socket
+                if self.tcp_sock is not None and self.rx_to_tcp_buf and (self.tcp_sock in wr or len(self.rx_to_tcp_buf) > 0):
+                    try:
+                        sent_n = self.tcp_sock.send(memoryview(self.rx_to_tcp_buf)[:32768].tobytes())
+                        if sent_n > 0:
+                            del self.rx_to_tcp_buf[:sent_n]
+                    except Exception as exc:
+                        if not _is_would_block_err(exc):
+                            self.close(send_ws_close=True)
+                            break
+
+                # 4. Read local P2Pool TCP socket and forward as binary WebSocket frame (up to 16 KB/frame)
+                if self.tcp_sock is not None and self.tcp_sock in rd:
+                    try:
+                        tcp_chunk = self.tcp_sock.recv(16384)
+                    except Exception as exc:
+                        if _is_would_block_err(exc):
+                            tcp_chunk = None
+                        else:
+                            self.close(send_ws_close=True)
+                            break
+                    if tcp_chunk is not None:
+                        if not tcp_chunk:
+                            self.close(send_ws_close=True)
+                            break
+                        if not self._send_ws_frame(0x2, tcp_chunk):
+                            break
+        except Exception:
+            _WSS_META["fail_streak"] = min(6, int(_WSS_META.get("fail_streak") or 0) + 1)
+        finally:
+            self.close(send_ws_close=False)
+            with _WSS_LOCK:
+                _WSS_SESSIONS.pop(self.sess_id, None)
+            _refresh_live_peer_counts()
+
+
+def start_wss_relay_slot(ws_url, slot, p2p_node=None, target_local_port=None, on_initiator_ready=None):
+    sess_id = "%s_s%d_%08x" % (MESH_STATE["instance_id"][:8], int(slot), random.randrange(1, 2**31))
+    sess = _Rfc6455RelaySession(
+        sess_id=sess_id,
+        ws_url=ws_url,
+        slot=slot,
+        p2p_node=p2p_node,
+        target_local_port=target_local_port,
+        on_initiator_ready=on_initiator_ready,
+    )
+    with _WSS_LOCK:
+        _WSS_SESSIONS[sess_id] = sess
+    t = threading.Thread(target=sess.run_blocking)
+    t.daemon = True
+    t.start()
+    return sess
+
+
+def _wss_relay_manager_worker(p2p_node):
+    if os.environ.get("SCASH_CI_ISOLATED_MESH") == "1" and os.environ.get("SCASH_FORCE_WSS_RELAY_TEST") != "1":
+        return
+
+    init_delay = float(os.environ.get("SCASH_WSS_INITIAL_DELAY_S") or 8.0)
+    tick_s = 0.2 if os.environ.get("SCASH_FORCE_WSS_RELAY_TEST") == "1" else 3.0
+    _STOP_EVENT.wait(init_delay)
+
+    last_spawn_ts = 0.0
+    while not _STOP_EVENT.is_set():
+        now = time.time()
+        ws_url = get_effective_wss_relay_url()
+        if not ws_url or now < float(_WSS_META.get("disabled_until") or 0.0):
+            _STOP_EVENT.wait(tick_s)
+            continue
+
+        _refresh_live_peer_counts()
+        with _WSS_LOCK:
+            for k in list(_WSS_SESSIONS.keys()):
+                if _WSS_SESSIONS[k].closed:
+                    _WSS_SESSIONS.pop(k, None)
+            live_vals = list(_WSS_SESSIONS.values())
+
+        est_wss = [s for s in live_vals if s.established and not s.closed]
+        wait_s0 = [s for s in live_vals if not s.established and not s.closed and s.slot == 0]
+        wait_s1 = [s for s in live_vals if not s.established and not s.closed and s.slot == 1]
+
+        total_wan = int(MESH_STATE.get("connected_wan_peers") or 0)
+        direct_wan = max(0, total_wan - len(est_wss))
+        streak = int(_WSS_META.get("fail_streak") or 0)
+        backoff_s = 0.15 if os.environ.get("SCASH_FORCE_WSS_RELAY_TEST") == "1" else (
+            2.0 if streak == 0 else min(90.0, 5.0 * (2 ** min(streak, 4)))
+        )
+
+        # Case A: 0 WAN peers -> open Seeker slot (slot=0) so Symmetric CGNAT nodes connect immediately!
+        if total_wan == 0 and len(est_wss) == 0:
+            for w1 in wait_s1:
+                w1.close(send_ws_close=True)
+            if not wait_s0 and (now - last_spawn_ts) >= backoff_s:
+                last_spawn_ts = now
+                start_wss_relay_slot(ws_url, slot=0, p2p_node=p2p_node)
+        else:
+            # Case B: Already connected to >= 1 WAN peer -> close any unneeded Seeker (slot=0) and keep
+            # 1 Standby Acceptor (slot=1) open (up to degree cap) so newly arriving CGNAT miners bridge into our mesh!
+            for w0 in wait_s0:
+                w0.close(send_ws_close=True)
+            max_relays = 1 if direct_wan >= 2 else (2 if direct_wan == 1 else 3)
+            if len(est_wss) < max_relays:
+                if not wait_s1 and (now - last_spawn_ts) >= backoff_s:
+                    last_spawn_ts = now
+                    start_wss_relay_slot(ws_url, slot=1, p2p_node=p2p_node)
+            else:
+                for w1 in wait_s1:
+                    w1.close(send_ws_close=True)
+
+        _STOP_EVENT.wait(tick_s)
