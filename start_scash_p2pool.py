@@ -67,6 +67,20 @@ def ascii_safe(val):
             return ""
 
 
+def _native_str(val):
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    try:
+        if sys.version_info[0] < 3:
+            fs_enc = sys.getfilesystemencoding() or "utf-8"
+            return val.encode(fs_enc, "replace")
+        return val.decode("utf-8", "replace") if isinstance(val, bytes) else str(val)
+    except Exception:
+        return ascii_safe(val)
+
+
 class _SafeConsoleStream(object):
     """Prevents PyPy 2.7 cp437/cp1252 UnicodeEncodeError on any print() call."""
     def __init__(self, inner):
@@ -681,15 +695,15 @@ def jsonrpc_call(host, port, user, password, method, params=None, timeout=5.0):
     except urllib_err.HTTPError as e:
         try:
             err_body = json.loads(e.read().decode("utf-8", "replace"))
-            err_obj = err_body.get("error") or {"code": e.code, "message": str(e)}
+            err_obj = err_body.get("error") or {"code": e.code, "message": ascii_safe(e)}
             return False, None, err_obj
         except Exception:
-            return False, None, {"code": e.code, "message": str(e)}
+            return False, None, {"code": e.code, "message": ascii_safe(e)}
     except Exception as e:
-        return False, None, {"code": -999, "message": str(e)}
+        return False, None, {"code": -999, "message": ascii_safe(e)}
 
 
-def is_mainnet_node_synced(bc_info, net_info=None, allow_unsynced=False):
+def is_mainnet_node_synced(bc_info, net_info=None, peer_info=None, allow_unsynced=False):
     if not isinstance(bc_info, dict):
         return False
     if allow_unsynced:
@@ -707,8 +721,21 @@ def is_mainnet_node_synced(bc_info, net_info=None, allow_unsynced=False):
             return False
         if blks < hdrs - 1:
             return False
-        if peers <= 0 and blks < 100000:
+        if peers <= 0:
             return False
+        if isinstance(peer_info, list) and peer_info:
+            max_peer_h = 0
+            for p_obj in peer_info:
+                if isinstance(p_obj, dict):
+                    for hk in ("synced_headers", "synced_blocks", "startingheight"):
+                        try:
+                            hv = int(p_obj.get(hk) or 0)
+                            if hv > max_peer_h:
+                                max_peer_h = hv
+                        except Exception:
+                            pass
+            if max_peer_h > 0 and blks < (max_peer_h - 1):
+                return False
         return True
 
     return (not ibd) and blks >= hdrs
@@ -754,7 +781,7 @@ def probe_working_credentials(host, port, datadirs, conf_user, conf_pass, rpc_ti
             last_err = err
             # If scashd accepted TCP on :8342 and timed out holding cs_main (RandomX header presync),
             # do not pile up duplicate timed-out RPC calls with fallback credentials!
-            if err.get("code") == -999 and "timed out" in str(err.get("message", "")).lower():
+            if err.get("code") == -999 and "timed out" in ascii_safe(err.get("message", "")).lower():
                 return u, pw, False, None, err
     return conf_user, conf_pass, False, None, last_err
 
@@ -1304,7 +1331,29 @@ def start_bundled_scashd(scashd_bin, datadir, rpc_port=8342, p2p_port=None):
 
 
 def kick_peer_connections(host, port, user, pw):
-    for peer in scash_nodes.DEFAULT_SCASH_ADDNODES:
+    extra_scash_peers = []
+    for rel_j in (
+        os.path.join("data", "scash", "lan_scash_peers.json"),
+        os.path.join("data", "scash", "p2pool_verified_peers.json"),
+    ):
+        jp = os.path.join(ROOT_DIR, rel_j)
+        if os.path.isfile(jp):
+            try:
+                arr = json.loads(open(jp, "r").read())
+                if isinstance(arr, list):
+                    for ent in arr[:16]:
+                        ip_s = ""
+                        if isinstance(ent, dict):
+                            ip_s = ascii_safe(ent.get("ip", "")).strip()
+                        elif isinstance(ent, (str, type(u""))):
+                            ip_s = ascii_safe(ent).strip().split(":")[0]
+                        if ip_s and not ip_s.startswith("127."):
+                            cand = "%s:8343" % ip_s
+                            if cand not in extra_scash_peers:
+                                extra_scash_peers.append(cand)
+            except Exception:
+                pass
+    for peer in extra_scash_peers + list(scash_nodes.DEFAULT_SCASH_ADDNODES):
         jsonrpc_call(host, port, user, pw, "addnode", [peer, "add"], timeout=1.5)
         jsonrpc_call(host, port, user, pw, "addnode", [peer, "onetry"], timeout=1.5)
 
@@ -1650,7 +1699,8 @@ def main():
 
     _, init_bc, _ = jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "getblockchaininfo", timeout=4.0)
     _, init_net, _ = jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "getnetworkinfo", timeout=4.0)
-    already_synced = is_mainnet_node_synced(init_bc, init_net, allow_unsynced=args.allow_unsynced)
+    _, init_peers, _ = jsonrpc_call("127.0.0.1", active_creds[2], active_creds[0], active_creds[1], "getpeerinfo", timeout=4.0)
+    already_synced = is_mainnet_node_synced(init_bc, init_net, peer_info=init_peers, allow_unsynced=args.allow_unsynced)
     if already_synced:
         gbt_ok, gbt_res, _ = jsonrpc_call(
             "127.0.0.1", active_creds[2], active_creds[0], active_creds[1],
@@ -1714,8 +1764,13 @@ def main():
                         msg = "Connecting to Scash Mainnet peers on :8343... (Peers: 0 - discovering network headers)"
                     else:
                         msg = "Connected to %d Scash peer(s) - pre-synchronizing RandomX block headers..." % peers
+                elif peers <= 0 and blks >= max(1, hdrs - 1):
+                    msg = "Connecting to Scash peers on :8343 to verify latest block tip (#%d, Peers: 0)..." % blks
                 else:
                     msg = "Syncing Scash blockchain: %d / %d blocks (%.1f%%) | Peers: %d" % (blks, hdrs, pct, peers)
+                peer_info_now = None
+                if peers > 0:
+                    _, peer_info_now, _ = jsonrpc_call("127.0.0.1", active_creds[2], u, pw, "getpeerinfo", timeout=4.0)
                 sync_state.update({
                     "syncing": True,
                     "p2pool_ready": False,
@@ -1729,7 +1784,7 @@ def main():
                     "status_text": msg,
                 })
                 print("      [Scash Node]", ascii_safe(msg))
-                if is_mainnet_node_synced(bc_info, net_info, allow_unsynced=args.allow_unsynced):
+                if is_mainnet_node_synced(bc_info, net_info, peer_info=peer_info_now, allow_unsynced=args.allow_unsynced):
                     gbt_ok2, gbt_res2, _ = jsonrpc_call(
                         "127.0.0.1", active_creds[2], u, pw,
                         "getblocktemplate", [{"mode": "template", "rules": ["segwit"]}], timeout=5.0
@@ -1743,7 +1798,7 @@ def main():
                 eff_peers = peers if peers > 0 else int(sync_state.get("connections", 0))
                 dbg_msg, _, _ = _read_scash_debug_log_sync_hint(active_datadir, peers=eff_peers)
                 raw_warm = (bc_err or {}).get("message", "Starting Scash node...")
-                is_rpc_timeout = "timed out" in str(raw_warm).lower()
+                is_rpc_timeout = "timed out" in ascii_safe(raw_warm).lower()
                 rpc_alive = is_port_open("127.0.0.1", active_creds[2], timeout=0.8)
                 if dbg_msg and rpc_alive:
                     sync_state.update({
@@ -1896,10 +1951,10 @@ def main():
 
     p2pool_env = dict(os.environ)
     p2pool_env["SCASH_REQUIRE_NATIVE_RANDOMX"] = "1"
-    p2pool_env["SCASH_ACTIVE_DATADIR"] = str(active_datadir)
+    p2pool_env["SCASH_ACTIVE_DATADIR"] = _native_str(active_datadir)
     p2pool_env["SCASH_RPC_PORT"] = str(active_creds[2])
-    p2pool_env["SCASH_RPC_USER"] = str(active_creds[0])
-    p2pool_env["SCASH_RPC_PASS"] = str(active_creds[1])
+    p2pool_env["SCASH_RPC_USER"] = _native_str(active_creds[0])
+    p2pool_env["SCASH_RPC_PASS"] = _native_str(active_creds[1])
 
     p2pool_cmd = [
         sys.executable,
@@ -1915,7 +1970,7 @@ def main():
     for peer in args.peer:
         p2pool_cmd.extend(["-n", peer])
     p2pool_cmd.extend(unknown)
-    p2pool_cmd.extend([str(active_creds[0]), str(active_creds[1])])
+    p2pool_cmd.extend([_native_str(active_creds[0]), _native_str(active_creds[1])])
 
     p2p_kwargs = {"env": p2pool_env}
     if platform.system() != "Windows":

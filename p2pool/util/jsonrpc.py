@@ -164,13 +164,26 @@ class LineBasedPeer(basic.LineOnlyReceiver):
         _handle(line, self, response_handler=self._matcher.got_response).addCallback(lambda line2: self.sendLine(line2) if line2 is not None else None)
 
 # --- Scash Core 30.4.0 HTTPProxy & rpc_help shim ---
+import sys as _jr_sys
 from twisted.internet import defer as _jr_defer
+
+def _jr_str(x):
+    if x is None:
+        return ''
+    if isinstance(x, str):
+        return x
+    try:
+        if _jr_sys.version_info[0] < 3:
+            return x.encode('utf-8', 'replace')
+        return x.decode('utf-8', 'replace') if isinstance(x, bytes) else str(x)
+    except Exception:
+        return ''
 
 def _norm_core30_response(obj, method_attr=''):
     if isinstance(obj, dict):
         if isinstance(obj.get('warnings'), list):
             obj = dict(obj)
-            obj['warnings'] = '; '.join(str(x) for x in obj['warnings'])
+            obj['warnings'] = '; '.join(_jr_str(x) for x in obj['warnings'])
         if method_attr == 'rpc_validateaddress' and 'ismine' not in obj:
             obj = dict(obj)
             obj.setdefault('ismine', False)
@@ -198,7 +211,10 @@ class _ScashBitcoindProxy(object):
 
     @_jr_defer.inlineCallbacks
     def rpc_getinfo(self):
-        bc = yield self.rpc_getblockchaininfo()
+        try:
+            bc = yield self.rpc_getblockchaininfo()
+        except Exception:
+            bc = yield self.rpc_getblockchaininfo()
         try:
             net = yield self.rpc_getnetworkinfo()
         except Exception:
@@ -206,9 +222,9 @@ class _ScashBitcoindProxy(object):
         w_bc = bc.get('warnings', '')
         w_net = net.get('warnings', '')
         if isinstance(w_bc, list):
-            w_bc = '; '.join(str(x) for x in w_bc)
+            w_bc = '; '.join(_jr_str(x) for x in w_bc)
         if isinstance(w_net, list):
-            w_net = '; '.join(str(x) for x in w_net)
+            w_net = '; '.join(_jr_str(x) for x in w_net)
         _jr_defer.returnValue({
             'version': net.get('version', 300400),
             'protocolversion': net.get('protocolversion', 70016),

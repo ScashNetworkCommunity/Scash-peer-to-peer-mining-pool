@@ -13,7 +13,21 @@ import os
 import platform
 import re
 import subprocess
+import sys
 import threading
+
+
+def _xm_str(val):
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    try:
+        if sys.version_info[0] < 3:
+            return val.encode("utf-8", "replace")
+        return val.decode("utf-8", "replace") if isinstance(val, bytes) else str(val)
+    except Exception:
+        return repr(val)
 import time
 
 try:
@@ -176,8 +190,8 @@ class LocalMinerController(object):
             os.makedirs(MINER_DIR)
         if wallet is not None:
             self.wallet = wallet.strip()
-        if threads is not None and str(threads).strip() != "":
-            t_raw = str(threads).strip().lower()
+        if threads is not None and _xm_str(threads).strip() != "":
+            t_raw = _xm_str(threads).strip().lower()
             if t_raw in ("auto", "max", "default", "0", "-1"):
                 self.custom_threads = False
                 self.threads = self.max_cpu_threads
@@ -527,10 +541,10 @@ class LocalMinerController(object):
             return self.get_status()
         except Exception as e:
             self.process = None
-            self._append_log("[Miner] Failed to launch miner: %s" % str(e))
+            self._append_log("[Miner] Failed to launch miner: %s" % _xm_str(e))
             st = self.get_status()
             st["ok"] = False
-            st["error"] = str(e)
+            st["error"] = _xm_str(e)
             return st
 
     def stop_mining(self):

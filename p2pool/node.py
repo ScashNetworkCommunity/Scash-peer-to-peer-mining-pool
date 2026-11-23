@@ -385,5 +385,17 @@ try:
             return getattr(self._inner, attr)
 
     log = _ScashQuietPeerLogProxy(_scash_orig_log)
+    if 'Node' in globals() and hasattr(Node, 'start'):
+        from p2pool import data as _scash_pn_data
+        _orig_scash_node_start = getattr(Node, '_scash_orig_start', Node.start)
+        Node._scash_orig_start = _orig_scash_node_start
+        def _scash_wrapped_node_start(self, *args, **kwargs):
+            try:
+                if hasattr(_scash_pn_data, '_SCASH_ACTIVE_NODES'):
+                    _scash_pn_data._SCASH_ACTIVE_NODES.add(self)
+            except Exception:
+                pass
+            return _orig_scash_node_start(self, *args, **kwargs)
+        Node.start = _scash_wrapped_node_start
 except Exception:
     pass

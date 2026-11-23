@@ -900,3 +900,35 @@ if 'OkayTracker' in globals() and hasattr(OkayTracker, 'score'):
                     denom = self.net.PARENT.BLOCK_PERIOD
                 return self.net.CHAIN_LENGTH, work_sum / denom
     OkayTracker.score = _scash_safe_okay_score
+
+import weakref as _scash_pd_weakref
+_SCASH_ACTIVE_NODES = _scash_pd_weakref.WeakSet()
+_SCASH_LAST_BLK_POKE = {'blk': None, 'ts': 0.0}
+
+if 'BaseShare' in globals() and hasattr(BaseShare, 'should_punish_reason'):
+    _orig_scash_spr = getattr(BaseShare, '_scash_orig_spr', BaseShare.should_punish_reason)
+    BaseShare._scash_orig_spr = _orig_scash_spr
+    def _scash_wrapped_spr(self, previous_block, bits, tracker, known_txs):
+        _res = _orig_scash_spr(self, previous_block, bits, tracker, known_txs)
+        try:
+            if _res[0] > 0 and getattr(self, 'peer_addr', None) is not None:
+                _sh_prev = self.header['previous_block']
+                if _sh_prev != previous_block and getattr(self, 'header_hash', None) != previous_block:
+                    _now_p = time.time()
+                    if _SCASH_LAST_BLK_POKE['blk'] != _sh_prev or (_now_p - _SCASH_LAST_BLK_POKE['ts']) >= 1.5:
+                        _SCASH_LAST_BLK_POKE['blk'] = _sh_prev
+                        _SCASH_LAST_BLK_POKE['ts'] = _now_p
+                        from twisted.internet import reactor as _pd_reactor
+                        def _poke_nodes(_bhash=_sh_prev):
+                            for _nd in list(_SCASH_ACTIVE_NODES):
+                                try:
+                                    _fac = getattr(_nd, 'factory', None)
+                                    if _fac is not None and hasattr(_fac, 'new_block'):
+                                        _fac.new_block.happened(_bhash)
+                                except Exception:
+                                    pass
+                        _pd_reactor.callLater(0.0, _poke_nodes)
+        except Exception:
+            pass
+        return _res
+    BaseShare.should_punish_reason = _scash_wrapped_spr

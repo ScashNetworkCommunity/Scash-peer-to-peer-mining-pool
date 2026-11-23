@@ -83,3 +83,38 @@ class Variable(object):
     
     def get_not_none(self):
         return self.get_when_satisfies(lambda val: val is not None)
+
+# --- Scash PyPy Weakref GC Safe Watch Guard ---
+import weakref as _scash_var_weakref
+
+def _scash_install_safe_watch_weakref(_cls):
+    if _cls is None or not hasattr(_cls, 'watch_weakref'):
+        return
+    _orig_ww = getattr(_cls, '_scash_orig_ww', _cls.watch_weakref)
+    _cls._scash_orig_ww = _orig_ww
+    def _safe_watch_weakref(self, obj, func):
+        _wid_box = [None]
+        def _safe_unwatch():
+            _wid = _wid_box[0]
+            if _wid is not None:
+                _wid_box[0] = None
+                try:
+                    _obs = getattr(self, 'observers', None)
+                    if _obs is None or _wid in _obs:
+                        self.unwatch(_wid)
+                except Exception:
+                    pass
+        _obj_ref = _scash_var_weakref.ref(obj, lambda _r: _safe_unwatch())
+        def _cb(*args):
+            _o = _obj_ref()
+            if _o is None:
+                _safe_unwatch()
+                return None
+            return func(_o, *args)
+        _wid_box[0] = self.watch(_cb)
+        return _wid_box[0]
+    _cls.watch_weakref = _safe_watch_weakref
+
+for _vcls_name in ('Event', 'Variable'):
+    if _vcls_name in globals():
+        _scash_install_safe_watch_weakref(globals()[_vcls_name])

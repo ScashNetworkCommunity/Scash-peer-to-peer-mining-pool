@@ -59,6 +59,23 @@ class StratumRPCMiningProvider(object):
                 pass
         else:
             eff_pseudo = min(int(desired_pseudoshare_target), max_pseudo_target)
+        if desired_share_target is None and os.environ.get('SCASH_CI_FAST_DIFF') != '1':
+            try:
+                from p2pool import data as _p2p_st_data
+                _node = getattr(self.wb, 'node', None)
+                _tr = getattr(_node, 'tracker', None)
+                _net = getattr(_node, 'net', None)
+                _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+                if _tr is not None and _best is not None and _best in _tr.items:
+                    _ch_h = int(_tr.get_height(_best))
+                    _lb = int(getattr(_net, 'TARGET_LOOKBEHIND', 200))
+                    if _ch_h >= _lb and _lb >= 2:
+                        _real_aps = float(_p2p_st_data.get_pool_attempts_per_second(_tr, _best, _lb, min_work=False))
+                        _sp = float(getattr(_net, 'SHARE_PERIOD', 15))
+                        _want_hashes = max(float(min_hashes * 2), _real_aps * _sp)
+                        desired_share_target = int(bitcoin_data.average_attempts_to_target(_want_hashes))
+            except Exception:
+                pass
         x, got_response = self.wb.get_work(pubkey_hash, desired_share_target, eff_pseudo)
         # Ensure miner target is NEVER easier than x['share_target'] (`target` in p2pool/work.py)
         raw_t = int(x.get('target', x['share_target']))
@@ -341,7 +358,7 @@ class StratumRPCMiningProvider(object):
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
             sys.stderr.flush()
-            return False, str(e)
+            return False, repr(e)
 
     def close(self):
         if self._pending_send is not None and self._pending_send.active():
@@ -407,7 +424,7 @@ class StratumProtocol(jsonrpc.LineBasedPeer):
                     self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": [21, "Stale or rejected share", None], "result": False})
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
-                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": [20, str(e), None], "result": False})
+                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": [20, repr(e), None], "result": False})
             return
 
         if method == 'login' and isinstance(params, dict):
@@ -430,7 +447,7 @@ class StratumProtocol(jsonrpc.LineBasedPeer):
                 })
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
-                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": {"code": -1, "message": str(e)}, "result": None})
+                self.send_json_line({"id": req_id, "jsonrpc": "2.0", "error": {"code": -1, "message": repr(e)}, "result": None})
             return
 
         if method == 'submit' and isinstance(params, dict):

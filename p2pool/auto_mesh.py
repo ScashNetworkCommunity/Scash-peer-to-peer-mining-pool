@@ -114,6 +114,79 @@ _HELLO_RATE_LIMIT = {}
 _PUNCH_TARGETS = {}
 _HTTPS_HP_CANDIDATES = {}
 _STOP_EVENT = threading.Event()
+_BRIDGED_SCASHD_IPS = set()
+_PENDING_SCASHD_BRIDGE = []
+_SCASHD_BRIDGE_LOCK = threading.Lock()
+
+
+def _utf8_str(val):
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    try:
+        if sys.version_info[0] < 3:
+            return val.encode("utf-8", "replace")
+        return val.decode("utf-8", "replace") if isinstance(val, bytes) else str(val)
+    except Exception:
+        return ""
+
+
+def queue_scashd_peer_bridge(ip):
+    s_ip = _utf8_str(ip).strip()
+    if not _is_valid_ipv4(s_ip) or s_ip.startswith(("127.", "0.", "169.254.")):
+        return False
+    if s_ip in get_local_lan_ipv4s():
+        return False
+    if MESH_STATE.get("external_ip") and s_ip == _utf8_str(MESH_STATE.get("external_ip")).strip():
+        return False
+    with _SCASHD_BRIDGE_LOCK:
+        if s_ip in _BRIDGED_SCASHD_IPS:
+            return False
+        _BRIDGED_SCASHD_IPS.add(s_ip)
+        _PENDING_SCASHD_BRIDGE.append(s_ip)
+    return True
+
+
+def _drain_scashd_peer_bridges():
+    if os.environ.get("SCASH_CI_ISOLATED_MESH") == "1":
+        return 0
+    with _SCASHD_BRIDGE_LOCK:
+        if not _PENDING_SCASHD_BRIDGE:
+            return 0
+        batch = list(_PENDING_SCASHD_BRIDGE[:8])
+        del _PENDING_SCASHD_BRIDGE[:len(batch)]
+    bridged = 0
+    lan_added = []
+    for ip in batch:
+        target = "%s:8343" % ip
+        _rpc_call_scashd("addnode", [target, "add"])
+        _rpc_call_scashd("addnode", [target, "onetry"])
+        bridged += 1
+        if _is_private_rfc1918(ip):
+            lan_added.append(ip)
+    if lan_added:
+        try:
+            here = os.path.dirname(os.path.abspath(__file__))
+            lan_p = os.path.abspath(os.path.join(here, "..", "data", "scash", "lan_scash_peers.json"))
+            d_dir = os.path.dirname(lan_p)
+            if not os.path.isdir(d_dir):
+                os.makedirs(d_dir)
+            existing = []
+            if os.path.isfile(lan_p):
+                try:
+                    loaded = json.loads(open(lan_p, "r").read())
+                    if isinstance(loaded, list):
+                        existing = [_utf8_str(x).strip() for x in loaded if _is_private_rfc1918(_utf8_str(x).strip())]
+                except Exception:
+                    existing = []
+            for lip in lan_added:
+                if lip not in existing:
+                    existing.insert(0, lip)
+            open(lan_p, "w").write(json.dumps(existing[:16]))
+        except Exception:
+            pass
+    return bridged
 
 
 def _disable_win_udp_connreset(sock):
@@ -157,7 +230,9 @@ def _refresh_live_peer_counts():
                 out += 1
             paddr = getattr(proto, "addr", None)
             if paddr and len(paddr) >= 2:
-                p_ip, p_port = str(paddr[0]).strip(), int(paddr[1])
+                p_ip, p_port = _utf8_str(paddr[0]).strip(), int(paddr[1])
+                if not p_ip.startswith("127."):
+                    queue_scashd_peer_bridge(p_ip)
                 if _is_routable_public_ipv4(p_ip):
                     wan_cnt += 1
                 elif p_ip.startswith("127."):
@@ -760,10 +835,10 @@ def ingest_https_rendezvous_peers(p2p_node, peers_list):
     for item in peers_list[:32]:
         if not isinstance(item, dict):
             continue
-        r_inst = str(item.get("instance_id") or "").strip()
+        r_inst = _utf8_str(item.get("instance_id") or "").strip()
         if r_inst and my_inst and r_inst == my_inst:
             continue
-        ip = str(item.get("ip") or "").strip()
+        ip = _utf8_str(item.get("ip") or "").strip()
         if not _is_routable_public_ipv4(ip):
             continue
         try:
@@ -920,7 +995,7 @@ def _load_cached_peers():
         if isinstance(raw, list):
             for item in raw:
                 if isinstance(item, dict):
-                    ip = str(item.get("ip", "")).strip()
+                    ip = _utf8_str(item.get("ip", "")).strip()
                     port = int(item.get("port", 8344))
                     if _is_routable_public_ipv4(ip) and 0 < port <= 65535 and not is_self_endpoint(ip, port):
                         out.append((ip, port))
@@ -1377,6 +1452,7 @@ def _udp_beacon_worker(p2p_node, base_udp_port):
                         continue
 
                     tag = "%s:%d" % (sender_ip, r_tcp_port)
+                    queue_scashd_peer_bridge(sender_ip)
                     if tag not in MESH_STATE["discovered_lan_peers"]:
                         MESH_STATE["discovered_lan_peers"].append(tag)
 
@@ -1433,7 +1509,7 @@ def _rpc_call_scashd(method, params=None):
 def _extract_ipv4_from_addr(addr_str):
     if not addr_str:
         return None
-    s = str(addr_str).strip()
+    s = _utf8_str(addr_str).strip()
     if s.startswith("["):
         return None
     host = s.rsplit(":", 1)[0] if ":" in s else s
@@ -1464,6 +1540,8 @@ def _mesh_scanner_worker(p2p_node):
     while not _STOP_EVENT.is_set():
         now = time.time()
         _refresh_live_peer_counts()
+        _drain_scashd_peer_bridges()
+        _drain_scashd_peer_bridges()
         n_peers = int(MESH_STATE["connected_peers"])
         n_wan = int(MESH_STATE["connected_wan_peers"])
         local_ips = set(get_local_lan_ipv4s())
@@ -1561,7 +1639,7 @@ def _mesh_scanner_worker(p2p_node):
                     ip = _extract_ipv4_from_addr(p.get("addr", ""))
                     if not ip:
                         continue
-                    subv = str(p.get("subver", "")).lower()
+                    subv = _utf8_str(p.get("subver", "")).lower()
                     cand_port = my_port
                     m_port = re.search(r"p2pool:([0-9]{2,5})", subv)
                     if m_port:
@@ -1583,7 +1661,7 @@ def _mesh_scanner_worker(p2p_node):
             if isinstance(node_addrs, list):
                 for na in node_addrs:
                     if isinstance(na, dict):
-                        ip = str(na.get("address", "")).strip()
+                        ip = _utf8_str(na.get("address", "")).strip()
                         if _is_routable_public_ipv4(ip) and not is_self_endpoint(ip, my_port):
                             if (ip, my_port) not in prio_cands and (ip, my_port) not in other_cands:
                                 other_cands.append((ip, my_port))
@@ -1630,6 +1708,7 @@ def _mesh_scanner_worker(p2p_node):
                 open_lan = _probe_tcp_batch(lan_cands, timeout=0.28)
                 for ip, port in open_lan:
                     tag = "%s:%d" % (ip, port)
+                    queue_scashd_peer_bridge(ip)
                     if tag not in MESH_STATE["discovered_lan_peers"]:
                         MESH_STATE["discovered_lan_peers"].append(tag)
                     _schedule_connect(p2p_node, ip, port, immediate=True, source="lan_tcp_sweep")

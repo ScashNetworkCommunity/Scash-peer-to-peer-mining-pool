@@ -477,7 +477,14 @@ def get_web_root(wb, datadir_path, bitcoind_getinfo_var, stop_event=variable.Eve
 # --- Scash QtKawaii Built-in XMRig & Community Nodes Web Endpoints ---
 try:
     import os
+    import sys as _w_usys
     import base64 as _w_b64
+    def _w_str(v):
+        if v is None: return ''
+        if isinstance(v, str): return v
+        try:
+            return v.encode('utf-8', 'replace') if _w_usys.version_info[0] < 3 else (v.decode('utf-8', 'replace') if isinstance(v, bytes) else str(v))
+        except Exception: return ''
     import json as _w_json
     import time as _w_time
     import threading as _w_threading
@@ -1221,7 +1228,7 @@ try:
             return 'nonkyc'
         if 'nestex' in s:
             return 'nestex'
-        clean = ''.join(ch if ch.isalnum() else '_' for ch in str(raw_id or raw_name or 'exchange').lower()).strip('_')
+        clean = ''.join(ch if ch.isalnum() else '_' for ch in _w_str(raw_id or raw_name or 'exchange').lower()).strip('_')
         return clean or 'exchange'
 
     def _compute_weighted_market_snapshot(raw_venues, block_reward=50.0, now_ep=None):
@@ -1462,8 +1469,8 @@ try:
                     if tk.get('is_stale') or tk.get('is_anomaly'):
                         continue
                     mkt = tk.get('market') or {}
-                    m_name = str(mkt.get('name') or '').strip()
-                    m_id = str(mkt.get('identifier') or '').strip()
+                    m_name = _w_str(mkt.get('name') or '').strip()
+                    m_id = _w_str(mkt.get('identifier') or '').strip()
                     ekey = _norm_exchange_key(m_id, m_name)
                     p_usd = float((tk.get('converted_last') or {}).get('usd') or 0.0)
                     v_usd = float((tk.get('converted_volume') or {}).get('usd') or 0.0)
@@ -1510,7 +1517,7 @@ try:
                         v_cp = float(q_usd.get('volume_24h') or 0.0)
                         if p_cp <= 0.0 or v_cp < 1.0:
                             continue
-                        ex_nm = str(mk.get('exchange_name') or '').strip()
+                        ex_nm = _w_str(mk.get('exchange_name') or '').strip()
                         ekey = _norm_exchange_key(mk.get('exchange_id'), ex_nm)
                         if ekey not in venues:
                             venues[ekey] = {
@@ -1697,7 +1704,7 @@ try:
         return cur
 
     def _html_esc(val):
-        s = str(val if val is not None else '')
+        s = _w_str(val if val is not None else '')
         return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
 
     def _resolve_block_hash_and_obj(raw_block_id):
