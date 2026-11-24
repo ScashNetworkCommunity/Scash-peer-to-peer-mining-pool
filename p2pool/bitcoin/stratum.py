@@ -162,8 +162,9 @@ class StratumRPCMiningProvider(object):
                         "method": "job",
                         "params": job_dict,
                     })
-            except Exception:
-                log.err()
+            except Exception as _sw_err:
+                if 'lost contact with bitcoind' not in str(_sw_err).lower():
+                    log.err()
             return
 
         try:

@@ -623,6 +623,17 @@ function makePairKey(instA, instB) {
   return instA < instB ? `${instA}|${instB}` : `${instB}|${instA}`;
 }
 
+function canPairEntries(a, b, activePairKeys) {
+  if (!a || !b || a.att.inst === b.att.inst) return false;
+  if (activePairKeys.has(makePairKey(a.att.inst, b.att.inst))) return false;
+  // Never pair two rigs behind the exact same home router/LAN (they connect directly over LAN :8344)
+  if (a.att.netHash && b.att.netHash && a.att.netHash === b.att.netHash) return false;
+  const skipA = Array.isArray(a.att.skip) ? a.att.skip : [];
+  const skipB = Array.isArray(b.att.skip) ? b.att.skip : [];
+  if (skipA.includes(b.att.inst) || skipB.includes(a.att.inst)) return false;
+  return true;
+}
+
 export class P2PoolRelayRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -757,12 +768,9 @@ export class P2PoolRelayRoom {
       let bestIdx = -1;
       for (let i = 0; i < acceptors.length; i++) {
         const ac = acceptors[i];
-        if (ac.att.inst === sk.att.inst) continue;
-        if (activePairKeys.has(makePairKey(ac.att.inst, sk.att.inst))) continue;
+        if (!canPairEntries(sk, ac, activePairKeys)) continue;
         bestIdx = i;
-        if (ac.att.netHash && sk.att.netHash && ac.att.netHash !== sk.att.netHash) {
-          break; // Prefer cross-WAN pairing first
-        }
+        break;
       }
       if (bestIdx >= 0) {
         const ac = acceptors.splice(bestIdx, 1)[0];
@@ -787,12 +795,9 @@ export class P2PoolRelayRoom {
       let partnerIdx = -1;
       for (let j = idx + 1; j < unmatchedSeekers.length; j++) {
         const s2 = unmatchedSeekers[j];
-        if (s2.att.inst === s1.att.inst) continue;
-        if (activePairKeys.has(makePairKey(s1.att.inst, s2.att.inst))) continue;
+        if (!canPairEntries(s1, s2, activePairKeys)) continue;
         partnerIdx = j;
-        if (s2.att.netHash && s1.att.netHash && s2.att.netHash !== s1.att.netHash) {
-          break;
-        }
+        break;
       }
       if (partnerIdx >= 0) {
         const s2 = unmatchedSeekers.splice(partnerIdx, 1)[0];
@@ -848,6 +853,8 @@ export class P2PoolRelayRoom {
     const net = String(url.searchParams.get("net") || "7363617368703236").replace(/[^0-9a-fA-F]/g, "").toLowerCase().slice(0, 32) || "7363617368703236";
     const inst = String(url.searchParams.get("inst") || "").replace(/[^0-9a-fA-F]/g, "").toLowerCase().slice(0, 24);
     const slot = Math.max(0, Math.min(2, parseInt(url.searchParams.get("slot") || "0", 10) || 0));
+    const skipRaw = String(url.searchParams.get("skip") || "");
+    const skip = skipRaw.split(",").map(s => s.replace(/[^0-9a-fA-F]/g, "").toLowerCase().slice(0, 24)).filter(Boolean).slice(0, 12);
     const netHash = String(request.headers.get("X-Scash-NetHash") || "").slice(0, 16);
 
     if (!inst || inst.length < 6) {
@@ -880,6 +887,7 @@ export class P2PoolRelayRoom {
       inst,
       slot,
       netHash,
+      skip,
       partnerConnId: null,
       partnerInst: null,
       role: null,

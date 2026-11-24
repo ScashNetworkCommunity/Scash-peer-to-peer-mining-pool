@@ -1279,22 +1279,32 @@
         footerStatus.textContent = `● Scash Block #${blks.toLocaleString()} • P2Pool Sharechain Ready`;
       }
 
-      // KPIs & Payouts (100% Real!)
+      // KPIs & Payouts (100% Real — respects post-outage drops & 0-peer solo state!)
+      const tel = live.telemetry || {};
+      const hrTel = tel.hashrates || {};
+      const lgTel = tel.ledger || {};
+      const mkTel = tel.market || {};
+
       const localHs = computeLocalHashrateHs();
-      const poolHs = gs ? (Number(gs.pool_hash_rate) || 0) : 0;
-      const effPoolHs = Math.max(poolHs, localHs);
+      const rawGsPoolHs = gs ? (Number(gs.pool_hash_rate) || 0) : 0;
+      const telPoolLive = (hrTel.pool_live_hs !== undefined) ? Number(hrTel.pool_live_hs) : rawGsPoolHs;
+      const effPoolHs = (p2pPeers === 0) ? localHs : Math.max(telPoolLive, localHs);
       const shTotalPre = ls && ls.shares ? Number(ls.shares.total || 0) : 0;
       const rawPayoutEntries = Object.entries(live.payouts || {}).filter(([, amt]) => Number(amt) >= 0.00001);
       const savedW = (wInput?.value || ms.wallet || '').trim().toLowerCase();
       const payoutEntries = (
         shTotalPre === 0 &&
-        poolHs <= 0 &&
+        rawGsPoolHs <= 0 &&
         rawPayoutEntries.length === 1 &&
         (!savedW || rawPayoutEntries[0][0].toLowerCase() !== savedW)
       ) ? [] : rawPayoutEntries;
       const minerPayoutEntries = payoutEntries;
       const activeStratumWorkers = ls && ls.miner_hash_rates ? Object.keys(ls.miner_hash_rates).length : 0;
-      const activeMinerCount = Math.max(minerPayoutEntries.length, activeStratumWorkers, ms.running ? 1 : 0);
+      const localActiveCnt = Math.max(activeStratumWorkers, ms.running ? 1 : 0);
+      const activeMinerCount = (hrTel.active_miners_now !== undefined)
+        ? Math.max(Number(hrTel.active_miners_now || 0), localActiveCnt)
+        : (p2pPeers === 0 ? localActiveCnt : Math.max(minerPayoutEntries.length, localActiveCnt));
+      const pplns24hCount = Math.max(Number(hrTel.pplns_miners_24h || 0), minerPayoutEntries.length, activeMinerCount);
 
       const blockReward = ls && ls.block_value ? Number(ls.block_value) : 50.0;
       document.getElementById('blockRewardRowText').textContent = blockReward.toFixed(8) + ' SCASH';
@@ -1305,18 +1315,13 @@
       const myPayout = userWallet && payoutMapActive[userWallet] ? Number(payoutMapActive[userWallet]) : 0.0;
       document.getElementById('myCurrentPayoutText').textContent = myPayout.toFixed(8) + ' SCASH';
 
-      const tel = live.telemetry || {};
-      const hrTel = tel.hashrates || {};
-      const lgTel = tel.ledger || {};
-      const mkTel = tel.market || {};
-
       const loc10 = Math.max(Number(ms.hashrate_10s_hs || 0), Number(hrTel.local_10s_hs || 0), localHs);
-      const loc60 = Math.max(Number(ms.hashrate_60s_hs || 0), Number(hrTel.local_60s_hs || 0), (ms.running || activeStratumWorkers > 0) ? 0 : 0);
+      const loc60 = Math.max(Number(ms.hashrate_60s_hs || 0), Number(hrTel.local_60s_hs || 0));
       const loc30m = Math.max(Number(ms.hashrate_30m_hs || 0), Number(hrTel.local_30m_hs || 0));
 
-      const pool10 = Math.max(Number(hrTel.pool_10s_hs || 0), effPoolHs, loc10);
-      const pool60 = Math.max(Number(hrTel.pool_60s_hs || 0), loc60 > 0 ? loc60 : effPoolHs);
-      const pool30m = Math.max(Number(hrTel.pool_30m_hs || 0), loc30m > 0 ? loc30m : effPoolHs);
+      const pool10 = (p2pPeers === 0) ? loc10 : Math.max(Number(hrTel.pool_10s_hs || 0), effPoolHs, loc10);
+      const pool60 = (p2pPeers === 0) ? (loc60 || loc10) : Math.max(Number(hrTel.pool_60s_hs || 0), loc60 > 0 ? loc60 : effPoolHs);
+      const pool30m = (p2pPeers === 0) ? (loc30m || loc60 || loc10) : Math.max(Number(hrTel.pool_30m_hs || 0), loc30m > 0 ? loc30m : effPoolHs);
 
       document.getElementById('kpiLocalHashrate').textContent = fmtHashrate(localHs);
       document.getElementById('kpiLocal10s').textContent = fmtHashrate((ms.running || activeStratumWorkers > 0) ? loc10 : 0);
@@ -1329,7 +1334,8 @@
       document.getElementById('kpiPool10s').textContent = fmtHashrate(effPoolHs > 0 ? pool10 : Number(hrTel.pool_10s_hs || 0));
       document.getElementById('kpiPool60s').textContent = fmtHashrate(effPoolHs > 0 ? pool60 : Number(hrTel.pool_60s_hs || 0));
       document.getElementById('kpiPool30m').textContent = fmtHashrate(effPoolHs > 0 ? pool30m : Number(hrTel.pool_30m_hs || 0));
-      document.getElementById('kpiPoolMiners').textContent = `${activeMinerCount} Active Miner${activeMinerCount === 1 ? '' : 's'}`;
+      const pplnsNote = (pplns24hCount > activeMinerCount) ? ` (${pplns24hCount} in 24h PPLNS)` : '';
+      document.getElementById('kpiPoolMiners').textContent = `${activeMinerCount} Active Miner${activeMinerCount === 1 ? '' : 's'}${pplnsNote}`;
 
       // Render Miner SCASH Mined (7d / 30d / All-Time) + USD equivalents
       const wPrice = Number(mkTel.weighted_price_usd || 0);

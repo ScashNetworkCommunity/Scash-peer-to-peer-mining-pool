@@ -131,6 +131,7 @@ _SCASHD_BRIDGE_LOCK = threading.Lock()
 _WSS_SESSIONS = {}
 _WSS_LOCK = threading.Lock()
 _WSS_META = {"disabled_until": 0.0, "fail_streak": 0}
+_WSS_PEER_COOLDOWN = {}
 
 
 def _utf8_str(val):
@@ -472,6 +473,7 @@ class _UdpTunnelSession(object):
 
         now = time.time()
         self.created_ts = now
+        self.established_ts = 0.0
         self.last_rx_ts = now
         self.last_open_sent_ts = 0.0
         self.last_keepalive_ts = now
@@ -2225,8 +2227,17 @@ def _open_rfc6455_connection(ws_url, net_hex, inst_id, slot_num, timeout=6.5):
     if parsed is None:
         return None, None, 0
     use_tls, host, port, base_path = parsed
+    now_t = time.time()
+    skip_list = []
+    for k_inst, exp_t in list(_WSS_PEER_COOLDOWN.items()):
+        if now_t >= exp_t:
+            _WSS_PEER_COOLDOWN.pop(k_inst, None)
+        else:
+            skip_list.append(k_inst)
     sep = "&" if "?" in base_path else "?"
     req_path = "%s%snet=%s&inst=%s&slot=%d" % (base_path, sep, str(net_hex), str(inst_id), int(slot_num))
+    if skip_list:
+        req_path += "&skip=" + ",".join(skip_list[:10])
 
     raw_sock = socket.create_connection((host, port), timeout=float(timeout))
     try:
@@ -2449,6 +2460,7 @@ class _Rfc6455RelaySession(object):
             cs.setblocking(False)
             self.tcp_sock = cs
             self.established = True
+            self.established_ts = time.time()
             print("[AutoMesh] Accepted CGNAT peer %s via Cloudflare WSS relay (slot %d)" % (p_inst[:12] or "peer", self.slot))
         else:
             ls = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -2459,6 +2471,7 @@ class _Rfc6455RelaySession(object):
             self.listen_sock = ls
             self.local_bridge_port = int(ls.getsockname()[1])
             self.established = True
+            self.established_ts = time.time()
             if self.on_initiator_ready is not None:
                 self.on_initiator_ready(self.local_bridge_port)
             elif self.p2p_node is not None:
@@ -2671,6 +2684,8 @@ class _Rfc6455RelaySession(object):
         except Exception:
             _WSS_META["fail_streak"] = min(6, int(_WSS_META.get("fail_streak") or 0) + 1)
         finally:
+            if self.remote_inst and self.established_ts > 0.0 and (time.time() - self.established_ts) < 15.0:
+                _WSS_PEER_COOLDOWN[self.remote_inst] = time.time() + 180.0
             self.close(send_ws_close=False)
             with _WSS_LOCK:
                 _WSS_SESSIONS.pop(self.sess_id, None)

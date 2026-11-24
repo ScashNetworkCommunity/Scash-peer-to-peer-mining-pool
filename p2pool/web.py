@@ -671,7 +671,7 @@ try:
                     _lb = min(_ch_h, 360, _real_len)
                     if _lb >= 2:
                         live_hs = float(_p2p_d2.get_pool_attempts_per_second(_tracker, _best, _lb))
-                    # Measure contiguous active window (up to 60 shares) when tip is fresh
+                    # Measure contiguous active window (up to 60 shares, stopping at any >300s power-outage gap)
                     if _tip_age <= 300.0:
                         _act_n = 1
                         _cur_h = _best
@@ -688,24 +688,33 @@ try:
                             _prev_t = _par_t
                         if _act_n >= 3:
                             _act_hr = float(_p2p_d2.get_pool_attempts_per_second(_tracker, _best, _act_n))
-                            if _act_hr > live_hs:
-                                live_hs = _act_hr
+                            # Always adopt the post-gap contiguous window (reflects BOTH increases and miner drops!)
+                            live_hs = _act_hr
                             sc_60s_hs = _act_hr
-                    # Exact 30-minute (1800s) sharechain window
+                    elif _tip_age > 300.0:
+                        live_hs = 0.0
+                    # Strict 30-minute (1800s) sharechain window: only count shares actually mined in the last 30m!
                     if _tip_age <= 1800.0:
-                        _n30 = 1
                         _cur30 = _best
-                        _tip_t = float(_s_tip.timestamp)
-                        for _ in range(min(_ch_h - 1, _real_len - 1, 720)):
-                            _par30 = _tracker.items[_cur30].previous_hash
-                            if _par30 not in _tracker.items:
+                        _work30 = 0.0
+                        _cnt30 = 0
+                        _oldest_t = float(_s_tip.timestamp)
+                        for _ in range(min(_ch_h, _real_len, 720)):
+                            _sh30 = _tracker.items.get(_cur30)
+                            if _sh30 is None:
                                 break
-                            _n30 += 1
-                            _cur30 = _par30
-                            if (_tip_t - float(_tracker.items[_cur30].timestamp)) >= 1800.0:
+                            _st30 = float(_sh30.timestamp)
+                            if (float(now_ts) - _st30) > 1800.0:
                                 break
-                        if _n30 >= 2:
-                            sc_30m_hs = float(_p2p_d2.get_pool_attempts_per_second(_tracker, _best, _n30))
+                            _work30 += float(2**256) / max(1.0, float(_sh30.target) + 1.0)
+                            _cnt30 += 1
+                            _oldest_t = _st30
+                            _cur30 = getattr(_sh30, 'previous_hash', None)
+                            if _cur30 is None:
+                                break
+                        if _cnt30 >= 2:
+                            _span30 = max(60.0, min(1800.0, float(now_ts) - _oldest_t))
+                            sc_30m_hs = _work30 / _span30
                             has_sc_30m = True
                 elif _ch_h == 1:
                     _s0 = _tracker.items[_best]
@@ -730,7 +739,42 @@ try:
         st_inst = _measure_instant_stratum_hs(_wb_ref)
         sc_live, sc_60, sc_30m, has_sc_30m = _measure_sharechain_rates(_wb_ref, t_now)
         loc_live = max(xm_live, st_inst)
-        pool_inst = max(sc_live, loc_live)
+
+        # Count live P2Pool peers + truly active miners (shares in last 15m) vs 24h PPLNS payout wallets
+        _p2p_peer_cnt = 0
+        _recent_15m_scripts = set()
+        _pplns_24h_scripts = set()
+        _don_sc_m = None
+        try:
+            from p2pool import data as _p2p_d_m
+            _don_sc_m = getattr(_p2p_d_m, 'DONATION_SCRIPT', None)
+        except Exception:
+            _don_sc_m = None
+        try:
+            _nd_m = getattr(_wb_ref, 'node', None)
+            _p2pn_m = getattr(_nd_m, 'p2p_node', None)
+            if _p2pn_m is not None and getattr(_p2pn_m, 'peers', None) is not None:
+                _p2p_peer_cnt = len(_p2pn_m.peers)
+            _tr_m = getattr(_nd_m, 'tracker', None)
+            _best_m = getattr(getattr(_nd_m, 'best_share_var', None), 'value', None)
+            if _best_m is not None and _tr_m is not None and _best_m in _tr_m.items:
+                _ch_m = int(_tr_m.get_height(_best_m))
+                _net_m = getattr(_nd_m, 'net', None)
+                _rl_m = int(getattr(_net_m, 'REAL_CHAIN_LENGTH', 5760))
+                for _shm in _tr_m.get_chain(_best_m, min(_ch_m, _rl_m)):
+                    _scm = getattr(_shm, 'new_script', None)
+                    if _scm and _scm != _don_sc_m:
+                        _pplns_24h_scripts.add(_scm)
+                        if (t_now - float(getattr(_shm, 'timestamp', 0) or 0)) <= 900.0:
+                            _recent_15m_scripts.add(_scm)
+        except Exception:
+            pass
+
+        # When 0 P2Pool peers are connected, no remote rig can contribute live hashrate right now!
+        if _p2p_peer_cnt == 0:
+            pool_inst = loc_live
+        else:
+            pool_inst = max(sc_live, loc_live)
 
         with _hr_ring_lock:
             _ring_push(_stratum_hr_ring, t_now, st_inst)
@@ -747,12 +791,23 @@ try:
         local_60s = max(xm_60, st_60)
         local_30m = max(xm_30m, st_30m)
 
-        pool_10s = max(p_roll_10, local_10s)
-        pool_60s = max(p_roll_60, sc_60 if sc_60 > 0 else 0.0, local_60s)
-        if has_sc_30m and ring_span < 1500.0:
-            pool_30m = max(sc_30m, local_30m)
+        if _p2p_peer_cnt == 0:
+            pool_10s = local_10s
+            pool_60s = local_60s
+            pool_30m = local_30m if local_30m > 0 else (sc_30m if has_sc_30m else p_roll_30m)
         else:
-            pool_30m = max(p_roll_30m, sc_30m if has_sc_30m else 0.0, local_30m)
+            pool_10s = max(p_roll_10, local_10s)
+            pool_60s = max(p_roll_60, sc_60 if sc_60 > 0 else 0.0, local_60s)
+            if has_sc_30m and ring_span < 1500.0:
+                pool_30m = max(sc_30m, local_30m)
+            else:
+                pool_30m = max(p_roll_30m, sc_30m if has_sc_30m else 0.0, local_30m)
+
+        _loc_workers = 1 if (xm_live > 0 or st_inst > 0) else 0
+        if _p2p_peer_cnt == 0:
+            _active_now = _loc_workers
+        else:
+            _active_now = max(len(_recent_15m_scripts), _loc_workers)
 
         return {
             'local_live_hs': round(loc_live, 2),
@@ -763,6 +818,8 @@ try:
             'pool_10s_hs': round(pool_10s, 2),
             'pool_60s_hs': round(pool_60s, 2),
             'pool_30m_hs': round(pool_30m, 2),
+            'active_miners_now': int(_active_now),
+            'pplns_miners_24h': int(max(len(_pplns_24h_scripts), _active_now)),
         }
 
     # --- Incremental Local Scashd P2Pool Block & Miner Payout Ledger ---
@@ -2208,10 +2265,9 @@ try:
                                     _prev_t = _par_t
                                 if _act_n >= 3 and _act_n < _lb:
                                     _recent_hr = float(_p2p_data.get_pool_attempts_per_second(_tracker, _best, _act_n))
-                                    if _recent_hr > pool_hr:
-                                        pool_hr = _recent_hr
-                                        _dt_r = max(1.0, float(_s_tip.timestamp) - _prev_t)
-                                        shares_ps = round(float(_act_n - 1) / _dt_r, 4)
+                                    pool_hr = _recent_hr
+                                    _dt_r = max(1.0, float(_s_tip.timestamp) - _prev_t)
+                                    shares_ps = round(float(_act_n - 1) / _dt_r, 4)
                     except Exception:
                         pass
                 elif _ch_h == 1:
