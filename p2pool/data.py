@@ -822,8 +822,11 @@ def _scash_flush_tracker_caches(_tr_obj):
             _dt1.deltas.clear()
         for _sk_attr in ('get_nth_parent_hash', 'get_cumulative_weights'):
             _sk = getattr(_cand, _sk_attr, None)
-            if _sk is not None and hasattr(_sk, 'deltas') and isinstance(_sk.deltas, dict):
-                _sk.deltas.clear()
+            if _sk is not None:
+                if hasattr(_sk, 'skips') and isinstance(_sk.skips, dict):
+                    _sk.skips.clear()
+                if hasattr(_sk, 'deltas') and isinstance(_sk.deltas, dict):
+                    _sk.deltas.clear()
 
 if 'get_pool_attempts_per_second' in globals():
     _orig_scash_get_pool_aps = getattr(get_pool_attempts_per_second, '_scash_orig_fn', get_pool_attempts_per_second)

@@ -373,9 +373,13 @@ def _scash_clear_forest_caches(_tr):
         _dt1 = getattr(_t, '_delta_tracker', None)
         if _dt1 is not None and hasattr(_dt1, 'deltas') and isinstance(_dt1.deltas, dict):
             _dt1.deltas.clear()
-        _sk = getattr(_t, 'get_nth_parent_hash', None)
-        if _sk is not None and hasattr(_sk, 'deltas') and isinstance(_sk.deltas, dict):
-            _sk.deltas.clear()
+        for _sk_attr in ('get_nth_parent_hash', 'get_cumulative_weights'):
+            _sk = getattr(_t, _sk_attr, None)
+            if _sk is not None:
+                if hasattr(_sk, 'skips') and isinstance(_sk.skips, dict):
+                    _sk.skips.clear()
+                if hasattr(_sk, 'deltas') and isinstance(_sk.deltas, dict):
+                    _sk.deltas.clear()
 
 if 'TrackerSkipList' in globals() and hasattr(TrackerSkipList, '__call__'):
     _orig_scash_tsl_call = getattr(TrackerSkipList, '_scash_orig_call', TrackerSkipList.__call__)
@@ -384,10 +388,29 @@ if 'TrackerSkipList' in globals() and hasattr(TrackerSkipList, '__call__'):
         try:
             return _orig_scash_tsl_call(self, start, *args, **kwargs)
         except (AssertionError, KeyError):
+            if hasattr(self, 'skips') and isinstance(self.skips, dict):
+                self.skips.clear()
             if hasattr(self, 'deltas') and isinstance(self.deltas, dict):
                 self.deltas.clear()
-            _scash_clear_forest_caches(getattr(self, 'tracker', None))
-            return _orig_scash_tsl_call(self, start, *args, **kwargs)
+            _tr_sl = getattr(self, 'tracker', None)
+            _scash_clear_forest_caches(_tr_sl)
+            try:
+                return _orig_scash_tsl_call(self, start, *args, **kwargs)
+            except (AssertionError, KeyError):
+                _dsl = globals().get('DistanceSkipList')
+                if _tr_sl is not None and hasattr(_tr_sl, 'items') and ((_dsl is not None and isinstance(self, _dsl)) or self is getattr(_tr_sl, 'get_nth_parent_hash', None)):
+                    _n = int(args[0]) if args else 0
+                    _items = _tr_sl.items
+                    _cur = start
+                    _steps = 0
+                    while _steps < _n and _cur in _items:
+                        _nxt = getattr(_items[_cur], 'previous_hash', None)
+                        if _nxt is None:
+                            return _cur
+                        _cur = _nxt
+                        _steps += 1
+                    return _cur
+                raise
     TrackerSkipList.__call__ = _scash_safe_tsl_call
 
 if 'AttributeDeltaTracker' in globals() and hasattr(AttributeDeltaTracker, 'get_delta'):
