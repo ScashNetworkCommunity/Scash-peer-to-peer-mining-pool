@@ -3,6 +3,7 @@ import os
 import random
 import struct
 import sys
+import time
 import traceback
 
 from twisted.internet import protocol, reactor
@@ -28,6 +29,8 @@ class StratumRPCMiningProvider(object):
         self._last_sent_diff = None
         self._last_xmrig_sig = None
         self._diag_logged = False
+        self._worker_submit_ts = []
+        self._worker_est_hs = 0.0
         self.watch_id = self.wb.new_work_event.watch(self._on_new_work)
 
     def _schedule_send_work(self, delay=0.0):
@@ -46,13 +49,20 @@ class StratumRPCMiningProvider(object):
         pubkey_hash, desired_share_target, desired_pseudoshare_target = self.wb.preprocess_request(req_user)
         min_hashes = 1024 if os.environ.get('SCASH_CI_FAST_DIFF') == '1' else 8192
         max_pseudo_target = (2**256) // min_hashes - 1
+        est_hr = 0.0
+        try:
+            _wb_hr = self.wb._estimate_local_hash_rate()
+            if _wb_hr is not None and float(_wb_hr) > 0.0:
+                est_hr = float(_wb_hr)
+        except Exception:
+            pass
+        _eff_w_hr = max(est_hr, float(getattr(self, '_worker_est_hs', 0.0) or 0.0))
         if desired_pseudoshare_target is None:
             eff_pseudo = max_pseudo_target
             try:
-                est_hr = self.wb._estimate_local_hash_rate()
-                if est_hr is not None and float(est_hr) > 0.0:
-                    # Target ~1 pseudoshare every 2.5s for fast multi-core rigs, floored at min_hashes (8192)
-                    auto_t = int(bitcoin_data.average_attempts_to_target(float(est_hr) * 2.5))
+                if _eff_w_hr > 0.0:
+                    # Target ~1 pseudoshare every 2.5s per worker for fast multi-core rigs, floored at min_hashes (8192)
+                    auto_t = int(bitcoin_data.average_attempts_to_target(_eff_w_hr * 2.5))
                     if auto_t < eff_pseudo:
                         eff_pseudo = auto_t
             except Exception:
@@ -66,14 +76,22 @@ class StratumRPCMiningProvider(object):
                 _tr = getattr(_node, 'tracker', None)
                 _net = getattr(_node, 'net', None)
                 _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+                if _tr is not None and _best is not None and _best not in _tr.items:
+                    try:
+                        _node.set_best_share()
+                        _best = getattr(getattr(_node, 'best_share_var', None), 'value', None)
+                    except Exception:
+                        pass
                 if _tr is not None and _best is not None and _best in _tr.items:
                     _ch_h = int(_tr.get_height(_best))
                     _lb = int(getattr(_net, 'TARGET_LOOKBEHIND', 200))
-                    if _ch_h >= _lb and _lb >= 2:
-                        _real_aps = float(_p2p_st_data.get_pool_attempts_per_second(_tr, _best, _lb, min_work=False))
-                        _sp = float(getattr(_net, 'SHARE_PERIOD', 15))
-                        _want_hashes = max(float(min_hashes * 2), _real_aps * _sp)
-                        desired_share_target = int(bitcoin_data.average_attempts_to_target(_want_hashes))
+                    _real_aps = 0.0
+                    if _ch_h >= 2:
+                        _real_aps = float(_p2p_st_data.get_pool_attempts_per_second(_tr, _best, min(_ch_h, _lb), min_work=False))
+                    _sp = float(getattr(_net, 'SHARE_PERIOD', 15))
+                    _target_aps = max(_real_aps, _eff_w_hr)
+                    _want_hashes = max(float(min_hashes * 2), _target_aps * _sp)
+                    desired_share_target = int(bitcoin_data.average_attempts_to_target(_want_hashes))
             except Exception:
                 pass
         x, got_response = self.wb.get_work(pubkey_hash, desired_share_target, eff_pseudo)
@@ -315,6 +333,16 @@ class StratumRPCMiningProvider(object):
         entry = self.handler_map[job_id]
         x, got_response, coinb_nonce, merkle_root, header_80_base = entry[0], entry[1], entry[2], entry[3], entry[4]
         eff_target = entry[5] if len(entry) > 5 else x.get('target', x['share_target'])
+        try:
+            _now_s = time.time()
+            _sub_h = float(2**256) / max(1.0, float(eff_target) + 1.0)
+            self._worker_submit_ts.append((_now_s, _sub_h))
+            self._worker_submit_ts = [(t0, w0) for (t0, w0) in self._worker_submit_ts if (_now_s - t0) <= 60.0][-80:]
+            if len(self._worker_submit_ts) >= 3:
+                _dt_w = max(2.0, _now_s - self._worker_submit_ts[0][0])
+                self._worker_est_hs = sum(w0 for (_, w0) in self._worker_submit_ts) / _dt_w
+        except Exception:
+            pass
         raw_nonce = nonce_hex.decode('hex')
         if len(raw_nonce) != 4:
             return False, "Invalid nonce length"

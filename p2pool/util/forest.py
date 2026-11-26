@@ -446,3 +446,22 @@ if 'AttributeDeltaTracker' in globals() and hasattr(AttributeDeltaTracker, 'get_
                     return res
                 raise
     AttributeDeltaTracker.get_delta = _scash_safe_adt_get_delta
+
+if 'Tracker' in globals() and hasattr(Tracker, 'get_chain'):
+    _orig_scash_get_chain = getattr(Tracker, '_scash_orig_get_chain', Tracker.get_chain)
+    Tracker._scash_orig_get_chain = _orig_scash_get_chain
+    def _scash_safe_get_chain(self, start_hash, length):
+        _cur = start_hash
+        _rem = int(length) if length is not None else 0
+        if _cur is None or _rem <= 0:
+            return
+        _items = getattr(self, 'items', {})
+        if _cur not in _items:
+            _scash_clear_forest_caches(self)
+            return
+        while _rem > 0 and _cur is not None and _cur in _items:
+            _item = _items[_cur]
+            yield _item
+            _cur = getattr(_item, 'previous_hash', None)
+            _rem -= 1
+    Tracker.get_chain = _scash_safe_get_chain
