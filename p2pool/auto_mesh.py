@@ -1,5 +1,5 @@
 """
-Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.4.0).
+Automatic Serverless Peer-to-Peer Mesh & Decentralized UDP Hole-Punching for Scash P2Pool (v0.4.1).
 Compatible with BOTH PyPy 2.7 (bundled runtime) and Python 3.x!
 
 Every miner running Start-Scash-P2Pool automatically runs a full Scash Core 30.4.0 node
@@ -2300,7 +2300,7 @@ def _open_rfc6455_connection(ws_url, net_hex, inst_id, slot_num, timeout=6.5):
         "Connection: Upgrade",
         "Sec-WebSocket-Key: %s" % sec_key,
         "Sec-WebSocket-Version: 13",
-        "User-Agent: Scash-P2Pool/0.4.0",
+        "User-Agent: Scash-P2Pool/0.4.1",
         "",
         "",
     ]

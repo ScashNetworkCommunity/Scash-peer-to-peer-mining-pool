@@ -398,18 +398,44 @@ if 'TrackerSkipList' in globals() and hasattr(TrackerSkipList, '__call__'):
                 return _orig_scash_tsl_call(self, start, *args, **kwargs)
             except (AssertionError, KeyError):
                 _dsl = globals().get('DistanceSkipList')
-                if _tr_sl is not None and hasattr(_tr_sl, 'items') and ((_dsl is not None and isinstance(self, _dsl)) or self is getattr(_tr_sl, 'get_nth_parent_hash', None)):
-                    _n = int(args[0]) if args else 0
+                if _tr_sl is not None and hasattr(_tr_sl, 'items'):
                     _items = _tr_sl.items
-                    _cur = start
-                    _steps = 0
-                    while _steps < _n and _cur in _items:
-                        _nxt = getattr(_items[_cur], 'previous_hash', None)
-                        if _nxt is None:
-                            return _cur
-                        _cur = _nxt
-                        _steps += 1
-                    return _cur
+                    if (_dsl is not None and isinstance(self, _dsl)) or self is getattr(_tr_sl, 'get_nth_parent_hash', None):
+                        _n = int(args[0]) if args else 0
+                        _cur = start
+                        _steps = 0
+                        while _steps < _n and _cur in _items:
+                            _nxt = getattr(_items[_cur], 'previous_hash', None)
+                            if _nxt is None or _nxt not in _items:
+                                return _cur
+                            _cur = _nxt
+                            _steps += 1
+                        return _cur
+                    if self is getattr(_tr_sl, 'get_cumulative_weights', None) and len(args) >= 2:
+                        _max_sh, _des_w = int(args[0]), int(args[1])
+                        _wmap = {}
+                        _tot_w = 0
+                        _don_w = 0
+                        _cnt = 0
+                        _cur = start
+                        while _cnt < _max_sh and _tot_w < _des_w and _cur is not None and _cur in _items:
+                            _d_cnt, _d_w, _d_tot, _d_don = self.get_delta(_cur)
+                            if _tot_w + _d_tot > _des_w:
+                                _rem_w = (_des_w - _tot_w) // 65535
+                                _denom = max(1, _d_tot // 65535)
+                                for _k, _v in _d_w.items():
+                                    _wmap[_k] = _wmap.get(_k, 0) + (_rem_w * _v // _denom)
+                                _don_w += (_rem_w * _d_don // _denom)
+                                _tot_w = _des_w
+                                _cnt += 1
+                                break
+                            for _k, _v in _d_w.items():
+                                _wmap[_k] = _wmap.get(_k, 0) + _v
+                            _tot_w += _d_tot
+                            _don_w += _d_don
+                            _cnt += 1
+                            _cur = getattr(_items[_cur], 'previous_hash', None)
+                        return _wmap, _tot_w, _don_w
                 raise
     TrackerSkipList.__call__ = _scash_safe_tsl_call
 

@@ -63,7 +63,7 @@ def is_segwit_activated(version, net):
     segwit_activation_version = getattr(net, 'SEGWIT_ACTIVATION_VERSION', 0)
     return version >= segwit_activation_version and segwit_activation_version > 0
 
-DONATION_SCRIPT = '0014c2cee763fa09c5a1dd1b2153a61f66cdc61ea943'.decode('hex')  # legacy sharechain consensus script (0% fee in v0.4.0)
+DONATION_SCRIPT = '0014c2cee763fa09c5a1dd1b2153a61f66cdc61ea943'.decode('hex')  # legacy sharechain consensus script (0% fee in v0.4.1)
 
 class BaseShare(object):
     VERSION = 0
@@ -935,3 +935,53 @@ if 'BaseShare' in globals() and hasattr(BaseShare, 'should_punish_reason'):
             pass
         return _res
     BaseShare.should_punish_reason = _scash_wrapped_spr
+
+if 'OkayTracker' in globals() and hasattr(OkayTracker, 'think'):
+    _orig_scash_okay_think = getattr(OkayTracker, '_scash_orig_think', OkayTracker.think)
+    OkayTracker._scash_orig_think = _orig_scash_okay_think
+    def _scash_safe_okay_think(self, *args, **kwargs):
+        try:
+            return _orig_scash_okay_think(self, *args, **kwargs)
+        except KeyError:
+            # Prune any dangling hash references in self.reverse / verified.reverse not present in self.items
+            try:
+                _it = getattr(self, 'items', {})
+                for _rev_owner in (self, getattr(self, 'verified', None)):
+                    _rev = getattr(_rev_owner, 'reverse', None)
+                    if isinstance(_rev, dict):
+                        for _rk in list(_rev.keys()):
+                            _vals = _rev.get(_rk)
+                            if _vals:
+                                _dead = [x for x in list(_vals) if x not in _it]
+                                for _dx in _dead:
+                                    _vals.discard(_dx)
+                                if not _vals:
+                                    _rev.pop(_rk, None)
+                _scash_flush_tracker_caches(self)
+            except Exception:
+                pass
+            return _orig_scash_okay_think(self, *args, **kwargs)
+    OkayTracker.think = _scash_safe_okay_think
+
+if 'get_stale_counts' in globals():
+    _orig_scash_gsc_data = getattr(get_stale_counts, '_scash_orig_fn', get_stale_counts)
+    def get_stale_counts(tracker, share_hash, lookbehind, rates=False):
+        try:
+            return _orig_scash_gsc_data(tracker, share_hash, lookbehind, rates=rates)
+        except (KeyError, AssertionError, ZeroDivisionError):
+            _scash_flush_tracker_caches(tracker)
+            res = {}
+            if share_hash is None or share_hash not in tracker.items:
+                return res
+            _oldest_t = tracker.items[share_hash].timestamp
+            for _sh in tracker.get_chain(share_hash, max(0, int(lookbehind) - 1)):
+                res['good'] = res.get('good', 0) + bitcoin_data.target_to_average_attempts(_sh.target)
+                _s = _sh.share_data['stale_info']
+                if _s is not None:
+                    res[_s] = res.get(_s, 0) + bitcoin_data.target_to_average_attempts(_sh.target)
+                _oldest_t = _sh.timestamp
+            if rates:
+                _dt = max(1, tracker.items[share_hash].timestamp - _oldest_t)
+                res = dict((k, v / _dt) for k, v in res.items())
+            return res
+    get_stale_counts._scash_orig_fn = _orig_scash_gsc_data

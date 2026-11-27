@@ -1,4 +1,4 @@
-# Scash P2Pool v0.4.0 — Free-Plan Cloudflare Worker + D1 Stats + Durable Object CGNAT WebSocket Relay
+# Scash P2Pool v0.4.1 — Free-Plan Cloudflare Worker + D1 Stats + Durable Object CGNAT WebSocket Relay
 # Deploy via CLI (`npx wrangler deploy`) OR paste `worker.js` in the Cloudflare Dashboard and add `DB` + `RELAY_DO` bindings.
 
 name = "scash-p2pool-stats"
